@@ -217,15 +217,15 @@ function initApp() {
   async function loadAll() {
     console.log('loadAll started');
     const ev = await sb.from('events').select('*').order('date', {ascending:false});
-    console.log('events:', ev.error?.message || ev.data?.length + ' rows');
+    if(ev.error) console.error('events error:', ev.error.message); else console.log('events:', ev.data.length, 'rows');
     const cu = await sb.from('customers').select('*').order('name');
-    console.log('customers:', cu.error?.message || cu.data?.length + ' rows');
+    if(cu.error) console.error('customers error:', cu.error.message); else console.log('customers:', cu.data.length, 'rows');
     const pa = await sb.from('customer_payments').select('*').order('date', {ascending:false});
-    console.log('payments:', pa.error?.message || pa.data?.length + ' rows');
+    if(pa.error) console.error('payments error:', pa.error.message); else console.log('payments:', pa.data.length, 'rows');
     const la = await sb.from('labor').select('*').order('created_at', {ascending:false});
-    console.log('labor:', la.error?.message || la.data?.length + ' rows');
+    if(la.error) console.error('labor error:', la.error.message); else console.log('labor:', la.data.length, 'rows');
     const ex = await sb.from('expenses').select('*').order('created_at', {ascending:false});
-    console.log('expenses:', ex.error?.message || ex.data?.length + ' rows');
+    if(ex.error) console.error('expenses error:', ex.error.message); else console.log('expenses:', ex.data.length, 'rows');
     cache.events    = ev.data || [];
     cache.customers = cu.data || [];
     cache.payments  = pa.data || [];
