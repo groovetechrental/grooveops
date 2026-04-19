@@ -327,7 +327,29 @@ function openEventDetail(id) {
         <div class="detail-row"><span class="lbl">Margin</span><span class="val">${fin.revenue>0?((fin.profit/fin.revenue)*100).toFixed(1)+'%':'—'}</span></div>
       </div>
     </div>
-    <div class="section-header"><div class="section-title">Labor</div><button class="btn btn-sm" onclick="openLaborModal('${sid(e.id)}')">+ Add Hours</button></div>
+    ${(e.labor||[]).filter(x=>x.name).length||((e.main_equip||[]).filter(x=>x.name).length)||((e.sec_equip||[]).filter(x=>x.name).length)?`
+    <div class="detail-panel" style="margin-bottom:16px">
+      <div class="detail-panel-title">From Calendar App</div>
+      ${(e.labor||[]).filter(x=>x.name).length?`
+        <div style="font-size:11px;font-weight:700;color:var(--blue);text-transform:uppercase;letter-spacing:.8px;margin-bottom:8px">Crew</div>
+        <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px">
+          ${(e.labor||[]).filter(x=>x.name).map(x=>`
+            <span style="font-size:12px;padding:3px 10px;border-radius:20px;border:1px solid ${x.confirmed?'rgba(76,175,80,.4)':'rgba(224,92,92,.4)'};color:${x.confirmed?'var(--green)':'var(--accent2)'};background:${x.confirmed?'rgba(76,175,80,.1)':'rgba(224,92,92,.08)'}">
+              ${esc(x.name)}${x.qty?' · '+esc(x.qty)+' hrs':''} ${x.confirmed?'✓':'?'}
+            </span>`).join('')}
+        </div>`:''}
+      ${(e.main_equip||[]).filter(x=>x.name).length?`
+        <div style="font-size:11px;font-weight:700;color:var(--green);text-transform:uppercase;letter-spacing:.8px;margin-bottom:8px">Main Equipment</div>
+        <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px">
+          ${(e.main_equip||[]).filter(x=>x.name).map(x=>`<span class="badge badge-green">${esc(x.name)}${x.qty?' x'+esc(x.qty):''}</span>`).join('')}
+        </div>`:''}
+      ${(e.sec_equip||[]).filter(x=>x.name).length?`
+        <div style="font-size:11px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:.8px;margin-bottom:8px">Secondary Equipment</div>
+        <div style="display:flex;flex-wrap:wrap;gap:6px">
+          ${(e.sec_equip||[]).filter(x=>x.name).map(x=>`<span class="badge badge-amber">${esc(x.name)}${x.qty?' x'+esc(x.qty):''}</span>`).join('')}
+        </div>`:''}
+    </div>`:''}
+    <div class="section-header"><div class="section-title">Labor Hours</div><button class="btn btn-sm" onclick="openLaborModal('${sid(e.id)}')">+ Add Hours</button></div>
     <table class="data-table"><thead><tr><th>Person</th><th>Hours</th><th>Rate</th><th>Earned</th><th>Notes</th><th></th></tr></thead><tbody>
     ${evLabor.map(l=>`<tr>
       <td style="text-transform:capitalize;font-weight:500">${esc(l.person)}</td>
@@ -335,7 +357,7 @@ function openEventDetail(id) {
       <td style="color:var(--green)">${fmt((l.hours||0)*(l.rate||0))}</td>
       <td style="color:var(--muted)">${esc(l.notes||'')}</td>
       <td><button class="btn btn-sm btn-danger" onclick="deleteRecord('labor','${sid(l.id)}',()=>openEventDetail('${sid(id)}'))">Del</button></td>
-    </tr>`).join('')||'<tr><td colspan="6"><div class="empty">No labor recorded</div></td></tr>'}</tbody></table>
+    </tr>`).join('')||'<tr><td colspan="6"><div class="empty">No labor hours recorded yet</div></td></tr>'}</tbody></table>
     <div class="section-header"><div class="section-title">Expenses</div><button class="btn btn-sm" onclick="openExpenseModal('${sid(e.id)}')">+ Add Expense</button></div>
     <table class="data-table"><thead><tr><th>Person</th><th>Category</th><th>Description</th><th>Amount</th><th>Reimbursed</th><th></th></tr></thead><tbody>
     ${evExpenses.map(x=>`<tr>
