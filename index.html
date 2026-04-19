@@ -7,99 +7,99 @@
 <script src="https://unpkg.com/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
 <style>
-  :root{--bg:#0e0e12;--surface:#17171f;--surface2:#1e1e2a;--border:#2a2a3a;--accent:#9c6fe4;--accent2:#e05c5c;--green:#4caf50;--blue:#4fc3f7;--text:#e8e8f0;--muted:#6b6b80;--radius:12px;}
-  *{box-sizing:border-box;margin:0;padding:0;}
-  body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min-height:100vh;}
-  #loginScreen{display:flex;align-items:center;justify-content:center;min-height:100vh;padding:16px;}
-  .login-box{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:32px 24px;width:100%;max-width:360px;}
-  .login-logo{font-family:'Bebas Neue',sans-serif;font-size:28px;letter-spacing:3px;color:var(--accent);margin-bottom:4px;}
-  .login-logo span{color:var(--text);}
-  .login-sub{font-size:13px;color:var(--muted);margin-bottom:24px;}
-  .login-err{background:rgba(224,92,92,.12);border:1px solid rgba(224,92,92,.35);border-radius:8px;padding:10px 12px;font-size:13px;color:var(--accent2);margin-bottom:14px;display:none;}
-  .login-err.show{display:block;}
-  #app{display:none;}
-  .form-group{margin-bottom:13px;}
-  label{display:block;font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:5px;}
-  input[type=email],input[type=password],input[type=text],input[type=date],input[type=number],textarea,select{width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:14px;padding:9px 12px;outline:none;transition:border-color .15s;-webkit-appearance:none;appearance:none;}
-  input:focus,textarea:focus,select:focus{border-color:var(--accent);}
-  textarea{resize:vertical;min-height:56px;}
-  select option{background:var(--surface2);color:var(--text);}
-  .btn{background:var(--accent);color:#fff;border:none;border-radius:8px;padding:9px 16px;font-family:'DM Sans',sans-serif;font-weight:600;font-size:14px;cursor:pointer;transition:opacity .15s;white-space:nowrap;}
-  .btn:hover{opacity:.85;}
-  .btn:disabled{opacity:.4;cursor:not-allowed;}
-  .btn-full{width:100%;}
-  .btn-outline{background:transparent;color:var(--text);border:1px solid var(--border);}
-  .btn-outline:hover{border-color:var(--accent);color:var(--accent);opacity:1;}
-  .btn-sm{padding:6px 12px;font-size:12px;}
-  .btn-danger{background:var(--accent2);color:#fff;}
-  .spinner-inline{display:inline-block;width:14px;height:14px;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite;vertical-align:middle;margin-right:6px;}
-  @keyframes spin{to{transform:rotate(360deg);}}
-  .loading-overlay{position:fixed;inset:0;background:var(--bg);z-index:500;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;transition:opacity .4s;}
-  .loading-overlay.hidden{opacity:0;pointer-events:none;}
-  .loading-logo{font-family:'Bebas Neue',sans-serif;font-size:32px;letter-spacing:3px;color:var(--accent);}
-  .loading-logo span{color:var(--text);}
-  .spinner{width:28px;height:28px;border:3px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .8s linear infinite;}
-  header{background:var(--surface);border-bottom:1px solid var(--border);padding:12px 16px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;}
-  .logo{font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:2px;color:var(--accent);}
-  .logo span{color:var(--text);}
-  .header-right{display:flex;align-items:center;gap:8px;}
-  .user-chip{font-size:11px;color:var(--muted);background:var(--surface2);border:1px solid var(--border);border-radius:20px;padding:4px 10px;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-  .btn-hdr{background:var(--accent);color:#fff;border:none;border-radius:8px;padding:7px 12px;font-family:'DM Sans',sans-serif;font-weight:600;font-size:13px;cursor:pointer;transition:opacity .15s;}
-  .btn-hdr:hover{opacity:.85;}
-  .btn-hdr.outline{background:transparent;color:var(--muted);border:1px solid var(--border);}
-  .btn-hdr.outline:hover{border-color:var(--accent2);color:var(--accent2);opacity:1;}
-  .nav-tabs{display:flex;gap:2px;padding:12px 16px 0;border-bottom:1px solid var(--border);background:var(--surface);overflow-x:auto;}
-  .nav-tab{padding:8px 16px;font-size:13px;font-weight:600;color:var(--muted);cursor:pointer;border-bottom:2px solid transparent;transition:all .15s;white-space:nowrap;}
-  .nav-tab:hover{color:var(--text);}
-  .nav-tab.active{color:var(--accent);border-bottom-color:var(--accent);}
-  .content{padding:16px;max-width:900px;margin:0 auto;}
-  .stat-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-bottom:20px;}
-  .stat-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:14px 16px;}
-  .stat-label{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;margin-bottom:6px;}
-  .stat-value{font-size:22px;font-weight:600;color:var(--text);}
-  .stat-value.green{color:var(--green);}
-  .stat-value.amber{color:var(--accent);}
-  .stat-value.red{color:var(--accent2);}
-  .section-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;}
-  .section-title{font-family:'Bebas Neue',sans-serif;font-size:18px;letter-spacing:1.5px;color:var(--accent);}
-  .data-table{width:100%;border-collapse:collapse;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;margin-bottom:20px;}
-  .data-table th{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:var(--muted);padding:10px 14px;text-align:left;border-bottom:1px solid var(--border);background:var(--surface2);}
-  .data-table td{padding:10px 14px;font-size:13px;border-bottom:1px solid var(--border);vertical-align:middle;}
-  .data-table tr:last-child td{border-bottom:none;}
-  .data-table tr:hover td{background:var(--surface2);}
-  .actions{display:flex;gap:6px;}
-  .badge{display:inline-block;font-size:10px;font-weight:700;border-radius:20px;padding:2px 8px;}
-  .badge-green{background:rgba(76,175,80,.15);color:var(--green);border:1px solid rgba(76,175,80,.3);}
-  .badge-amber{background:rgba(156,111,228,.15);color:var(--accent);border:1px solid rgba(156,111,228,.3);}
-  .badge-red{background:rgba(224,92,92,.12);color:var(--accent2);border:1px solid rgba(224,92,92,.3);}
-  .badge-blue{background:rgba(79,195,247,.12);color:var(--blue);border:1px solid rgba(79,195,247,.3);}
-  .modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:200;overflow-y:auto;padding:16px;}
-  .modal-overlay.open{display:block;}
-  .modal{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:20px;width:100%;max-width:500px;margin:20px auto 60px;}
-  .modal-title{font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:1.5px;margin-bottom:16px;color:var(--accent);}
-  .modal-actions{display:flex;gap:10px;margin-top:18px;}
-  .modal-actions .btn{flex:1;padding:12px;}
-  .divider{border:none;border-top:1px solid var(--border);margin:14px 0;}
-  .empty{text-align:center;padding:30px 20px;color:var(--muted);}
-  .error-banner{background:rgba(224,92,92,.1);border:1px solid rgba(224,92,92,.3);color:var(--accent2);font-size:12px;padding:8px 16px;display:none;align-items:center;gap:8px;justify-content:space-between;}
-  .error-banner.show{display:flex;}
-  .error-banner button{background:none;border:none;color:var(--accent2);cursor:pointer;font-size:16px;}
-  .detail-panel{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px;margin-bottom:16px;}
-  .detail-panel-title{font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;margin-bottom:12px;}
-  .detail-row{display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border);font-size:13px;}
-  .detail-row:last-child{border-bottom:none;}
-  .detail-row .lbl{color:var(--muted);}
-  .detail-row .val{font-weight:500;text-align:right;}
-  .grid-2{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
-  .back-btn{display:flex;align-items:center;gap:6px;font-size:13px;color:var(--muted);cursor:pointer;margin-bottom:16px;transition:color .15s;}
-  .back-btn:hover{color:var(--accent);}
-  .new-cust-box{display:none;margin-top:10px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:12px;}
-  .new-cust-box .box-title{font-size:11px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:1px;margin-bottom:10px;}
+:root{--bg:#0e0e12;--surface:#17171f;--surface2:#1e1e2a;--border:#2a2a3a;--accent:#9c6fe4;--accent2:#e05c5c;--green:#4caf50;--blue:#4fc3f7;--text:#e8e8f0;--muted:#6b6b80;--radius:12px;}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min-height:100vh;}
+#loginScreen{display:flex;align-items:center;justify-content:center;min-height:100vh;padding:16px;}
+.login-box{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:32px 24px;width:100%;max-width:360px;}
+.login-logo{font-family:'Bebas Neue',sans-serif;font-size:28px;letter-spacing:3px;color:var(--accent);margin-bottom:4px;}
+.login-logo span{color:var(--text);}
+.login-sub{font-size:13px;color:var(--muted);margin-bottom:24px;}
+.login-err{background:rgba(224,92,92,.12);border:1px solid rgba(224,92,92,.35);border-radius:8px;padding:10px 12px;font-size:13px;color:var(--accent2);margin-bottom:14px;display:none;}
+.login-err.show{display:block;}
+#app{display:none;}
+.form-group{margin-bottom:13px;}
+label{display:block;font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:5px;}
+input[type=email],input[type=password],input[type=text],input[type=date],input[type=number],textarea,select{width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:14px;padding:9px 12px;outline:none;transition:border-color .15s;-webkit-appearance:none;appearance:none;}
+input:focus,textarea:focus,select:focus{border-color:var(--accent);}
+textarea{resize:vertical;min-height:56px;}
+select option{background:var(--surface2);color:var(--text);}
+.btn{background:var(--accent);color:#fff;border:none;border-radius:8px;padding:9px 16px;font-family:'DM Sans',sans-serif;font-weight:600;font-size:14px;cursor:pointer;transition:opacity .15s;white-space:nowrap;}
+.btn:hover{opacity:.85;}
+.btn:disabled{opacity:.4;cursor:not-allowed;}
+.btn-full{width:100%;}
+.btn-outline{background:transparent;color:var(--text);border:1px solid var(--border);}
+.btn-outline:hover{border-color:var(--accent);color:var(--accent);opacity:1;}
+.btn-sm{padding:6px 12px;font-size:12px;}
+.btn-danger{background:var(--accent2);color:#fff;}
+.sp{display:inline-block;width:14px;height:14px;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite;vertical-align:middle;margin-right:6px;}
+@keyframes spin{to{transform:rotate(360deg);}}
+.loading-overlay{position:fixed;inset:0;background:var(--bg);z-index:500;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;transition:opacity .4s;}
+.loading-overlay.hidden{opacity:0;pointer-events:none;}
+.loading-logo{font-family:'Bebas Neue',sans-serif;font-size:32px;letter-spacing:3px;color:var(--accent);}
+.loading-logo span{color:var(--text);}
+.spinner{width:28px;height:28px;border:3px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .8s linear infinite;}
+header{background:var(--surface);border-bottom:1px solid var(--border);padding:12px 16px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;}
+.logo{font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:2px;color:var(--accent);}
+.logo span{color:var(--text);}
+.header-right{display:flex;align-items:center;gap:8px;}
+.user-chip{font-size:11px;color:var(--muted);background:var(--surface2);border:1px solid var(--border);border-radius:20px;padding:4px 10px;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.btn-hdr{background:var(--accent);color:#fff;border:none;border-radius:8px;padding:7px 12px;font-family:'DM Sans',sans-serif;font-weight:600;font-size:13px;cursor:pointer;transition:opacity .15s;}
+.btn-hdr:hover{opacity:.85;}
+.btn-hdr.outline{background:transparent;color:var(--muted);border:1px solid var(--border);}
+.btn-hdr.outline:hover{border-color:var(--accent2);color:var(--accent2);opacity:1;}
+.nav-tabs{display:flex;gap:2px;padding:12px 16px 0;border-bottom:1px solid var(--border);background:var(--surface);overflow-x:auto;}
+.nav-tab{padding:8px 16px;font-size:13px;font-weight:600;color:var(--muted);cursor:pointer;border-bottom:2px solid transparent;transition:all .15s;white-space:nowrap;}
+.nav-tab:hover{color:var(--text);}
+.nav-tab.active{color:var(--accent);border-bottom-color:var(--accent);}
+.content{padding:16px;max-width:900px;margin:0 auto;}
+.stat-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-bottom:20px;}
+.stat-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:14px 16px;}
+.stat-label{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;margin-bottom:6px;}
+.stat-value{font-size:22px;font-weight:600;color:var(--text);}
+.stat-value.green{color:var(--green);}
+.stat-value.amber{color:var(--accent);}
+.stat-value.red{color:var(--accent2);}
+.section-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;}
+.section-title{font-family:'Bebas Neue',sans-serif;font-size:18px;letter-spacing:1.5px;color:var(--accent);}
+.tbl{width:100%;border-collapse:collapse;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;margin-bottom:20px;}
+.tbl th{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:var(--muted);padding:10px 14px;text-align:left;border-bottom:1px solid var(--border);background:var(--surface2);}
+.tbl td{padding:10px 14px;font-size:13px;border-bottom:1px solid var(--border);vertical-align:middle;}
+.tbl tr:last-child td{border-bottom:none;}
+.tbl tr:hover td{background:var(--surface2);}
+.acts{display:flex;gap:6px;}
+.badge{display:inline-block;font-size:10px;font-weight:700;border-radius:20px;padding:2px 8px;}
+.bg{background:rgba(76,175,80,.15);color:var(--green);border:1px solid rgba(76,175,80,.3);}
+.ba{background:rgba(156,111,228,.15);color:var(--accent);border:1px solid rgba(156,111,228,.3);}
+.br{background:rgba(224,92,92,.12);color:var(--accent2);border:1px solid rgba(224,92,92,.3);}
+.bb{background:rgba(79,195,247,.12);color:var(--blue);border:1px solid rgba(79,195,247,.3);}
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:200;overflow-y:auto;padding:16px;}
+.modal-overlay.open{display:block;}
+.modal{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:20px;width:100%;max-width:500px;margin:20px auto 60px;}
+.modal-title{font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:1.5px;margin-bottom:16px;color:var(--accent);}
+.modal-actions{display:flex;gap:10px;margin-top:18px;}
+.modal-actions .btn{flex:1;padding:12px;}
+.empty{text-align:center;padding:24px;color:var(--muted);}
+.err-banner{background:rgba(224,92,92,.1);border:1px solid rgba(224,92,92,.3);color:var(--accent2);font-size:12px;padding:8px 16px;display:none;align-items:center;gap:8px;justify-content:space-between;}
+.err-banner.show{display:flex;}
+.err-banner button{background:none;border:none;color:var(--accent2);cursor:pointer;font-size:16px;}
+.dp{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px;margin-bottom:16px;}
+.dp-title{font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;margin-bottom:12px;}
+.dr{display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border);font-size:13px;}
+.dr:last-child{border-bottom:none;}
+.dr .l{color:var(--muted);}
+.dr .v{font-weight:500;text-align:right;}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.back{display:flex;align-items:center;gap:6px;font-size:13px;color:var(--muted);cursor:pointer;margin-bottom:16px;transition:color .15s;}
+.back:hover{color:var(--accent);}
+.new-cust{display:none;margin-top:10px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:12px;}
+.new-cust-title{font-size:11px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:1px;margin-bottom:10px;}
+.crew-chip{font-size:12px;padding:3px 10px;border-radius:20px;display:inline-block;margin:3px;}
 </style>
 </head>
 <body>
 
-<div class="loading-overlay" id="loadingOverlay">
+<div class="loading-overlay" id="lo">
   <div class="loading-logo">Groove<span>Ops</span></div>
   <div class="spinner"></div>
 </div>
@@ -108,7 +108,7 @@
   <div class="login-box">
     <div class="login-logo">Groove<span>Ops</span></div>
     <div class="login-sub">Owner access only</div>
-    <div class="login-err" id="loginErr"></div>
+    <div class="login-err" id="lerr"></div>
     <div class="form-group"><label>Email</label><input type="email" id="lEmail" placeholder="you@example.com" autocomplete="email"></div>
     <div class="form-group"><label>Password</label><input type="password" id="lPass" placeholder="••••••••" autocomplete="current-password"></div>
     <button class="btn btn-full" id="loginBtn" onclick="doLogin()">Sign In</button>
@@ -116,11 +116,11 @@
 </div>
 
 <div id="app">
-  <div class="error-banner" id="errorBanner"><span id="errorMsg"></span><button onclick="document.getElementById('errorBanner').classList.remove('show')">×</button></div>
+  <div class="err-banner" id="eb"><span id="em"></span><button onclick="document.getElementById('eb').classList.remove('show')">×</button></div>
   <header>
     <div class="logo">Groove<span>Ops</span></div>
     <div class="header-right">
-      <div class="user-chip" id="userChip"></div>
+      <div class="user-chip" id="uc"></div>
       <button class="btn-hdr outline" onclick="doLogout()">⏻</button>
     </div>
   </header>
@@ -132,543 +132,446 @@
     <div class="nav-tab" onclick="showTab('labor')">Labor</div>
     <div class="nav-tab" onclick="showTab('expenses')">Expenses</div>
   </div>
-  <div class="content" id="mainContent"></div>
+  <div class="content" id="mc"></div>
 </div>
 
-<div class="modal-overlay" id="modalOverlay">
+<div class="modal-overlay" id="mo">
   <div class="modal">
-    <div class="modal-title" id="modalTitle"></div>
-    <div id="modalBody"></div>
+    <div class="modal-title" id="mt"></div>
+    <div id="mb"></div>
     <div class="modal-actions">
       <button class="btn btn-outline" onclick="closeModal()">Cancel</button>
-      <button class="btn" id="modalSaveBtn" onclick="modalSave()">Save</button>
+      <button class="btn" id="msb" onclick="modalSave()">Save</button>
     </div>
   </div>
 </div>
 
 <script>
-// Wait for Supabase to be available (handles both direct and WordPress-injected loading)
-function startApp() {
-  if (typeof supabase === 'undefined' || typeof supabase.createClient === 'undefined') {
-    setTimeout(startApp, 100);
-    return;
-  }
+var sb, currentTab='dashboard', saveFn=null;
+var C={events:[],customers:[],payments:[],labor:[],expenses:[]};
 
-const { createClient } = supabase;
-const sb = createClient(
-  'https://rbtzcswnounmybumqbwu.supabase.co',
-  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJidHpjc3dub3VubXlidW1xYnd1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYyOTI3OTgsImV4cCI6MjA5MTg2ODc5OH0.d_CSDndGJcuBve_EtHo8RDcHG8dxQVn22gpUjQ7FGNY',
-  { auth: { storageKey: 'grooveops-auth' } }
-);
+function sid(x){return String(x==null?'':x);}
+function fmt(n){return'$'+(parseFloat(n)||0).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g,',');}
+function fmtD(d){return d?new Date(d+'T00:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}):'—';}
+function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+function findEv(id){return C.events.find(e=>sid(e.id)===sid(id));}
+function findCu(id){return C.customers.find(c=>sid(c.id)===sid(id));}
+function cuName(id){var c=findCu(id);return c?esc(c.name):'—';}
+function evName(id){var e=findEv(id);return e?esc(e.name):'—';}
+function cuBal(cid){
+  var inv=C.events.filter(e=>sid(e.customer_id)===sid(cid)).reduce(function(s,e){return s+(parseFloat(e.invoice_amount)||0);},0);
+  var paid=C.payments.filter(p=>sid(p.customer_id)===sid(cid)).reduce(function(s,p){return s+(parseFloat(p.amount)||0);},0);
+  return{inv:inv,paid:paid,bal:inv-paid};
+}
+function evFin(eid){
+  var e=findEv(eid);
+  var rev=parseFloat(e&&e.invoice_amount||0)||0;
+  var lab=C.labor.filter(l=>sid(l.event_id)===sid(eid)).reduce(function(s,l){return s+((parseFloat(l.hours)||0)*(parseFloat(l.rate)||0));},0);
+  var exp=C.expenses.filter(x=>sid(x.event_id)===sid(eid)).reduce(function(s,x){return s+(parseFloat(x.amount)||0);},0);
+  return{rev:rev,lab:lab,exp:exp,profit:rev-lab-exp};
+}
+function showErr(m){document.getElementById('em').textContent='⚠ '+m;document.getElementById('eb').classList.add('show');}
+function hideLoader(){var o=document.getElementById('lo');o.classList.add('hidden');setTimeout(function(){o.style.display='none';},400);}
+function statusBadge(s){var cls=s==='completed'?'bg':s==='cancelled'?'br':'ba';return'<span class="badge '+cls+'">'+(s||'upcoming')+'</span>';}
 
-// ── HELPERS ──────────────────────────────────────────────────────────────────
-const sid  = s => String(s ?? '');
-const fmt  = n => '$'+(parseFloat(n)||0).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g,',');
-const fmtD = d => d ? new Date(d+'T00:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}) : '—';
-const esc  = s => String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-
-let currentTab = 'dashboard';
-let modalSaveFn = null;
-let cache = { events:[], customers:[], payments:[], labor:[], expenses:[] };
-
-function findEvent(id)    { return cache.events.find(e=>sid(e.id)===sid(id)); }
-function findCustomer(id) { return cache.customers.find(c=>sid(c.id)===sid(id)); }
-function customerName(id) { const c=findCustomer(id); return c?esc(c.name):'—'; }
-function eventName(id)    { const e=findEvent(id);    return e?esc(e.name):'—'; }
-
-function customerBalance(cid) {
-  const invoiced = cache.events.filter(e=>sid(e.customer_id)===sid(cid)).reduce((s,e)=>s+(parseFloat(e.invoice_amount)||0),0);
-  const paid     = cache.payments.filter(p=>sid(p.customer_id)===sid(cid)).reduce((s,p)=>s+(parseFloat(p.amount)||0),0);
-  return { invoiced, paid, balance: invoiced-paid };
+function init(){
+  if(typeof supabase==='undefined'||!supabase.createClient){setTimeout(init,100);return;}
+  console.log('Supabase ready');
+  sb=supabase.createClient(
+    'https://rbtzcswnounmybumqbwu.supabase.co',
+    'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJidHpjc3dub3VubXlidW1xYnd1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYyOTI3OTgsImV4cCI6MjA5MTg2ODc5OH0.d_CSDndGJcuBve_EtHo8RDcHG8dxQVn22gpUjQ7FGNY',
+    {auth:{storageKey:'grooveops-auth'}}
+  );
+  sb.auth.onAuthStateChange(function(event,session){
+    console.log('Auth:',event,session&&session.user.email);
+    if(session){
+      document.getElementById('loginScreen').style.display='none';
+      document.getElementById('app').style.display='block';
+      document.getElementById('uc').textContent=session.user.email;
+      setTimeout(hideLoader,5000);
+      loadAll().then(function(){hideLoader();showTab('dashboard');});
+    } else {
+      document.getElementById('loginScreen').style.display='flex';
+      document.getElementById('app').style.display='none';
+      hideLoader();
+    }
+  });
 }
 
-function eventFinancials(eid) {
-  const ev      = findEvent(eid);
-  const revenue = parseFloat(ev?.invoice_amount)||0;
-  const labor   = cache.labor.filter(l=>sid(l.event_id)===sid(eid)).reduce((s,l)=>s+((parseFloat(l.hours)||0)*(parseFloat(l.rate)||0)),0);
-  const expenses= cache.expenses.filter(x=>sid(x.event_id)===sid(eid)).reduce((s,x)=>s+(parseFloat(x.amount)||0),0);
-  return { revenue, labor, expenses, profit: revenue-labor-expenses };
-}
-
-// ── AUTH ─────────────────────────────────────────────────────────────────────
-sb.auth.onAuthStateChange(async (event, session) => {
-  if (session) {
-    document.getElementById('loginScreen').style.display = 'none';
-    document.getElementById('app').style.display = 'block';
-    document.getElementById('userChip').textContent = session.user.email;
-    setTimeout(hideLoader, 5000);
-    await loadAll();
-    hideLoader();
-    showTab('dashboard');
-  } else {
-    document.getElementById('loginScreen').style.display = 'flex';
-    document.getElementById('app').style.display = 'none';
-    hideLoader();
-  }
-});
-
-async function doLogin() {
-  const email=document.getElementById('lEmail').value.trim();
-  const pass=document.getElementById('lPass').value;
-  const btn=document.getElementById('loginBtn');
-  if (!email||!pass){showLoginErr('Please enter your email and password.');return;}
-  document.getElementById('loginErr').classList.remove('show');
-  btn.disabled=true; btn.innerHTML='<span class="spinner-inline"></span>Signing in…';
-  const{error}=await sb.auth.signInWithPassword({email,password:pass});
-  if(error){showLoginErr('Incorrect email or password.');btn.disabled=false;btn.textContent='Sign In';}
-}
-async function doLogout(){await sb.auth.signOut();}
-function showLoginErr(msg){const el=document.getElementById('loginErr');el.textContent='⚠ '+msg;el.classList.add('show');}
-document.getElementById('lPass').addEventListener('keydown',e=>{if(e.key==='Enter')doLogin();});
-function hideLoader(){const o=document.getElementById('loadingOverlay');o.classList.add('hidden');setTimeout(()=>o.style.display='none',400);}
-function showErr(msg){document.getElementById('errorMsg').textContent='⚠ '+msg;document.getElementById('errorBanner').classList.add('show');}
-
-// ── DATA ─────────────────────────────────────────────────────────────────────
-async function loadAll() {
-  const[ev,cu,pa,la,ex]=await Promise.all([
+async function loadAll(){
+  console.log('loading...');
+  var r=await Promise.all([
     sb.from('events').select('*').order('date',{ascending:false}),
     sb.from('customers').select('*').order('name'),
     sb.from('customer_payments').select('*').order('date',{ascending:false}),
     sb.from('labor').select('*').order('created_at',{ascending:false}),
     sb.from('expenses').select('*').order('created_at',{ascending:false})
   ]);
-  cache.events    = ev.data||[];
-  cache.customers = cu.data||[];
-  cache.payments  = pa.data||[];
-  cache.labor     = la.data||[];
-  cache.expenses  = ex.data||[];
+  C.events=r[0].data||[];C.customers=r[1].data||[];C.payments=r[2].data||[];
+  C.labor=r[3].data||[];C.expenses=r[4].data||[];
+  console.log('loaded',C.events.length,'events',C.customers.length,'customers');
 }
 
-// ── NAV ───────────────────────────────────────────────────────────────────────
-function showTab(tab) {
+function doLogin(){
+  var email=document.getElementById('lEmail').value.trim();
+  var pass=document.getElementById('lPass').value;
+  var btn=document.getElementById('loginBtn');
+  if(!email||!pass){showLErr('Please enter email and password.');return;}
+  document.getElementById('lerr').classList.remove('show');
+  btn.disabled=true;btn.innerHTML='<span class="sp"></span>Signing in…';
+  sb.auth.signInWithPassword({email:email,password:pass}).then(function(r){
+    if(r.error){showLErr('Incorrect email or password.');btn.disabled=false;btn.textContent='Sign In';}
+  });
+}
+function doLogout(){sb.auth.signOut();}
+function showLErr(m){var el=document.getElementById('lerr');el.textContent='⚠ '+m;el.classList.add('show');}
+document.getElementById('lPass').addEventListener('keydown',function(e){if(e.key==='Enter')doLogin();});
+
+function showTab(tab){
   currentTab=tab;
-  document.querySelectorAll('.nav-tab').forEach(t=>t.classList.toggle('active',t.textContent.toLowerCase()===tab));
-  ({dashboard:renderDashboard,events:renderEvents,customers:renderCustomers,payments:renderPayments,labor:renderLabor,expenses:renderExpenses})[tab]?.();
+  document.querySelectorAll('.nav-tab').forEach(function(t){t.classList.toggle('active',t.textContent.toLowerCase()===tab);});
+  if(tab==='dashboard')renderDash();
+  else if(tab==='events')renderEvents();
+  else if(tab==='customers')renderCustomers();
+  else if(tab==='payments')renderPayments();
+  else if(tab==='labor')renderLabor();
+  else if(tab==='expenses')renderExpenses();
 }
 
-// ── DASHBOARD ─────────────────────────────────────────────────────────────────
-function renderDashboard() {
-  const totalInvoiced  = cache.events.reduce((s,e)=>s+(parseFloat(e.invoice_amount)||0),0);
-  const totalPaid      = cache.payments.reduce((s,p)=>s+(parseFloat(p.amount)||0),0);
-  const totalOwing     = totalInvoiced-totalPaid;
-  const totalLaborCost = cache.labor.reduce((s,l)=>s+((parseFloat(l.hours)||0)*(parseFloat(l.rate)||0)),0);
-  const totalExpenses  = cache.expenses.reduce((s,x)=>s+(parseFloat(x.amount)||0),0);
-  const grossProfit    = totalPaid-totalLaborCost-totalExpenses;
-  const upcoming       = cache.events.filter(e=>!e.status||e.status==='upcoming').length;
-  const unpaid         = cache.customers.filter(c=>customerBalance(c.id).balance>0).length;
-  document.getElementById('mainContent').innerHTML=`
-    <div class="stat-grid">
-      <div class="stat-card"><div class="stat-label">Total Invoiced</div><div class="stat-value">${fmt(totalInvoiced)}</div></div>
-      <div class="stat-card"><div class="stat-label">Total Collected</div><div class="stat-value green">${fmt(totalPaid)}</div></div>
-      <div class="stat-card"><div class="stat-label">Outstanding</div><div class="stat-value ${totalOwing>0?'amber':''}">${fmt(totalOwing)}</div></div>
-      <div class="stat-card"><div class="stat-label">Gross Profit</div><div class="stat-value ${grossProfit>=0?'green':'red'}">${fmt(grossProfit)}</div></div>
-      <div class="stat-card"><div class="stat-label">Upcoming Events</div><div class="stat-value amber">${upcoming}</div></div>
-      <div class="stat-card"><div class="stat-label">Customers w/ Balance</div><div class="stat-value ${unpaid>0?'amber':''}">${unpaid}</div></div>
-    </div>
-    <div class="section-header"><div class="section-title">Recent Events</div><button class="btn btn-sm btn-outline" onclick="showTab('events')">View All</button></div>
-    <table class="data-table"><thead><tr><th>Event</th><th>Date</th><th>Customer</th><th>Invoice</th><th>Status</th></tr></thead><tbody>
-    ${cache.events.slice(0,5).map(e=>`<tr>
-      <td style="font-weight:500">${esc(e.name)}</td><td>${fmtD(e.date)}</td>
-      <td>${customerName(e.customer_id)}</td>
-      <td>${e.invoice_amount?fmt(e.invoice_amount):'<span style="color:var(--muted)">—</span>'}</td>
-      <td><span class="badge ${e.status==='completed'?'badge-green':e.status==='cancelled'?'badge-red':'badge-amber'}">${e.status||'upcoming'}</span></td>
-    </tr>`).join('')||'<tr><td colspan="5" class="empty">No events yet</td></tr>'}</tbody></table>
-    <div class="section-header"><div class="section-title">Customer Balances</div><button class="btn btn-sm btn-outline" onclick="showTab('customers')">View All</button></div>
-    <table class="data-table"><thead><tr><th>Customer</th><th>Invoiced</th><th>Paid</th><th>Balance</th></tr></thead><tbody>
-    ${cache.customers.map(c=>{const b=customerBalance(c.id);return`<tr>
-      <td style="font-weight:500">${esc(c.name)}</td><td>${fmt(b.invoiced)}</td>
-      <td style="color:var(--green)">${fmt(b.paid)}</td>
-      <td><span class="badge ${b.balance>0?'badge-amber':b.balance<0?'badge-blue':'badge-green'}">${fmt(b.balance)}</span></td>
-    </tr>`;}).join('')||'<tr><td colspan="4" class="empty">No customers yet</td></tr>'}</tbody></table>`;
+function renderDash(){
+  var ti=C.events.reduce(function(s,e){return s+(parseFloat(e.invoice_amount)||0);},0);
+  var tp=C.payments.reduce(function(s,p){return s+(parseFloat(p.amount)||0);},0);
+  var tl=C.labor.reduce(function(s,l){return s+((parseFloat(l.hours)||0)*(parseFloat(l.rate)||0));},0);
+  var te=C.expenses.reduce(function(s,x){return s+(parseFloat(x.amount)||0);},0);
+  var gp=tp-tl-te;
+  var up=C.events.filter(function(e){return!e.status||e.status==='upcoming';}).length;
+  var ub=C.customers.filter(function(c){return cuBal(c.id).bal>0;}).length;
+  document.getElementById('mc').innerHTML=
+    '<div class="stat-grid">'+
+    '<div class="stat-card"><div class="stat-label">Total Invoiced</div><div class="stat-value">'+fmt(ti)+'</div></div>'+
+    '<div class="stat-card"><div class="stat-label">Total Collected</div><div class="stat-value green">'+fmt(tp)+'</div></div>'+
+    '<div class="stat-card"><div class="stat-label">Outstanding</div><div class="stat-value '+(ti-tp>0?'amber':'')+'">'+fmt(ti-tp)+'</div></div>'+
+    '<div class="stat-card"><div class="stat-label">Gross Profit</div><div class="stat-value '+(gp>=0?'green':'red')+'">'+fmt(gp)+'</div></div>'+
+    '<div class="stat-card"><div class="stat-label">Upcoming</div><div class="stat-value amber">'+up+'</div></div>'+
+    '<div class="stat-card"><div class="stat-label">Customers w/ Balance</div><div class="stat-value '+(ub>0?'amber':'')+'">'+ub+'</div></div>'+
+    '</div>'+
+    '<div class="section-header"><div class="section-title">Recent Events</div><button class="btn btn-sm btn-outline" onclick="showTab(\'events\')">View All</button></div>'+
+    '<table class="tbl"><thead><tr><th>Event</th><th>Date</th><th>Customer</th><th>Invoice</th><th>Status</th></tr></thead><tbody>'+
+    (C.events.slice(0,5).map(function(e){return'<tr><td style="font-weight:500">'+esc(e.name)+'</td><td>'+fmtD(e.date)+'</td><td>'+cuName(e.customer_id)+'</td><td>'+(e.invoice_amount?fmt(e.invoice_amount):'<span style="color:var(--muted)">—</span>')+'</td><td>'+statusBadge(e.status)+'</td></tr>';}).join('')||'<tr><td colspan="5" class="empty">No events yet</td></tr>')+
+    '</tbody></table>'+
+    '<div class="section-header"><div class="section-title">Customer Balances</div><button class="btn btn-sm btn-outline" onclick="showTab(\'customers\')">View All</button></div>'+
+    '<table class="tbl"><thead><tr><th>Customer</th><th>Invoiced</th><th>Paid</th><th>Balance</th></tr></thead><tbody>'+
+    (C.customers.map(function(c){var b=cuBal(c.id);return'<tr><td style="font-weight:500">'+esc(c.name)+'</td><td>'+fmt(b.inv)+'</td><td style="color:var(--green)">'+fmt(b.paid)+'</td><td><span class="badge '+(b.bal>0?'ba':b.bal<0?'bb':'bg')+'">'+fmt(b.bal)+'</span></td></tr>';}).join('')||'<tr><td colspan="4" class="empty">No customers</td></tr>')+
+    '</tbody></table>';
 }
 
-// ── EVENTS ────────────────────────────────────────────────────────────────────
-function renderEvents() {
-  document.getElementById('mainContent').innerHTML=`
-    <div class="section-header"><div class="section-title">Events (${cache.events.length})</div><button class="btn btn-sm" onclick="openEventModal()">+ Add Event</button></div>
-    <table class="data-table"><thead><tr><th>Event</th><th>Date</th><th>Customer</th><th>Invoice</th><th>Profit</th><th>Status</th><th></th></tr></thead><tbody>
-    ${cache.events.map(e=>{const fin=eventFinancials(e.id);return`
-      <tr style="cursor:pointer" onclick="openEventDetail('${sid(e.id)}')">
-        <td style="font-weight:500">${esc(e.name)}</td><td>${fmtD(e.date)}</td>
-        <td>${customerName(e.customer_id)}</td>
-        <td>${e.invoice_amount?fmt(e.invoice_amount):'<span style="color:var(--muted)">—</span>'}</td>
-        <td style="color:${fin.profit>=0?'var(--green)':'var(--accent2)'}">${fmt(fin.profit)}</td>
-        <td><span class="badge ${e.status==='completed'?'badge-green':e.status==='cancelled'?'badge-red':'badge-amber'}">${e.status||'upcoming'}</span></td>
-        <td onclick="event.stopPropagation()"><div class="actions">
-          <button class="btn btn-sm btn-outline" onclick="openEventModal('${sid(e.id)}')">Edit</button>
-          <button class="btn btn-sm btn-danger" onclick="deleteRecord('events','${sid(e.id)}')">Del</button>
-        </div></td>
-      </tr>`;}).join('')||'<tr><td colspan="7"><div class="empty">No events yet</div></td></tr>'}</tbody></table>`;
+function renderEvents(){
+  document.getElementById('mc').innerHTML=
+    '<div class="section-header"><div class="section-title">Events ('+C.events.length+')</div><button class="btn btn-sm" onclick="openEvModal()">+ Add Event</button></div>'+
+    '<table class="tbl"><thead><tr><th>Event</th><th>Date</th><th>Customer</th><th>Invoice</th><th>Profit</th><th>Status</th><th></th></tr></thead><tbody>'+
+    (C.events.map(function(e){var f=evFin(e.id);return'<tr style="cursor:pointer" onclick="openEvDetail(\''+sid(e.id)+'\')">'+
+      '<td style="font-weight:500">'+esc(e.name)+'</td><td>'+fmtD(e.date)+'</td><td>'+cuName(e.customer_id)+'</td>'+
+      '<td>'+(e.invoice_amount?fmt(e.invoice_amount):'<span style="color:var(--muted)">—</span>')+'</td>'+
+      '<td style="color:'+(f.profit>=0?'var(--green)':'var(--accent2)')+'">'+fmt(f.profit)+'</td>'+
+      '<td>'+statusBadge(e.status)+'</td>'+
+      '<td onclick="event.stopPropagation()"><div class="acts">'+
+        '<button class="btn btn-sm btn-outline" onclick="openEvModal(\''+sid(e.id)+'\')">Edit</button>'+
+        '<button class="btn btn-sm btn-danger" onclick="delRec(\'events\',\''+sid(e.id)+'\')">Del</button>'+
+      '</div></td></tr>';}).join('')||'<tr><td colspan="7" class="empty">No events yet</td></tr>')+
+    '</tbody></table>';
 }
 
-function openEventDetail(id) {
-  const e=findEvent(id); if(!e) return;
-  const fin=eventFinancials(id);
-  const evLabor    = cache.labor.filter(l=>sid(l.event_id)===sid(id));
-  const evExpenses = cache.expenses.filter(x=>sid(x.event_id)===sid(id));
-  const evPayments = cache.payments.filter(p=>sid(p.event_id)===sid(id));
-  document.getElementById('mainContent').innerHTML=`
-    <div class="back-btn" onclick="renderEvents()">← Back to Events</div>
-    <div class="section-header"><div class="section-title">${esc(e.name)}</div>
-      <button class="btn btn-sm btn-outline" onclick="openEventModal('${sid(e.id)}')">Edit Event</button></div>
-    <div class="grid-2" style="margin-bottom:16px">
-      <div class="detail-panel"><div class="detail-panel-title">Event Info</div>
-        <div class="detail-row"><span class="lbl">Date</span><span class="val">${fmtD(e.date)}</span></div>
-        <div class="detail-row"><span class="lbl">Venue</span><span class="val">${esc(e.venue||'—')}</span></div>
-        <div class="detail-row"><span class="lbl">Type</span><span class="val">${esc(e.type||'—')}</span></div>
-        <div class="detail-row"><span class="lbl">Customer</span><span class="val">${customerName(e.customer_id)}</span></div>
-        <div class="detail-row"><span class="lbl">Status</span><span class="val"><span class="badge ${e.status==='completed'?'badge-green':e.status==='cancelled'?'badge-red':'badge-amber'}">${e.status||'upcoming'}</span></span></div>
-      </div>
-      <div class="detail-panel"><div class="detail-panel-title">Financials</div>
-        <div class="detail-row"><span class="lbl">Invoice</span><span class="val">${fmt(fin.revenue)}</span></div>
-        <div class="detail-row"><span class="lbl">Labor Cost</span><span class="val" style="color:var(--accent2)">${fmt(fin.labor)}</span></div>
-        <div class="detail-row"><span class="lbl">Expenses</span><span class="val" style="color:var(--accent2)">${fmt(fin.expenses)}</span></div>
-        <div class="detail-row"><span class="lbl">Gross Profit</span><span class="val" style="color:${fin.profit>=0?'var(--green)':'var(--accent2)'}">${fmt(fin.profit)}</span></div>
-        <div class="detail-row"><span class="lbl">Margin</span><span class="val">${fin.revenue>0?((fin.profit/fin.revenue)*100).toFixed(1)+'%':'—'}</span></div>
-      </div>
-    </div>
-    ${(e.labor||[]).filter(x=>x.name).length||((e.main_equip||[]).filter(x=>x.name).length)||((e.sec_equip||[]).filter(x=>x.name).length)?`
-    <div class="detail-panel" style="margin-bottom:16px">
-      <div class="detail-panel-title">From Calendar App</div>
-      ${(e.labor||[]).filter(x=>x.name).length?`
-        <div style="font-size:11px;font-weight:700;color:var(--blue);text-transform:uppercase;letter-spacing:.8px;margin-bottom:8px">Crew</div>
-        <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px">
-          ${(e.labor||[]).filter(x=>x.name).map(x=>`
-            <span style="font-size:12px;padding:3px 10px;border-radius:20px;border:1px solid ${x.confirmed?'rgba(76,175,80,.4)':'rgba(224,92,92,.4)'};color:${x.confirmed?'var(--green)':'var(--accent2)'};background:${x.confirmed?'rgba(76,175,80,.1)':'rgba(224,92,92,.08)'}">
-              ${esc(x.name)}${x.qty?' · '+esc(x.qty)+' hrs':''} ${x.confirmed?'✓':'?'}
-            </span>`).join('')}
-        </div>`:''}
-      ${(e.main_equip||[]).filter(x=>x.name).length?`
-        <div style="font-size:11px;font-weight:700;color:var(--green);text-transform:uppercase;letter-spacing:.8px;margin-bottom:8px">Main Equipment</div>
-        <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px">
-          ${(e.main_equip||[]).filter(x=>x.name).map(x=>`<span class="badge badge-green">${esc(x.name)}${x.qty?' x'+esc(x.qty):''}</span>`).join('')}
-        </div>`:''}
-      ${(e.sec_equip||[]).filter(x=>x.name).length?`
-        <div style="font-size:11px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:.8px;margin-bottom:8px">Secondary Equipment</div>
-        <div style="display:flex;flex-wrap:wrap;gap:6px">
-          ${(e.sec_equip||[]).filter(x=>x.name).map(x=>`<span class="badge badge-amber">${esc(x.name)}${x.qty?' x'+esc(x.qty):''}</span>`).join('')}
-        </div>`:''}
-    </div>`:''}
-    <div class="section-header"><div class="section-title">Labor Hours</div><button class="btn btn-sm" onclick="openLaborModal('${sid(e.id)}')">+ Add Hours</button></div>
-    <table class="data-table"><thead><tr><th>Person</th><th>Hours</th><th>Rate</th><th>Earned</th><th>Notes</th><th></th></tr></thead><tbody>
-    ${evLabor.map(l=>`<tr>
-      <td style="text-transform:capitalize;font-weight:500">${esc(l.person)}</td>
-      <td>${l.hours||'—'}</td><td>${l.rate?fmt(l.rate)+'/hr':'—'}</td>
-      <td style="color:var(--green)">${fmt((l.hours||0)*(l.rate||0))}</td>
-      <td style="color:var(--muted)">${esc(l.notes||'')}</td>
-      <td><button class="btn btn-sm btn-danger" onclick="deleteRecord('labor','${sid(l.id)}',()=>openEventDetail('${sid(id)}'))">Del</button></td>
-    </tr>`).join('')||'<tr><td colspan="6"><div class="empty">No labor hours recorded yet</div></td></tr>'}</tbody></table>
-    <div class="section-header"><div class="section-title">Expenses</div><button class="btn btn-sm" onclick="openExpenseModal('${sid(e.id)}')">+ Add Expense</button></div>
-    <table class="data-table"><thead><tr><th>Person</th><th>Category</th><th>Description</th><th>Amount</th><th>Reimbursed</th><th></th></tr></thead><tbody>
-    ${evExpenses.map(x=>`<tr>
-      <td style="text-transform:capitalize">${esc(x.person||'—')}</td>
-      <td><span class="badge badge-blue">${esc(x.category||'other')}</span></td>
-      <td>${esc(x.description||'—')}</td><td>${fmt(x.amount)}</td>
-      <td><span class="badge ${x.reimbursed?'badge-green':'badge-amber'}">${x.reimbursed?'Yes':'No'}</span></td>
-      <td><div class="actions">
-        ${!x.reimbursed?`<button class="btn btn-sm btn-outline" onclick="markReimbursed('${sid(x.id)}','${sid(id)}')">✓</button>`:''}
-        <button class="btn btn-sm btn-danger" onclick="deleteRecord('expenses','${sid(x.id)}',()=>openEventDetail('${sid(id)}'))">Del</button>
-      </div></td>
-    </tr>`).join('')||'<tr><td colspan="6"><div class="empty">No expenses recorded</div></td></tr>'}</tbody></table>
-    <div class="section-header"><div class="section-title">Payments</div><button class="btn btn-sm" onclick="openPaymentModal(null,'${sid(e.id)}')">+ Record Payment</button></div>
-    <table class="data-table"><thead><tr><th>Date</th><th>Amount</th><th>Method</th><th>Notes</th><th></th></tr></thead><tbody>
-    ${evPayments.map(p=>`<tr>
-      <td>${fmtD(p.date)}</td><td style="color:var(--green)">${fmt(p.amount)}</td>
-      <td>${esc(p.method||'—')}</td><td style="color:var(--muted)">${esc(p.notes||'')}</td>
-      <td><button class="btn btn-sm btn-danger" onclick="deleteRecord('customer_payments','${sid(p.id)}',()=>openEventDetail('${sid(id)}'))">Del</button></td>
-    </tr>`).join('')||'<tr><td colspan="5"><div class="empty">No payments recorded</div></td></tr>'}</tbody></table>`;
-}
-
-// ── CUSTOMERS ─────────────────────────────────────────────────────────────────
-function renderCustomers() {
-  document.getElementById('mainContent').innerHTML=`
-    <div class="section-header"><div class="section-title">Customers (${cache.customers.length})</div><button class="btn btn-sm" onclick="openCustomerModal()">+ Add Customer</button></div>
-    <table class="data-table"><thead><tr><th>Name</th><th>Email</th><th>Phone</th><th>Invoiced</th><th>Paid</th><th>Balance</th><th></th></tr></thead><tbody>
-    ${cache.customers.map(c=>{const b=customerBalance(c.id);return`
-      <tr style="cursor:pointer" onclick="openCustomerDetail('${sid(c.id)}')">
-        <td style="font-weight:500">${esc(c.name)}</td>
-        <td style="color:var(--muted)">${esc(c.email||'—')}</td>
-        <td style="color:var(--muted)">${esc(c.phone||'—')}</td>
-        <td>${fmt(b.invoiced)}</td><td style="color:var(--green)">${fmt(b.paid)}</td>
-        <td><span class="badge ${b.balance>0?'badge-amber':b.balance<0?'badge-blue':'badge-green'}">${fmt(b.balance)}</span></td>
-        <td onclick="event.stopPropagation()"><div class="actions">
-          <button class="btn btn-sm btn-outline" onclick="openCustomerModal('${sid(c.id)}')">Edit</button>
-          <button class="btn btn-sm btn-danger" onclick="deleteRecord('customers','${sid(c.id)}')">Del</button>
-        </div></td>
-      </tr>`;}).join('')||'<tr><td colspan="7"><div class="empty">No customers yet</div></td></tr>'}</tbody></table>`;
-}
-
-function openCustomerDetail(id) {
-  const c=findCustomer(id); if(!c) return;
-  const b=customerBalance(id);
-  const cEvents  =cache.events.filter(e=>sid(e.customer_id)===sid(id));
-  const cPayments=cache.payments.filter(p=>sid(p.customer_id)===sid(id));
-  document.getElementById('mainContent').innerHTML=`
-    <div class="back-btn" onclick="renderCustomers()">← Back to Customers</div>
-    <div class="section-header"><div class="section-title">${esc(c.name)}</div>
-      <button class="btn btn-sm btn-outline" onclick="openCustomerModal('${sid(c.id)}')">Edit</button></div>
-    <div class="grid-2" style="margin-bottom:16px">
-      <div class="detail-panel"><div class="detail-panel-title">Contact</div>
-        <div class="detail-row"><span class="lbl">Email</span><span class="val">${esc(c.email||'—')}</span></div>
-        <div class="detail-row"><span class="lbl">Phone</span><span class="val">${esc(c.phone||'—')}</span></div>
-        <div class="detail-row"><span class="lbl">Notes</span><span class="val">${esc(c.notes||'—')}</span></div>
-      </div>
-      <div class="detail-panel"><div class="detail-panel-title">Account Balance</div>
-        <div class="detail-row"><span class="lbl">Total Invoiced</span><span class="val">${fmt(b.invoiced)}</span></div>
-        <div class="detail-row"><span class="lbl">Total Paid</span><span class="val" style="color:var(--green)">${fmt(b.paid)}</span></div>
-        <div class="detail-row"><span class="lbl">Balance Owing</span><span class="val"><span class="badge ${b.balance>0?'badge-amber':'badge-green'}">${fmt(b.balance)}</span></span></div>
-      </div>
-    </div>
-    <div class="section-header"><div class="section-title">Events</div><button class="btn btn-sm" onclick="openPaymentModal('${sid(c.id)}')">+ Record Payment</button></div>
-    <table class="data-table"><thead><tr><th>Event</th><th>Date</th><th>Invoice</th><th>Status</th></tr></thead><tbody>
-    ${cEvents.map(e=>`<tr style="cursor:pointer" onclick="openEventDetail('${sid(e.id)}')">
-      <td style="font-weight:500">${esc(e.name)}</td><td>${fmtD(e.date)}</td>
-      <td>${e.invoice_amount?fmt(e.invoice_amount):'—'}</td>
-      <td><span class="badge ${e.status==='completed'?'badge-green':e.status==='cancelled'?'badge-red':'badge-amber'}">${e.status||'upcoming'}</span></td>
-    </tr>`).join('')||'<tr><td colspan="4"><div class="empty">No events</div></td></tr>'}</tbody></table>
-    <div class="section-header"><div class="section-title">Payment History</div></div>
-    <table class="data-table"><thead><tr><th>Date</th><th>Amount</th><th>Method</th><th>Event</th><th>Notes</th></tr></thead><tbody>
-    ${cPayments.map(p=>`<tr>
-      <td>${fmtD(p.date)}</td><td style="color:var(--green)">${fmt(p.amount)}</td>
-      <td>${esc(p.method||'—')}</td><td>${p.event_id?eventName(p.event_id):'—'}</td>
-      <td style="color:var(--muted)">${esc(p.notes||'')}</td>
-    </tr>`).join('')||'<tr><td colspan="5"><div class="empty">No payments</div></td></tr>'}</tbody></table>`;
-}
-
-// ── PAYMENTS ──────────────────────────────────────────────────────────────────
-function renderPayments() {
-  document.getElementById('mainContent').innerHTML=`
-    <div class="section-header"><div class="section-title">Customer Payments (${cache.payments.length})</div><button class="btn btn-sm" onclick="openPaymentModal()">+ Record Payment</button></div>
-    <table class="data-table"><thead><tr><th>Date</th><th>Customer</th><th>Amount</th><th>Method</th><th>Event</th><th>Notes</th><th></th></tr></thead><tbody>
-    ${cache.payments.map(p=>`<tr>
-      <td>${fmtD(p.date)}</td><td style="font-weight:500">${customerName(p.customer_id)}</td>
-      <td style="color:var(--green)">${fmt(p.amount)}</td><td>${esc(p.method||'—')}</td>
-      <td style="color:var(--muted)">${p.event_id?eventName(p.event_id):'—'}</td>
-      <td style="color:var(--muted)">${esc(p.notes||'')}</td>
-      <td><button class="btn btn-sm btn-danger" onclick="deleteRecord('customer_payments','${sid(p.id)}')">Del</button></td>
-    </tr>`).join('')||'<tr><td colspan="7"><div class="empty">No payments recorded</div></td></tr>'}</tbody></table>`;
-}
-
-// ── LABOR ─────────────────────────────────────────────────────────────────────
-function renderLabor() {
-  const johnTotal =cache.labor.filter(l=>l.person==='john').reduce((s,l)=>s+((parseFloat(l.hours)||0)*(parseFloat(l.rate)||0)),0);
-  const steveTotal=cache.labor.filter(l=>l.person==='steve').reduce((s,l)=>s+((parseFloat(l.hours)||0)*(parseFloat(l.rate)||0)),0);
-  document.getElementById('mainContent').innerHTML=`
-    <div class="stat-grid" style="margin-bottom:16px">
-      <div class="stat-card"><div class="stat-label">John — Total Earned</div><div class="stat-value green">${fmt(johnTotal)}</div></div>
-      <div class="stat-card"><div class="stat-label">Steve — Total Earned</div><div class="stat-value green">${fmt(steveTotal)}</div></div>
-    </div>
-    <div class="section-header"><div class="section-title">Labor Records (${cache.labor.length})</div><button class="btn btn-sm" onclick="openLaborModal()">+ Add Hours</button></div>
-    <table class="data-table"><thead><tr><th>Event</th><th>Person</th><th>Hours</th><th>Rate</th><th>Earned</th><th>Notes</th><th></th></tr></thead><tbody>
-    ${cache.labor.map(l=>`<tr>
-      <td style="font-weight:500">${eventName(l.event_id)}</td>
-      <td style="text-transform:capitalize">${esc(l.person)}</td>
-      <td>${l.hours||'—'}</td><td>${l.rate?fmt(l.rate)+'/hr':'—'}</td>
-      <td style="color:var(--green)">${fmt((l.hours||0)*(l.rate||0))}</td>
-      <td style="color:var(--muted)">${esc(l.notes||'')}</td>
-      <td><button class="btn btn-sm btn-danger" onclick="deleteRecord('labor','${sid(l.id)}')">Del</button></td>
-    </tr>`).join('')||'<tr><td colspan="7"><div class="empty">No labor recorded</div></td></tr>'}</tbody></table>`;
-}
-
-// ── EXPENSES ──────────────────────────────────────────────────────────────────
-function renderExpenses() {
-  const totalExp=cache.expenses.reduce((s,x)=>s+(parseFloat(x.amount)||0),0);
-  const unreimb =cache.expenses.filter(x=>!x.reimbursed).reduce((s,x)=>s+(parseFloat(x.amount)||0),0);
-  document.getElementById('mainContent').innerHTML=`
-    <div class="stat-grid" style="margin-bottom:16px">
-      <div class="stat-card"><div class="stat-label">Total Expenses</div><div class="stat-value">${fmt(totalExp)}</div></div>
-      <div class="stat-card"><div class="stat-label">Pending Reimbursement</div><div class="stat-value amber">${fmt(unreimb)}</div></div>
-    </div>
-    <div class="section-header"><div class="section-title">Expenses (${cache.expenses.length})</div><button class="btn btn-sm" onclick="openExpenseModal()">+ Add Expense</button></div>
-    <table class="data-table"><thead><tr><th>Event</th><th>Person</th><th>Category</th><th>Description</th><th>Amount</th><th>Reimbursed</th><th></th></tr></thead><tbody>
-    ${cache.expenses.map(x=>`<tr>
-      <td style="font-weight:500">${eventName(x.event_id)}</td>
-      <td style="text-transform:capitalize">${esc(x.person||'—')}</td>
-      <td><span class="badge badge-blue">${esc(x.category||'other')}</span></td>
-      <td>${esc(x.description||'—')}</td><td>${fmt(x.amount)}</td>
-      <td><span class="badge ${x.reimbursed?'badge-green':'badge-amber'}">${x.reimbursed?'Yes':'No'}</span></td>
-      <td><div class="actions">
-        ${!x.reimbursed?`<button class="btn btn-sm btn-outline" onclick="markReimbursed('${sid(x.id)}')">✓</button>`:''}
-        <button class="btn btn-sm btn-danger" onclick="deleteRecord('expenses','${sid(x.id)}')">Del</button>
-      </div></td>
-    </tr>`).join('')||'<tr><td colspan="7"><div class="empty">No expenses recorded</div></td></tr>'}</tbody></table>`;
-}
-
-// ── MODALS ────────────────────────────────────────────────────────────────────
-function openModal(title,body,saveFn) {
-  document.getElementById('modalTitle').textContent=title;
-  document.getElementById('modalBody').innerHTML=body;
-  modalSaveFn=saveFn;
-  document.getElementById('modalSaveBtn').disabled=false;
-  document.getElementById('modalSaveBtn').textContent='Save';
-  document.getElementById('modalOverlay').classList.add('open');
-}
-function closeModal(){document.getElementById('modalOverlay').classList.remove('open');modalSaveFn=null;}
-async function modalSave(){
-  const btn=document.getElementById('modalSaveBtn');
-  btn.disabled=true;btn.innerHTML='<span class="spinner-inline"></span>Saving…';
-  try{if(modalSaveFn)await modalSaveFn();closeModal();await loadAll();showTab(currentTab);}
-  catch(err){showErr(err.message);btn.disabled=false;btn.textContent='Save';}
-}
-document.getElementById('modalOverlay').addEventListener('click',e=>{if(e.target===document.getElementById('modalOverlay'))closeModal();});
-
-function custOpts(sel=''){return`<option value="">— None —</option>`+cache.customers.map(c=>`<option value="${sid(c.id)}"${sid(c.id)===sid(sel)?' selected':''}>${esc(c.name)}</option>`).join('')+`<option value="__new__">＋ Add new customer…</option>`;}
-function evOpts(sel=''){return`<option value="">— None —</option>`+cache.events.map(e=>`<option value="${sid(e.id)}"${sid(e.id)===sid(sel)?' selected':''}>${esc(e.name)} (${fmtD(e.date)})</option>`).join('');}
-
-function toggleNewCust(v){document.getElementById('newCustBox').style.display=v==='__new__'?'block':'none';}
-
-function openEventModal(id=null){
-  const e=id?findEvent(id):null;
-  openModal(id?'Edit Event':'Add Event',`
-    <div class="form-group"><label>Event Name</label><input type="text" id="mName" value="${esc(e?.name||'')}"></div>
-    <div class="grid-2">
-      <div class="form-group"><label>Date</label><input type="date" id="mDate" value="${e?.date||''}"></div>
-      <div class="form-group"><label>Status</label><select id="mStatus">
-        <option value="upcoming"${(!e||e.status==='upcoming')?' selected':''}>Upcoming</option>
-        <option value="completed"${e?.status==='completed'?' selected':''}>Completed</option>
-        <option value="cancelled"${e?.status==='cancelled'?' selected':''}>Cancelled</option>
-      </select></div>
-    </div>
-    <div class="form-group"><label>Venue</label><input type="text" id="mVenue" value="${esc(e?.venue||'')}"></div>
-    <div class="form-group"><label>Customer</label>
-      <select id="mCustomer" onchange="toggleNewCust(this.value)">${custOpts(e?.customer_id||'')}</select>
-      <div class="new-cust-box" id="newCustBox">
-        <div class="box-title">New Customer</div>
-        <div class="form-group" style="margin-bottom:8px"><label>Name *</label><input type="text" id="newCustName" placeholder="Full name"></div>
-        <div class="grid-2">
-          <div class="form-group" style="margin-bottom:0"><label>Email</label><input type="email" id="newCustEmail"></div>
-          <div class="form-group" style="margin-bottom:0"><label>Phone</label><input type="text" id="newCustPhone"></div>
-        </div>
-      </div>
-    </div>
-    <div class="form-group"><label>Invoice Amount ($)</label><input type="number" id="mInvoice" step="0.01" value="${e?.invoice_amount||''}"></div>
-    <div class="form-group"><label>Notes</label><textarea id="mNotes">${esc(e?.notes||'')}</textarea></div>
-  `,async()=>{
-    const name=document.getElementById('mName').value.trim();
-    const date=document.getElementById('mDate').value;
-    if(!name||!date) throw new Error('Name and date are required');
-    let customer_id=document.getElementById('mCustomer').value||null;
-    if(customer_id==='__new__'){
-      const newName=document.getElementById('newCustName').value.trim();
-      if(!newName) throw new Error('New customer name is required');
-      const{data,error}=await sb.from('customers').insert({name:newName,email:document.getElementById('newCustEmail').value.trim()||null,phone:document.getElementById('newCustPhone').value.trim()||null}).select().single();
-      if(error) throw error;
-      customer_id=data.id;
+function openEvDetail(id){
+  var e=findEv(id); if(!e){console.error('event not found',id);return;}
+  var f=evFin(id);
+  var eL=C.labor.filter(function(l){return sid(l.event_id)===sid(id);});
+  var eE=C.expenses.filter(function(x){return sid(x.event_id)===sid(id);});
+  var eP=C.payments.filter(function(p){return sid(p.event_id)===sid(id);});
+  var calCrew=(e.labor||[]).filter(function(x){return x.name;});
+  var calMain=(e.main_equip||[]).filter(function(x){return x.name;});
+  var calSec=(e.sec_equip||[]).filter(function(x){return x.name;});
+  var calPanel='';
+  if(calCrew.length||calMain.length||calSec.length){
+    calPanel='<div class="dp" style="margin-bottom:16px"><div class="dp-title">From Calendar App</div>';
+    if(calCrew.length){
+      calPanel+='<div style="font-size:11px;font-weight:700;color:var(--blue);text-transform:uppercase;letter-spacing:.8px;margin-bottom:8px">Crew</div><div style="margin-bottom:12px">';
+      calCrew.forEach(function(x){calPanel+='<span class="crew-chip" style="border:1px solid '+(x.confirmed?'rgba(76,175,80,.4)':'rgba(224,92,92,.4)')+';color:'+(x.confirmed?'var(--green)':'var(--accent2)')+';background:'+(x.confirmed?'rgba(76,175,80,.1)':'rgba(224,92,92,.08)')+'">'+esc(x.name)+(x.qty?' · '+esc(x.qty)+' hrs':'')+(x.confirmed?' ✓':' ?')+'</span>';});
+      calPanel+='</div>';
     }
-    const row={name,date,status:document.getElementById('mStatus').value,venue:document.getElementById('mVenue').value.trim()||null,customer_id:customer_id||null,invoice_amount:parseFloat(document.getElementById('mInvoice').value)||null,notes:document.getElementById('mNotes').value.trim()||null,updated_at:new Date().toISOString()};
-    if(id){const{error}=await sb.from('events').update(row).eq('id',id);if(error)throw error;}
-    else{const{error}=await sb.from('events').insert(row);if(error)throw error;}
-  });
+    if(calMain.length){
+      calPanel+='<div style="font-size:11px;font-weight:700;color:var(--green);text-transform:uppercase;letter-spacing:.8px;margin-bottom:8px">Main Equipment</div><div style="margin-bottom:12px">';
+      calMain.forEach(function(x){calPanel+='<span class="badge bg" style="margin:3px">'+esc(x.name)+(x.qty?' x'+esc(x.qty):'')+'</span>';});
+      calPanel+='</div>';
+    }
+    if(calSec.length){
+      calPanel+='<div style="font-size:11px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:.8px;margin-bottom:8px">Secondary Equipment</div><div>';
+      calSec.forEach(function(x){calPanel+='<span class="badge ba" style="margin:3px">'+esc(x.name)+(x.qty?' x'+esc(x.qty):'')+'</span>';});
+      calPanel+='</div>';
+    }
+    calPanel+='</div>';
+  }
+  document.getElementById('mc').innerHTML=
+    '<div class="back" onclick="renderEvents()">← Back to Events</div>'+
+    '<div class="section-header"><div class="section-title">'+esc(e.name)+'</div><button class="btn btn-sm btn-outline" onclick="openEvModal(\''+sid(e.id)+'\')">Edit Event</button></div>'+
+    '<div class="g2" style="margin-bottom:16px">'+
+      '<div class="dp"><div class="dp-title">Event Info</div>'+
+        '<div class="dr"><span class="l">Date</span><span class="v">'+fmtD(e.date)+'</span></div>'+
+        '<div class="dr"><span class="l">Venue</span><span class="v">'+esc(e.venue||'—')+'</span></div>'+
+        '<div class="dr"><span class="l">Type</span><span class="v">'+esc(e.type||'—')+'</span></div>'+
+        '<div class="dr"><span class="l">Customer</span><span class="v">'+cuName(e.customer_id)+'</span></div>'+
+        '<div class="dr"><span class="l">Status</span><span class="v">'+statusBadge(e.status)+'</span></div>'+
+      '</div>'+
+      '<div class="dp"><div class="dp-title">Financials</div>'+
+        '<div class="dr"><span class="l">Invoice</span><span class="v">'+fmt(f.rev)+'</span></div>'+
+        '<div class="dr"><span class="l">Labor Cost</span><span class="v" style="color:var(--accent2)">'+fmt(f.lab)+'</span></div>'+
+        '<div class="dr"><span class="l">Expenses</span><span class="v" style="color:var(--accent2)">'+fmt(f.exp)+'</span></div>'+
+        '<div class="dr"><span class="l">Gross Profit</span><span class="v" style="color:'+(f.profit>=0?'var(--green)':'var(--accent2)')+'">'+fmt(f.profit)+'</span></div>'+
+        '<div class="dr"><span class="l">Margin</span><span class="v">'+(f.rev>0?((f.profit/f.rev)*100).toFixed(1)+'%':'—')+'</span></div>'+
+      '</div>'+
+    '</div>'+
+    calPanel+
+    '<div class="section-header"><div class="section-title">Labor Hours</div><button class="btn btn-sm" onclick="openLabModal(\''+sid(e.id)+'\')">+ Add Hours</button></div>'+
+    '<table class="tbl"><thead><tr><th>Person</th><th>Hours</th><th>Rate</th><th>Earned</th><th>Notes</th><th></th></tr></thead><tbody>'+
+    (eL.map(function(l){return'<tr><td style="text-transform:capitalize;font-weight:500">'+esc(l.person)+'</td><td>'+(l.hours||'—')+'</td><td>'+(l.rate?fmt(l.rate)+'/hr':'—')+'</td><td style="color:var(--green)">'+fmt((l.hours||0)*(l.rate||0))+'</td><td style="color:var(--muted)">'+esc(l.notes||'')+'</td><td><button class="btn btn-sm btn-danger" onclick="delRec(\'labor\',\''+sid(l.id)+'\',function(){openEvDetail(\''+sid(id)+'\');})">Del</button></td></tr>';}).join('')||'<tr><td colspan="6" class="empty">No labor hours recorded</td></tr>')+
+    '</tbody></table>'+
+    '<div class="section-header"><div class="section-title">Expenses</div><button class="btn btn-sm" onclick="openExpModal(\''+sid(e.id)+'\')">+ Add Expense</button></div>'+
+    '<table class="tbl"><thead><tr><th>Person</th><th>Category</th><th>Description</th><th>Amount</th><th>Reimbursed</th><th></th></tr></thead><tbody>'+
+    (eE.map(function(x){return'<tr><td style="text-transform:capitalize">'+esc(x.person||'—')+'</td><td><span class="badge bb">'+esc(x.category||'other')+'</span></td><td>'+esc(x.description||'—')+'</td><td>'+fmt(x.amount)+'</td><td><span class="badge '+(x.reimbursed?'bg':'ba')+'">'+(x.reimbursed?'Yes':'No')+'</span></td><td><div class="acts">'+(x.reimbursed?'':'<button class="btn btn-sm btn-outline" onclick="doReimb(\''+sid(x.id)+'\',\''+sid(id)+'\')">✓</button>')+'<button class="btn btn-sm btn-danger" onclick="delRec(\'expenses\',\''+sid(x.id)+'\',function(){openEvDetail(\''+sid(id)+'\');})">Del</button></div></td></tr>';}).join('')||'<tr><td colspan="6" class="empty">No expenses</td></tr>')+
+    '</tbody></table>'+
+    '<div class="section-header"><div class="section-title">Payments</div><button class="btn btn-sm" onclick="openPayModal(null,\''+sid(e.id)+'\')">+ Record Payment</button></div>'+
+    '<table class="tbl"><thead><tr><th>Date</th><th>Amount</th><th>Method</th><th>Notes</th><th></th></tr></thead><tbody>'+
+    (eP.map(function(p){return'<tr><td>'+fmtD(p.date)+'</td><td style="color:var(--green)">'+fmt(p.amount)+'</td><td>'+esc(p.method||'—')+'</td><td style="color:var(--muted)">'+esc(p.notes||'')+'</td><td><button class="btn btn-sm btn-danger" onclick="delRec(\'customer_payments\',\''+sid(p.id)+'\',function(){openEvDetail(\''+sid(id)+'\');})">Del</button></td></tr>';}).join('')||'<tr><td colspan="5" class="empty">No payments</td></tr>')+
+    '</tbody></table>';
 }
 
-function openCustomerModal(id=null){
-  const c=id?findCustomer(id):null;
-  openModal(id?'Edit Customer':'Add Customer',`
-    <div class="form-group"><label>Name</label><input type="text" id="mName" value="${esc(c?.name||'')}"></div>
-    <div class="grid-2">
-      <div class="form-group"><label>Email</label><input type="email" id="mEmail" value="${esc(c?.email||'')}"></div>
-      <div class="form-group"><label>Phone</label><input type="text" id="mPhone" value="${esc(c?.phone||'')}"></div>
-    </div>
-    <div class="form-group"><label>Notes</label><textarea id="mNotes">${esc(c?.notes||'')}</textarea></div>
-  `,async()=>{
-    const name=document.getElementById('mName').value.trim();
-    if(!name) throw new Error('Name is required');
-    const row={name,email:document.getElementById('mEmail').value.trim()||null,phone:document.getElementById('mPhone').value.trim()||null,notes:document.getElementById('mNotes').value.trim()||null};
-    if(id){const{error}=await sb.from('customers').update(row).eq('id',id);if(error)throw error;}
-    else{const{error}=await sb.from('customers').insert(row);if(error)throw error;}
-  });
+function renderCustomers(){
+  document.getElementById('mc').innerHTML=
+    '<div class="section-header"><div class="section-title">Customers ('+C.customers.length+')</div><button class="btn btn-sm" onclick="openCuModal()">+ Add Customer</button></div>'+
+    '<table class="tbl"><thead><tr><th>Name</th><th>Email</th><th>Phone</th><th>Invoiced</th><th>Paid</th><th>Balance</th><th></th></tr></thead><tbody>'+
+    (C.customers.map(function(c){var b=cuBal(c.id);return'<tr style="cursor:pointer" onclick="openCuDetail(\''+sid(c.id)+'\')"><td style="font-weight:500">'+esc(c.name)+'</td><td style="color:var(--muted)">'+esc(c.email||'—')+'</td><td style="color:var(--muted)">'+esc(c.phone||'—')+'</td><td>'+fmt(b.inv)+'</td><td style="color:var(--green)">'+fmt(b.paid)+'</td><td><span class="badge '+(b.bal>0?'ba':b.bal<0?'bb':'bg')+'">'+fmt(b.bal)+'</span></td><td onclick="event.stopPropagation()"><div class="acts"><button class="btn btn-sm btn-outline" onclick="openCuModal(\''+sid(c.id)+'\')">Edit</button><button class="btn btn-sm btn-danger" onclick="delRec(\'customers\',\''+sid(c.id)+'\')">Del</button></div></td></tr>';}).join('')||'<tr><td colspan="7" class="empty">No customers</td></tr>')+
+    '</tbody></table>';
 }
 
-function openPaymentModal(customerId=null,eventId=null){
-  openModal('Record Payment',`
-    <div class="form-group"><label>Customer</label><select id="mCustomer">${custOpts(customerId||'')}</select></div>
-    <div class="form-group"><label>Event (optional)</label><select id="mEvent">${evOpts(eventId||'')}</select></div>
-    <div class="grid-2">
-      <div class="form-group"><label>Date</label><input type="date" id="mDate" value="${new Date().toISOString().split('T')[0]}"></div>
-      <div class="form-group"><label>Amount ($)</label><input type="number" id="mAmount" step="0.01" placeholder="0.00"></div>
-    </div>
-    <div class="form-group"><label>Method</label><select id="mMethod">
-      <option value="">— Select —</option><option>Cash</option><option>Check</option><option>Venmo</option><option>Zelle</option><option>Credit Card</option><option>Other</option>
-    </select></div>
-    <div class="form-group"><label>Notes</label><textarea id="mNotes" rows="2"></textarea></div>
-  `,async()=>{
-    const customer_id=document.getElementById('mCustomer').value;
-    const amount=parseFloat(document.getElementById('mAmount').value);
-    const date=document.getElementById('mDate').value;
-    if(!customer_id) throw new Error('Customer is required');
-    if(!amount||amount<=0) throw new Error('Valid amount is required');
-    if(!date) throw new Error('Date is required');
-    const{error}=await sb.from('customer_payments').insert({customer_id,date,amount,event_id:document.getElementById('mEvent').value||null,method:document.getElementById('mMethod').value||null,notes:document.getElementById('mNotes').value.trim()||null});
-    if(error) throw error;
-  });
+function openCuDetail(id){
+  var c=findCu(id);if(!c)return;
+  var b=cuBal(id);
+  var cEv=C.events.filter(function(e){return sid(e.customer_id)===sid(id);});
+  var cPa=C.payments.filter(function(p){return sid(p.customer_id)===sid(id);});
+  document.getElementById('mc').innerHTML=
+    '<div class="back" onclick="renderCustomers()">← Back to Customers</div>'+
+    '<div class="section-header"><div class="section-title">'+esc(c.name)+'</div><button class="btn btn-sm btn-outline" onclick="openCuModal(\''+sid(c.id)+'\')">Edit</button></div>'+
+    '<div class="g2" style="margin-bottom:16px">'+
+      '<div class="dp"><div class="dp-title">Contact</div>'+
+        '<div class="dr"><span class="l">Email</span><span class="v">'+esc(c.email||'—')+'</span></div>'+
+        '<div class="dr"><span class="l">Phone</span><span class="v">'+esc(c.phone||'—')+'</span></div>'+
+        '<div class="dr"><span class="l">Notes</span><span class="v">'+esc(c.notes||'—')+'</span></div>'+
+      '</div>'+
+      '<div class="dp"><div class="dp-title">Account Balance</div>'+
+        '<div class="dr"><span class="l">Total Invoiced</span><span class="v">'+fmt(b.inv)+'</span></div>'+
+        '<div class="dr"><span class="l">Total Paid</span><span class="v" style="color:var(--green)">'+fmt(b.paid)+'</span></div>'+
+        '<div class="dr"><span class="l">Balance Owing</span><span class="v"><span class="badge '+(b.bal>0?'ba':'bg')+'">'+fmt(b.bal)+'</span></span></div>'+
+      '</div>'+
+    '</div>'+
+    '<div class="section-header"><div class="section-title">Events</div><button class="btn btn-sm" onclick="openPayModal(\''+sid(c.id)+'\')">+ Record Payment</button></div>'+
+    '<table class="tbl"><thead><tr><th>Event</th><th>Date</th><th>Invoice</th><th>Status</th></tr></thead><tbody>'+
+    (cEv.map(function(e){return'<tr style="cursor:pointer" onclick="openEvDetail(\''+sid(e.id)+'\')"><td style="font-weight:500">'+esc(e.name)+'</td><td>'+fmtD(e.date)+'</td><td>'+(e.invoice_amount?fmt(e.invoice_amount):'—')+'</td><td>'+statusBadge(e.status)+'</td></tr>';}).join('')||'<tr><td colspan="4" class="empty">No events</td></tr>')+
+    '</tbody></table>'+
+    '<div class="section-header"><div class="section-title">Payment History</div></div>'+
+    '<table class="tbl"><thead><tr><th>Date</th><th>Amount</th><th>Method</th><th>Event</th><th>Notes</th></tr></thead><tbody>'+
+    (cPa.map(function(p){return'<tr><td>'+fmtD(p.date)+'</td><td style="color:var(--green)">'+fmt(p.amount)+'</td><td>'+esc(p.method||'—')+'</td><td>'+(p.event_id?evName(p.event_id):'—')+'</td><td style="color:var(--muted)">'+esc(p.notes||'')+'</td></tr>';}).join('')||'<tr><td colspan="5" class="empty">No payments</td></tr>')+
+    '</tbody></table>';
 }
 
-function openLaborModal(eventId=null){
-  openModal('Add Labor Hours',`
-    <div class="form-group"><label>Event</label><select id="mEvent">${evOpts(eventId||'')}</select></div>
-    <div class="form-group"><label>Person</label><select id="mPerson"><option value="john">John</option><option value="steve">Steve</option></select></div>
-    <div class="grid-2">
-      <div class="form-group"><label>Hours</label><input type="number" id="mHours" step="0.25" placeholder="0.00"></div>
-      <div class="form-group"><label>Rate ($/hr)</label><input type="number" id="mRate" step="0.01" placeholder="0.00"></div>
-    </div>
-    <div class="form-group"><label>Notes</label><textarea id="mNotes" rows="2"></textarea></div>
-  `,async()=>{
-    const event_id=document.getElementById('mEvent').value;
-    const hours=parseFloat(document.getElementById('mHours').value);
-    if(!event_id) throw new Error('Event is required');
-    if(!hours||hours<=0) throw new Error('Valid hours required');
-    const{error}=await sb.from('labor').insert({event_id,person:document.getElementById('mPerson').value,hours,rate:parseFloat(document.getElementById('mRate').value)||null,notes:document.getElementById('mNotes').value.trim()||null});
-    if(error) throw error;
-  });
+function renderPayments(){
+  document.getElementById('mc').innerHTML=
+    '<div class="section-header"><div class="section-title">Payments ('+C.payments.length+')</div><button class="btn btn-sm" onclick="openPayModal()">+ Record Payment</button></div>'+
+    '<table class="tbl"><thead><tr><th>Date</th><th>Customer</th><th>Amount</th><th>Method</th><th>Event</th><th>Notes</th><th></th></tr></thead><tbody>'+
+    (C.payments.map(function(p){return'<tr><td>'+fmtD(p.date)+'</td><td style="font-weight:500">'+cuName(p.customer_id)+'</td><td style="color:var(--green)">'+fmt(p.amount)+'</td><td>'+esc(p.method||'—')+'</td><td style="color:var(--muted)">'+(p.event_id?evName(p.event_id):'—')+'</td><td style="color:var(--muted)">'+esc(p.notes||'')+'</td><td><button class="btn btn-sm btn-danger" onclick="delRec(\'customer_payments\',\''+sid(p.id)+'\')">Del</button></td></tr>';}).join('')||'<tr><td colspan="7" class="empty">No payments</td></tr>')+
+    '</tbody></table>';
 }
 
-function openExpenseModal(eventId=null){
-  openModal('Add Expense',`
-    <div class="form-group"><label>Event</label><select id="mEvent">${evOpts(eventId||'')}</select></div>
-    <div class="grid-2">
-      <div class="form-group"><label>Person</label><select id="mPerson"><option value="john">John</option><option value="steve">Steve</option></select></div>
-      <div class="form-group"><label>Category</label><select id="mCategory">
-        <option value="travel">Travel</option><option value="toll">Toll</option><option value="equipment">Equipment</option><option value="helper">Helper Pay</option><option value="other">Other</option>
-      </select></div>
-    </div>
-    <div class="form-group"><label>Description</label><input type="text" id="mDesc" placeholder="e.g. Turnpike toll"></div>
-    <div class="form-group"><label>Amount ($)</label><input type="number" id="mAmount" step="0.01" placeholder="0.00"></div>
-    <div class="form-group"><label>Notes</label><textarea id="mNotes" rows="2"></textarea></div>
-  `,async()=>{
-    const event_id=document.getElementById('mEvent').value;
-    const amount=parseFloat(document.getElementById('mAmount').value);
-    if(!event_id) throw new Error('Event is required');
-    if(!amount||amount<=0) throw new Error('Valid amount required');
-    const{error}=await sb.from('expenses').insert({event_id,person:document.getElementById('mPerson').value,category:document.getElementById('mCategory').value,description:document.getElementById('mDesc').value.trim()||null,amount,reimbursed:false,notes:document.getElementById('mNotes').value.trim()||null});
-    if(error) throw error;
-  });
+function renderLabor(){
+  var jt=C.labor.filter(function(l){return l.person==='john';}).reduce(function(s,l){return s+((parseFloat(l.hours)||0)*(parseFloat(l.rate)||0));},0);
+  var st=C.labor.filter(function(l){return l.person==='steve';}).reduce(function(s,l){return s+((parseFloat(l.hours)||0)*(parseFloat(l.rate)||0));},0);
+  document.getElementById('mc').innerHTML=
+    '<div class="stat-grid" style="margin-bottom:16px">'+
+    '<div class="stat-card"><div class="stat-label">John — Total Earned</div><div class="stat-value green">'+fmt(jt)+'</div></div>'+
+    '<div class="stat-card"><div class="stat-label">Steve — Total Earned</div><div class="stat-value green">'+fmt(st)+'</div></div>'+
+    '</div>'+
+    '<div class="section-header"><div class="section-title">Labor Records ('+C.labor.length+')</div><button class="btn btn-sm" onclick="openLabModal()">+ Add Hours</button></div>'+
+    '<table class="tbl"><thead><tr><th>Event</th><th>Person</th><th>Hours</th><th>Rate</th><th>Earned</th><th>Notes</th><th></th></tr></thead><tbody>'+
+    (C.labor.map(function(l){return'<tr><td style="font-weight:500">'+evName(l.event_id)+'</td><td style="text-transform:capitalize">'+esc(l.person)+'</td><td>'+(l.hours||'—')+'</td><td>'+(l.rate?fmt(l.rate)+'/hr':'—')+'</td><td style="color:var(--green)">'+fmt((l.hours||0)*(l.rate||0))+'</td><td style="color:var(--muted)">'+esc(l.notes||'')+'</td><td><button class="btn btn-sm btn-danger" onclick="delRec(\'labor\',\''+sid(l.id)+'\')">Del</button></td></tr>';}).join('')||'<tr><td colspan="7" class="empty">No labor recorded</td></tr>')+
+    '</tbody></table>';
 }
 
-// ── ACTIONS ───────────────────────────────────────────────────────────────────
-async function deleteRecord(table,id,callback=null){
-  if(!confirm('Delete this record?')) return;
-  const{error}=await sb.from(table).delete().eq('id',id);
-  if(error){showErr(error.message);return;}
+function renderExpenses(){
+  var te=C.expenses.reduce(function(s,x){return s+(parseFloat(x.amount)||0);},0);
+  var ur=C.expenses.filter(function(x){return!x.reimbursed;}).reduce(function(s,x){return s+(parseFloat(x.amount)||0);},0);
+  document.getElementById('mc').innerHTML=
+    '<div class="stat-grid" style="margin-bottom:16px">'+
+    '<div class="stat-card"><div class="stat-label">Total Expenses</div><div class="stat-value">'+fmt(te)+'</div></div>'+
+    '<div class="stat-card"><div class="stat-label">Pending Reimbursement</div><div class="stat-value amber">'+fmt(ur)+'</div></div>'+
+    '</div>'+
+    '<div class="section-header"><div class="section-title">Expenses ('+C.expenses.length+')</div><button class="btn btn-sm" onclick="openExpModal()">+ Add Expense</button></div>'+
+    '<table class="tbl"><thead><tr><th>Event</th><th>Person</th><th>Category</th><th>Description</th><th>Amount</th><th>Reimbursed</th><th></th></tr></thead><tbody>'+
+    (C.expenses.map(function(x){return'<tr><td style="font-weight:500">'+evName(x.event_id)+'</td><td style="text-transform:capitalize">'+esc(x.person||'—')+'</td><td><span class="badge bb">'+esc(x.category||'other')+'</span></td><td>'+esc(x.description||'—')+'</td><td>'+fmt(x.amount)+'</td><td><span class="badge '+(x.reimbursed?'bg':'ba')+'">'+(x.reimbursed?'Yes':'No')+'</span></td><td><div class="acts">'+(x.reimbursed?'':'<button class="btn btn-sm btn-outline" onclick="doReimb(\''+sid(x.id)+'\')">✓</button>')+'<button class="btn btn-sm btn-danger" onclick="delRec(\'expenses\',\''+sid(x.id)+'\')">Del</button></div></td></tr>';}).join('')||'<tr><td colspan="7" class="empty">No expenses</td></tr>')+
+    '</tbody></table>';
+}
+
+function openModal(title,body,fn){
+  document.getElementById('mt').textContent=title;
+  document.getElementById('mb').innerHTML=body;
+  saveFn=fn;
+  document.getElementById('msb').disabled=false;
+  document.getElementById('msb').textContent='Save';
+  document.getElementById('mo').classList.add('open');
+}
+function closeModal(){document.getElementById('mo').classList.remove('open');saveFn=null;}
+function modalSave(){
+  var btn=document.getElementById('msb');
+  btn.disabled=true;btn.innerHTML='<span class="sp"></span>Saving…';
+  Promise.resolve().then(function(){return saveFn&&saveFn();}).then(function(){
+    closeModal();return loadAll();
+  }).then(function(){showTab(currentTab);}).catch(function(err){
+    showErr(err.message||String(err));btn.disabled=false;btn.textContent='Save';
+  });
+}
+document.getElementById('mo').addEventListener('click',function(e){if(e.target===this)closeModal();});
+
+function cuOpts(sel){return'<option value="">— None —</option>'+C.customers.map(function(c){return'<option value="'+sid(c.id)+'"'+(sid(c.id)===sid(sel)?' selected':'')+'>'+esc(c.name)+'</option>';}).join('')+'<option value="__new__">＋ Add new customer…</option>';}
+function evOpts(sel){return'<option value="">— None —</option>'+C.events.map(function(e){return'<option value="'+sid(e.id)+'"'+(sid(e.id)===sid(sel)?' selected':'')+'>'+esc(e.name)+' ('+fmtD(e.date)+')</option>';}).join('');}
+function toggleNC(v){document.getElementById('ncbox').style.display=v==='__new__'?'block':'none';}
+
+function openEvModal(id){
+  var e=id?findEv(id):null;
+  openModal(id?'Edit Event':'Add Event',
+    '<div class="form-group"><label>Event Name</label><input type="text" id="mN" value="'+esc(e&&e.name||'')+'"></div>'+
+    '<div class="g2"><div class="form-group"><label>Date</label><input type="date" id="mD" value="'+(e&&e.date||'')+'"></div>'+
+    '<div class="form-group"><label>Status</label><select id="mS">'+
+      '<option value="upcoming"'+(!e||e.status==='upcoming'?' selected':'')+'>Upcoming</option>'+
+      '<option value="completed"'+(e&&e.status==='completed'?' selected':'')+'>Completed</option>'+
+      '<option value="cancelled"'+(e&&e.status==='cancelled'?' selected':'')+'>Cancelled</option>'+
+    '</select></div></div>'+
+    '<div class="form-group"><label>Venue</label><input type="text" id="mV" value="'+esc(e&&e.venue||'')+'"></div>'+
+    '<div class="form-group"><label>Customer</label><select id="mC" onchange="toggleNC(this.value)">'+cuOpts(e&&e.customer_id||'')+'</select>'+
+      '<div class="new-cust" id="ncbox"><div class="new-cust-title">New Customer</div>'+
+        '<div class="form-group" style="margin-bottom:8px"><label>Name *</label><input type="text" id="ncN" placeholder="Full name"></div>'+
+        '<div class="g2"><div class="form-group" style="margin-bottom:0"><label>Email</label><input type="email" id="ncE"></div>'+
+        '<div class="form-group" style="margin-bottom:0"><label>Phone</label><input type="text" id="ncP"></div></div>'+
+      '</div>'+
+    '</div>'+
+    '<div class="form-group"><label>Invoice Amount ($)</label><input type="number" id="mI" step="0.01" value="'+(e&&e.invoice_amount||'')+'"></div>'+
+    '<div class="form-group"><label>Notes</label><textarea id="mNo">'+esc(e&&e.notes||'')+'</textarea></div>',
+    async function(){
+      var name=document.getElementById('mN').value.trim();
+      var date=document.getElementById('mD').value;
+      if(!name||!date)throw new Error('Name and date are required');
+      var cid=document.getElementById('mC').value||null;
+      if(cid==='__new__'){
+        var nn=document.getElementById('ncN').value.trim();
+        if(!nn)throw new Error('New customer name is required');
+        var nr=await sb.from('customers').insert({name:nn,email:document.getElementById('ncE').value.trim()||null,phone:document.getElementById('ncP').value.trim()||null}).select().single();
+        if(nr.error)throw nr.error;
+        cid=nr.data.id;
+      }
+      var row={name:name,date:date,status:document.getElementById('mS').value,venue:document.getElementById('mV').value.trim()||null,customer_id:cid,invoice_amount:parseFloat(document.getElementById('mI').value)||null,notes:document.getElementById('mNo').value.trim()||null,updated_at:new Date().toISOString()};
+      var r=id?await sb.from('events').update(row).eq('id',id):await sb.from('events').insert(row);
+      if(r.error)throw r.error;
+    }
+  );
+}
+
+function openCuModal(id){
+  var c=id?findCu(id):null;
+  openModal(id?'Edit Customer':'Add Customer',
+    '<div class="form-group"><label>Name</label><input type="text" id="mN" value="'+esc(c&&c.name||'')+'"></div>'+
+    '<div class="g2"><div class="form-group"><label>Email</label><input type="email" id="mE" value="'+esc(c&&c.email||'')+'"></div>'+
+    '<div class="form-group"><label>Phone</label><input type="text" id="mP" value="'+esc(c&&c.phone||'')+'"></div></div>'+
+    '<div class="form-group"><label>Notes</label><textarea id="mNo">'+esc(c&&c.notes||'')+'</textarea></div>',
+    async function(){
+      var name=document.getElementById('mN').value.trim();
+      if(!name)throw new Error('Name is required');
+      var row={name:name,email:document.getElementById('mE').value.trim()||null,phone:document.getElementById('mP').value.trim()||null,notes:document.getElementById('mNo').value.trim()||null};
+      var r=id?await sb.from('customers').update(row).eq('id',id):await sb.from('customers').insert(row);
+      if(r.error)throw r.error;
+    }
+  );
+}
+
+function openPayModal(cid,eid){
+  openModal('Record Payment',
+    '<div class="form-group"><label>Customer</label><select id="mC">'+cuOpts(cid||'')+'</select></div>'+
+    '<div class="form-group"><label>Event (optional)</label><select id="mE">'+evOpts(eid||'')+'</select></div>'+
+    '<div class="g2"><div class="form-group"><label>Date</label><input type="date" id="mD" value="'+new Date().toISOString().split('T')[0]+'"></div>'+
+    '<div class="form-group"><label>Amount ($)</label><input type="number" id="mA" step="0.01" placeholder="0.00"></div></div>'+
+    '<div class="form-group"><label>Method</label><select id="mM"><option value="">— Select —</option><option>Cash</option><option>Check</option><option>Venmo</option><option>Zelle</option><option>Credit Card</option><option>Other</option></select></div>'+
+    '<div class="form-group"><label>Notes</label><textarea id="mNo" rows="2"></textarea></div>',
+    async function(){
+      var cust=document.getElementById('mC').value;
+      var amt=parseFloat(document.getElementById('mA').value);
+      var dt=document.getElementById('mD').value;
+      if(!cust)throw new Error('Customer is required');
+      if(!amt||amt<=0)throw new Error('Valid amount required');
+      if(!dt)throw new Error('Date is required');
+      var r=await sb.from('customer_payments').insert({customer_id:cust,date:dt,amount:amt,event_id:document.getElementById('mE').value||null,method:document.getElementById('mM').value||null,notes:document.getElementById('mNo').value.trim()||null});
+      if(r.error)throw r.error;
+    }
+  );
+}
+
+function openLabModal(eid){
+  openModal('Add Labor Hours',
+    '<div class="form-group"><label>Event</label><select id="mE">'+evOpts(eid||'')+'</select></div>'+
+    '<div class="form-group"><label>Person</label><select id="mP"><option value="john">John</option><option value="steve">Steve</option></select></div>'+
+    '<div class="g2"><div class="form-group"><label>Hours</label><input type="number" id="mH" step="0.25" placeholder="0.00"></div>'+
+    '<div class="form-group"><label>Rate ($/hr)</label><input type="number" id="mR" step="0.01" placeholder="0.00"></div></div>'+
+    '<div class="form-group"><label>Notes</label><textarea id="mNo" rows="2"></textarea></div>',
+    async function(){
+      var eid2=document.getElementById('mE').value;
+      var hrs=parseFloat(document.getElementById('mH').value);
+      if(!eid2)throw new Error('Event is required');
+      if(!hrs||hrs<=0)throw new Error('Valid hours required');
+      var r=await sb.from('labor').insert({event_id:eid2,person:document.getElementById('mP').value,hours:hrs,rate:parseFloat(document.getElementById('mR').value)||null,notes:document.getElementById('mNo').value.trim()||null});
+      if(r.error)throw r.error;
+    }
+  );
+}
+
+function openExpModal(eid){
+  openModal('Add Expense',
+    '<div class="form-group"><label>Event</label><select id="mE">'+evOpts(eid||'')+'</select></div>'+
+    '<div class="g2"><div class="form-group"><label>Person</label><select id="mP"><option value="john">John</option><option value="steve">Steve</option></select></div>'+
+    '<div class="form-group"><label>Category</label><select id="mCat"><option value="travel">Travel</option><option value="toll">Toll</option><option value="equipment">Equipment</option><option value="helper">Helper Pay</option><option value="other">Other</option></select></div></div>'+
+    '<div class="form-group"><label>Description</label><input type="text" id="mDesc" placeholder="e.g. Turnpike toll"></div>'+
+    '<div class="form-group"><label>Amount ($)</label><input type="number" id="mA" step="0.01" placeholder="0.00"></div>'+
+    '<div class="form-group"><label>Notes</label><textarea id="mNo" rows="2"></textarea></div>',
+    async function(){
+      var eid2=document.getElementById('mE').value;
+      var amt=parseFloat(document.getElementById('mA').value);
+      if(!eid2)throw new Error('Event is required');
+      if(!amt||amt<=0)throw new Error('Valid amount required');
+      var r=await sb.from('expenses').insert({event_id:eid2,person:document.getElementById('mP').value,category:document.getElementById('mCat').value,description:document.getElementById('mDesc').value.trim()||null,amount:amt,reimbursed:false,notes:document.getElementById('mNo').value.trim()||null});
+      if(r.error)throw r.error;
+    }
+  );
+}
+
+async function delRec(table,id,cb){
+  if(!confirm('Delete this record?'))return;
+  var r=await sb.from(table).delete().eq('id',id);
+  if(r.error){showErr(r.error.message);return;}
   await loadAll();
-  if(callback) callback(); else showTab(currentTab);
+  if(cb)cb();else showTab(currentTab);
 }
 
-async function markReimbursed(expenseId,eventId=null){
-  const{error}=await sb.from('expenses').update({reimbursed:true}).eq('id',expenseId);
-  if(error){showErr(error.message);return;}
+async function doReimb(xid,eid){
+  var r=await sb.from('expenses').update({reimbursed:true}).eq('id',xid);
+  if(r.error){showErr(r.error.message);return;}
   await loadAll();
-  if(eventId) openEventDetail(eventId); else showTab('expenses');
+  if(eid)openEvDetail(eid);else showTab('expenses');
 }
 
-window.showTab=showTab;window.openEventModal=openEventModal;window.openCustomerModal=openCustomerModal;
-window.openPaymentModal=openPaymentModal;window.openLaborModal=openLaborModal;window.openExpenseModal=openExpenseModal;
-window.closeModal=closeModal;window.modalSave=modalSave;window.deleteRecord=deleteRecord;
-window.markReimbursed=markReimbursed;window.openEventDetail=openEventDetail;window.openCustomerDetail=openCustomerDetail;
-window.renderEvents=renderEvents;window.renderCustomers=renderCustomers;window.toggleNewCust=toggleNewCust;
-window.doLogin=doLogin;window.doLogout=doLogout;
-
-} // end startApp
-startApp();
+init();
 </script>
 </body>
 </html>
