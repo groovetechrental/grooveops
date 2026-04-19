@@ -242,15 +242,15 @@ function initApp() {
   function customerName(id) { const c=cache.customers.find(x=>x.id===id); return c?esc(c.name):'—'; }
   function eventName(id)    { const e=cache.events.find(x=>x.id===id);    return e?esc(e.name):'—'; }
   function customerBalance(cid) {
-    const invoiced = cache.events.filter(e=>e.customer_id===cid).reduce((s,e)=>s+(parseFloat(e.invoice_amount)||0),0);
-    const paid     = cache.payments.filter(p=>p.customer_id===cid).reduce((s,p)=>s+(parseFloat(p.amount)||0),0);
+    const invoiced = cache.events.filter(e=>String(e.customer_id)===String(cid)).reduce((s,e)=>s+(parseFloat(e.invoice_amount)||0),0);
+    const paid     = cache.payments.filter(p=>String(p.customer_id)===String(cid)).reduce((s,p)=>s+(parseFloat(p.amount)||0),0);
     return { invoiced, paid, balance: invoiced - paid };
   }
   function eventFinancials(eid) {
     const ev      = cache.events.find(e=>String(e.id)===String(eid));
     const revenue = parseFloat(ev?.invoice_amount)||0;
-    const labor   = cache.labor.filter(l=>l.event_id===eid).reduce((s,l)=>s+((parseFloat(l.hours)||0)*(parseFloat(l.rate)||0)),0);
-    const expenses= cache.expenses.filter(x=>x.event_id===eid).reduce((s,x)=>s+(parseFloat(x.amount)||0),0);
+    const labor   = cache.labor.filter(l=>String(l.event_id)===String(eid)).reduce((s,l)=>s+((parseFloat(l.hours)||0)*(parseFloat(l.rate)||0)),0);
+    const expenses= cache.expenses.filter(x=>String(x.event_id)===String(eid)).reduce((s,x)=>s+(parseFloat(x.amount)||0),0);
     return { revenue, labor, expenses, profit: revenue - labor - expenses };
   }
 
@@ -332,9 +332,9 @@ function initApp() {
   function renderEventDetail(id) {
     const e=cache.events.find(x=>String(x.id)===String(id)); if(!e) return;
     const fin=eventFinancials(id);
-    const evLabor=cache.labor.filter(l=>l.event_id===id);
-    const evExpenses=cache.expenses.filter(x=>x.event_id===id);
-    const evPayments=cache.payments.filter(p=>p.event_id===id);
+    const evLabor=cache.labor.filter(l=>String(l.event_id)===String(id));
+    const evExpenses=cache.expenses.filter(x=>String(x.event_id)===String(id));
+    const evPayments=cache.payments.filter(p=>String(p.event_id)===String(id));
     document.getElementById('mainContent').innerHTML = `
       <div class="back-btn" onclick="renderEvents()">← Back to Events</div>
       <div class="section-header"><div class="section-title">${esc(e.name)}</div>
