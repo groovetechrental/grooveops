@@ -147,6 +147,13 @@
 </div>
 
 <script>
+// Wait for Supabase to be available (handles both direct and WordPress-injected loading)
+function startApp() {
+  if (typeof supabase === 'undefined' || typeof supabase.createClient === 'undefined') {
+    setTimeout(startApp, 100);
+    return;
+  }
+
 const { createClient } = supabase;
 const sb = createClient(
   'https://rbtzcswnounmybumqbwu.supabase.co',
@@ -637,6 +644,9 @@ window.closeModal=closeModal;window.modalSave=modalSave;window.deleteRecord=dele
 window.markReimbursed=markReimbursed;window.openEventDetail=openEventDetail;window.openCustomerDetail=openCustomerDetail;
 window.renderEvents=renderEvents;window.renderCustomers=renderCustomers;window.toggleNewCust=toggleNewCust;
 window.doLogin=doLogin;window.doLogout=doLogout;
+
+} // end startApp
+startApp();
 </script>
 </body>
 </html>
