@@ -247,7 +247,7 @@ function initApp() {
     return { invoiced, paid, balance: invoiced - paid };
   }
   function eventFinancials(eid) {
-    const ev      = cache.events.find(e=>e.id===eid);
+    const ev      = cache.events.find(e=>String(e.id)===String(eid));
     const revenue = parseFloat(ev?.invoice_amount)||0;
     const labor   = cache.labor.filter(l=>l.event_id===eid).reduce((s,l)=>s+((parseFloat(l.hours)||0)*(parseFloat(l.rate)||0)),0);
     const expenses= cache.expenses.filter(x=>x.event_id===eid).reduce((s,x)=>s+(parseFloat(x.amount)||0),0);
@@ -330,7 +330,7 @@ function initApp() {
   }
 
   function renderEventDetail(id) {
-    const e=cache.events.find(x=>x.id===id); if(!e) return;
+    const e=cache.events.find(x=>String(x.id)===String(id)); if(!e) return;
     const fin=eventFinancials(id);
     const evLabor=cache.labor.filter(l=>l.event_id===id);
     const evExpenses=cache.expenses.filter(x=>x.event_id===id);
@@ -554,7 +554,7 @@ function initApp() {
   function customerOpts(selected='') { return `<option value="">— Select —</option>`+cache.customers.map(c=>`<option value="${c.id}"${c.id===selected?' selected':''}>${esc(c.name)}</option>`).join(''); }
 
   function openEventModal(id=null) {
-    const e=id?cache.events.find(x=>x.id===id):null;
+    const e=id?cache.events.find(x=>String(x.id)===String(id)):null;
     openModal(id?'Edit Event':'Add Event', `
       <div class="form-group"><label>Event Name</label><input type="text" id="mName" value="${esc(e?.name||'')}"></div>
       <div class="grid-2">
