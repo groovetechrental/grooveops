@@ -9,7 +9,7 @@
 <style>
   :root {
     --bg:#0e0e12;--surface:#17171f;--surface2:#1e1e2a;--border:#2a2a3a;
-    --accent:#f5a623;--accent2:#e05c5c;--green:#4caf50;--blue:#4fc3f7;
+    --accent:#9c6fe4;--accent2:#e05c5c;--green:#4caf50;--blue:#4fc3f7;
     --text:#e8e8f0;--muted:#6b6b80;--radius:12px;
   }
   *{box-sizing:border-box;margin:0;padding:0;}
@@ -565,18 +565,48 @@ function initApp() {
         </select></div>
       </div>
       <div class="form-group"><label>Venue</label><input type="text" id="mVenue" value="${esc(e?.venue||'')}"></div>
-      <div class="form-group"><label>Customer</label><select id="mCustomer">${customerOpts(e?.customer_id||'')}</select></div>
+      <div class="form-group">
+        <label>Customer</label>
+        <div style="display:flex;gap:8px;align-items:center">
+          <select id="mCustomer" style="flex:1" onchange="toggleNewCustomer(this.value)">${customerOpts(e?.customer_id||'')}<option value="__new__">＋ Add new customer…</option></select>
+        </div>
+        <div id="newCustomerFields" style="display:none;margin-top:10px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:12px">
+          <div style="font-size:11px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:1px;margin-bottom:10px">New Customer</div>
+          <div class="form-group" style="margin-bottom:8px"><label>Name *</label><input type="text" id="newCustName" placeholder="Full name"></div>
+          <div class="grid-2">
+            <div class="form-group" style="margin-bottom:8px"><label>Email</label><input type="email" id="newCustEmail" placeholder="email@example.com"></div>
+            <div class="form-group" style="margin-bottom:0"><label>Phone</label><input type="text" id="newCustPhone" placeholder="(555) 000-0000"></div>
+          </div>
+        </div>
+      </div>
       <div class="form-group"><label>Invoice Amount ($)</label><input type="number" id="mInvoice" step="0.01" value="${e?.invoice_amount||''}"></div>
       <div class="form-group"><label>Notes</label><textarea id="mNotes">${esc(e?.notes||'')}</textarea></div>
     `, async () => {
       const name=document.getElementById('mName').value.trim();
       const date=document.getElementById('mDate').value;
       if(!name||!date) throw new Error('Name and date are required');
-      const row={name,date,status:document.getElementById('mStatus').value,venue:document.getElementById('mVenue').value.trim()||null,customer_id:document.getElementById('mCustomer').value||null,invoice_amount:parseFloat(document.getElementById('mInvoice').value)||null,notes:document.getElementById('mNotes').value.trim()||null,updated_at:new Date().toISOString()};
+      let customer_id=document.getElementById('mCustomer').value||null;
+      if(customer_id==='__new__') {
+        const newName=document.getElementById('newCustName').value.trim();
+        if(!newName) throw new Error('New customer name is required');
+        const{data,error}=await sb.from('customers').insert({
+          name:newName,
+          email:document.getElementById('newCustEmail').value.trim()||null,
+          phone:document.getElementById('newCustPhone').value.trim()||null
+        }).select().single();
+        if(error) throw error;
+        customer_id=data.id;
+        cache.customers.push(data);
+      }
+      const row={name,date,status:document.getElementById('mStatus').value,venue:document.getElementById('mVenue').value.trim()||null,customer_id:customer_id||null,invoice_amount:parseFloat(document.getElementById('mInvoice').value)||null,notes:document.getElementById('mNotes').value.trim()||null,updated_at:new Date().toISOString()};
       if(id){const{error}=await sb.from('events').update(row).eq('id',id);if(error)throw error;}
       else{const{error}=await sb.from('events').insert(row);if(error)throw error;}
     });
   }
+
+  window.toggleNewCustomer = function(val) {
+    document.getElementById('newCustomerFields').style.display = val==='__new__' ? 'block' : 'none';
+  };
 
   function openCustomerModal(id=null) {
     const c=id?cache.customers.find(x=>x.id===id):null;
