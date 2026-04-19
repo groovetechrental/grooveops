@@ -289,8 +289,7 @@ function openEvDetail(id){
   var eP=C.payments.filter(function(p){return sid(p.event_id)===sid(id);});
   var calCrew=(e.labor||[]).filter(function(x){return x.name;});
   var calMain=(e.main_equip||[]).filter(function(x){return x.name;});
-  var calSec=(e.sec_equip||[]).filter(function(x){return x.name;});
-  var calPanel='';
+  var calSec=(e.sec_equip||[]).filter(function(x){return x.name;});  var calPanel='';
   if(calCrew.length||calMain.length||calSec.length){
     calPanel='<div class="dp" style="margin-bottom:16px"><div class="dp-title">From Calendar App</div>';
     if(calCrew.length){
@@ -317,7 +316,8 @@ function openEvDetail(id){
       '<div class="dp"><div class="dp-title">Event Info</div>'+
         '<div class="dr"><span class="l">Date</span><span class="v">'+fmtD(e.date)+'</span></div>'+
         '<div class="dr"><span class="l">Venue</span><span class="v">'+esc(e.venue||'—')+'</span></div>'+
-        '<div class="dr"><span class="l">Type</span><span class="v">'+esc(e.type||'—')+'</span></div>'+
+        '<div class="dr"><span class="l">Type</span><span class="v">'+({gt:'GT',looch:'Looch',neon:'Neon Nights',other:'Other'}[e.type]||e.type||'—')+'</span></div>'+
+        '<div class="dr"><span class="l">Time</span><span class="v">'+esc(e.time||'—')+'</span></div>'+
         '<div class="dr"><span class="l">Customer</span><span class="v">'+cuName(e.customer_id)+'</span></div>'+
         '<div class="dr"><span class="l">Status</span><span class="v">'+statusBadge(e.status)+'</span></div>'+
       '</div>'+
@@ -453,6 +453,12 @@ function openEvModal(id){
       '<option value="cancelled"'+(e&&e.status==='cancelled'?' selected':'')+'>Cancelled</option>'+
     '</select></div></div>'+
     '<div class="form-group"><label>Venue</label><input type="text" id="mV" value="'+esc(e&&e.venue||'')+'"></div>'+
+    '<div class="form-group"><label>Event Type</label><select id="mT">'+
+      '<option value="gt"'+((!e||e.type==='gt')?' selected':'')+'>GT</option>'+
+      '<option value="looch"'+(e&&e.type==='looch'?' selected':'')+'>Looch</option>'+
+      '<option value="neon"'+(e&&e.type==='neon'?' selected':'')+'>Neon Nights</option>'+
+      '<option value="other"'+(e&&e.type==='other'?' selected':'')+'>Other</option>'+
+    '</select></div>'+
     '<div class="form-group"><label>Customer</label><select id="mC" onchange="toggleNC(this.value)">'+cuOpts(e&&e.customer_id||'')+'</select>'+
       '<div class="new-cust" id="ncbox"><div class="new-cust-title">New Customer</div>'+
         '<div class="form-group" style="margin-bottom:8px"><label>Name *</label><input type="text" id="ncN" placeholder="Full name"></div>'+
@@ -474,7 +480,7 @@ function openEvModal(id){
         if(nr.error)throw nr.error;
         cid=nr.data.id;
       }
-      var row={name:name,date:date,status:document.getElementById('mS').value,venue:document.getElementById('mV').value.trim()||null,customer_id:cid,invoice_amount:parseFloat(document.getElementById('mI').value)||null,notes:document.getElementById('mNo').value.trim()||null,updated_at:new Date().toISOString()};
+      var row={name:name,date:date,status:document.getElementById('mS').value,type:document.getElementById('mT').value,venue:document.getElementById('mV').value.trim()||null,customer_id:cid,invoice_amount:parseFloat(document.getElementById('mI').value)||null,notes:document.getElementById('mNo').value.trim()||null,updated_at:new Date().toISOString()};
       var r=id?await sb.from('events').update(row).eq('id',id):await sb.from('events').insert(row);
       if(r.error)throw r.error;
     }
