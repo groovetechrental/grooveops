@@ -1,0 +1,696 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GrooveOps</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg:#0e0e12;--surface:#17171f;--surface2:#1e1e2a;--border:#2a2a3a;
+    --accent:#f5a623;--accent2:#e05c5c;--green:#4caf50;--blue:#4fc3f7;
+    --text:#e8e8f0;--muted:#6b6b80;--radius:12px;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min-height:100vh;}
+  #loginScreen{display:flex;align-items:center;justify-content:center;min-height:100vh;padding:16px;}
+  .login-box{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:32px 24px;width:100%;max-width:360px;}
+  .login-logo{font-family:'Bebas Neue',sans-serif;font-size:28px;letter-spacing:3px;color:var(--accent);margin-bottom:4px;}
+  .login-logo span{color:var(--text);}
+  .login-sub{font-size:13px;color:var(--muted);margin-bottom:24px;}
+  .login-err{background:rgba(224,92,92,.12);border:1px solid rgba(224,92,92,.35);border-radius:8px;padding:10px 12px;font-size:13px;color:var(--accent2);margin-bottom:14px;display:none;}
+  .login-err.show{display:block;}
+  #app{display:none;}
+  .form-group{margin-bottom:13px;}
+  label{display:block;font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:5px;}
+  input[type=email],input[type=password],input[type=text],input[type=date],input[type=number],textarea,select{
+    width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:8px;
+    color:var(--text);font-family:'DM Sans',sans-serif;font-size:14px;padding:9px 12px;
+    outline:none;transition:border-color .15s;-webkit-appearance:none;appearance:none;}
+  input:focus,textarea:focus,select:focus{border-color:var(--accent);}
+  textarea{resize:vertical;min-height:56px;}
+  select option{background:var(--surface2);color:var(--text);}
+  .btn{background:var(--accent);color:#000;border:none;border-radius:8px;padding:9px 16px;font-family:'DM Sans',sans-serif;font-weight:600;font-size:14px;cursor:pointer;transition:opacity .15s;white-space:nowrap;}
+  .btn:hover{opacity:.85;}
+  .btn:disabled{opacity:.4;cursor:not-allowed;}
+  .btn-full{width:100%;}
+  .btn-outline{background:transparent;color:var(--text);border:1px solid var(--border);}
+  .btn-outline:hover{border-color:var(--accent);color:var(--accent);opacity:1;}
+  .btn-sm{padding:6px 12px;font-size:12px;}
+  .btn-danger{background:var(--accent2);color:#fff;}
+  .spinner-inline{display:inline-block;width:14px;height:14px;border:2px solid rgba(0,0,0,.2);border-top-color:#000;border-radius:50%;animation:spin .7s linear infinite;vertical-align:middle;margin-right:6px;}
+  @keyframes spin{to{transform:rotate(360deg);}}
+  .loading-overlay{position:fixed;inset:0;background:var(--bg);z-index:500;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;transition:opacity .4s;}
+  .loading-overlay.hidden{opacity:0;pointer-events:none;}
+  .loading-logo{font-family:'Bebas Neue',sans-serif;font-size:32px;letter-spacing:3px;color:var(--accent);}
+  .loading-logo span{color:var(--text);}
+  .spinner{width:28px;height:28px;border:3px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .8s linear infinite;}
+  header{background:var(--surface);border-bottom:1px solid var(--border);padding:12px 16px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;}
+  .logo{font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:2px;color:var(--accent);}
+  .logo span{color:var(--text);}
+  .header-right{display:flex;align-items:center;gap:8px;}
+  .user-chip{font-size:11px;color:var(--muted);background:var(--surface2);border:1px solid var(--border);border-radius:20px;padding:4px 10px;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .btn-hdr{background:var(--accent);color:#000;border:none;border-radius:8px;padding:7px 12px;font-family:'DM Sans',sans-serif;font-weight:600;font-size:13px;cursor:pointer;transition:opacity .15s;}
+  .btn-hdr:hover{opacity:.85;}
+  .btn-hdr.outline{background:transparent;color:var(--muted);border:1px solid var(--border);}
+  .btn-hdr.outline:hover{border-color:var(--accent2);color:var(--accent2);opacity:1;}
+  .nav-tabs{display:flex;gap:2px;padding:12px 16px 0;border-bottom:1px solid var(--border);background:var(--surface);overflow-x:auto;}
+  .nav-tab{padding:8px 16px;font-size:13px;font-weight:600;color:var(--muted);cursor:pointer;border-bottom:2px solid transparent;transition:all .15s;white-space:nowrap;}
+  .nav-tab:hover{color:var(--text);}
+  .nav-tab.active{color:var(--accent);border-bottom-color:var(--accent);}
+  .content{padding:16px;max-width:900px;margin:0 auto;}
+  .stat-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-bottom:20px;}
+  .stat-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:14px 16px;}
+  .stat-label{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;margin-bottom:6px;}
+  .stat-value{font-size:22px;font-weight:600;color:var(--text);}
+  .stat-value.green{color:var(--green);}
+  .stat-value.amber{color:var(--accent);}
+  .stat-value.red{color:var(--accent2);}
+  .section-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;}
+  .section-title{font-family:'Bebas Neue',sans-serif;font-size:18px;letter-spacing:1.5px;color:var(--accent);}
+  .data-table{width:100%;border-collapse:collapse;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;}
+  .data-table th{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:var(--muted);padding:10px 14px;text-align:left;border-bottom:1px solid var(--border);background:var(--surface2);}
+  .data-table td{padding:10px 14px;font-size:13px;border-bottom:1px solid var(--border);vertical-align:middle;}
+  .data-table tr:last-child td{border-bottom:none;}
+  .data-table tr:hover td{background:var(--surface2);}
+  .data-table .actions{display:flex;gap:6px;}
+  .badge{display:inline-block;font-size:10px;font-weight:700;border-radius:20px;padding:2px 8px;}
+  .badge-green{background:rgba(76,175,80,.15);color:var(--green);border:1px solid rgba(76,175,80,.3);}
+  .badge-amber{background:rgba(245,166,35,.15);color:var(--accent);border:1px solid rgba(245,166,35,.3);}
+  .badge-red{background:rgba(224,92,92,.12);color:var(--accent2);border:1px solid rgba(224,92,92,.3);}
+  .badge-blue{background:rgba(79,195,247,.12);color:var(--blue);border:1px solid rgba(79,195,247,.3);}
+  .modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:200;overflow-y:auto;padding:16px;}
+  .modal-overlay.open{display:block;}
+  .modal{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:20px;width:100%;max-width:500px;margin:20px auto 60px;}
+  .modal-title{font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:1.5px;margin-bottom:16px;color:var(--accent);}
+  .modal-actions{display:flex;gap:10px;margin-top:18px;}
+  .modal-actions .btn{flex:1;padding:12px;}
+  .divider{border:none;border-top:1px solid var(--border);margin:14px 0;}
+  .empty{text-align:center;padding:40px 20px;color:var(--muted);}
+  .empty-icon{font-size:32px;margin-bottom:10px;}
+  .error-banner{background:rgba(224,92,92,.1);border:1px solid rgba(224,92,92,.3);color:var(--accent2);font-size:12px;padding:8px 16px;display:none;align-items:center;gap:8px;justify-content:space-between;}
+  .error-banner.show{display:flex;}
+  .error-banner button{background:none;border:none;color:var(--accent2);cursor:pointer;font-size:16px;}
+  .detail-panel{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px;margin-bottom:16px;}
+  .detail-panel-title{font-size:13px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;margin-bottom:12px;}
+  .detail-row{display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border);font-size:13px;}
+  .detail-row:last-child{border-bottom:none;}
+  .detail-row .label{color:var(--muted);}
+  .detail-row .value{font-weight:500;text-align:right;}
+  .grid-2{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+  .back-btn{display:flex;align-items:center;gap:6px;font-size:13px;color:var(--muted);cursor:pointer;margin-bottom:16px;transition:color .15s;}
+  .back-btn:hover{color:var(--accent);}
+</style>
+</head>
+<body>
+
+<div class="loading-overlay" id="loadingOverlay">
+  <div class="loading-logo">Groove<span>Ops</span></div>
+  <div class="spinner"></div>
+</div>
+
+<div id="loginScreen">
+  <div class="login-box">
+    <div class="login-logo">Groove<span>Ops</span></div>
+    <div class="login-sub">Owner access only</div>
+    <div class="login-err" id="loginErr"></div>
+    <div class="form-group"><label>Email</label><input type="email" id="lEmail" placeholder="you@example.com" autocomplete="email"></div>
+    <div class="form-group"><label>Password</label><input type="password" id="lPass" placeholder="••••••••" autocomplete="current-password"></div>
+    <button class="btn btn-full" id="loginBtn" onclick="doLogin()">Sign In</button>
+  </div>
+</div>
+
+<div id="app">
+  <div class="error-banner" id="errorBanner"><span id="errorMsg"></span><button onclick="document.getElementById('errorBanner').classList.remove('show')">×</button></div>
+  <header>
+    <div class="logo">Groove<span>Ops</span></div>
+    <div class="header-right">
+      <div class="user-chip" id="userChip"></div>
+      <button class="btn-hdr outline" onclick="doLogout()" title="Sign out">⏻</button>
+    </div>
+  </header>
+  <div class="nav-tabs">
+    <div class="nav-tab active" onclick="showTab('dashboard')">Dashboard</div>
+    <div class="nav-tab" onclick="showTab('events')">Events</div>
+    <div class="nav-tab" onclick="showTab('customers')">Customers</div>
+    <div class="nav-tab" onclick="showTab('payments')">Payments</div>
+    <div class="nav-tab" onclick="showTab('labor')">Labor</div>
+    <div class="nav-tab" onclick="showTab('expenses')">Expenses</div>
+  </div>
+  <div class="content" id="mainContent"></div>
+</div>
+
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal" id="modalBox">
+    <div class="modal-title" id="modalTitle"></div>
+    <div id="modalBody"></div>
+    <div class="modal-actions">
+      <button class="btn btn-outline" onclick="closeModal()">Cancel</button>
+      <button class="btn" id="modalSaveBtn" onclick="modalSave()">Save</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(function waitForSupabase() {
+  if (typeof supabase === 'undefined' || typeof supabase.createClient === 'undefined') {
+    console.log('Waiting for Supabase...');
+    setTimeout(waitForSupabase, 100);
+    return;
+  }
+  console.log('Supabase ready, initializing GrooveOps');
+  initApp();
+})();
+
+function initApp() {
+  const { createClient } = supabase;
+  const sb = createClient(
+    'https://rbtzcswnounmybumqbwu.supabase.co',
+    'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJidHpjc3dub3VubXlidW1xYnd1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYyOTI3OTgsImV4cCI6MjA5MTg2ODc5OH0.d_CSDndGJcuBve_EtHo8RDcHG8dxQVn22gpUjQ7FGNY'
+  );
+
+  let currentTab = 'dashboard';
+  let modalSaveFn = null;
+  let cache = { events:[], customers:[], payments:[], labor:[], expenses:[] };
+
+  // ── AUTH ───────────────────────────────────────────────────────────────────
+  sb.auth.onAuthStateChange(async (event, session) => {
+    console.log('Auth state:', event, session?.user?.email);
+    if (session) {
+      document.getElementById('loginScreen').style.display = 'none';
+      document.getElementById('app').style.display = 'block';
+      document.getElementById('userChip').textContent = session.user.email;
+      setTimeout(hideLoader, 5000);
+      try { await loadAll(); } catch(err) { console.error('loadAll failed:', err); }
+      hideLoader();
+      showTab('dashboard');
+    } else {
+      document.getElementById('loginScreen').style.display = 'flex';
+      document.getElementById('app').style.display = 'none';
+      hideLoader();
+    }
+  });
+
+  async function doLogin() {
+    const email = document.getElementById('lEmail').value.trim();
+    const pass  = document.getElementById('lPass').value;
+    const btn   = document.getElementById('loginBtn');
+    const err   = document.getElementById('loginErr');
+    if (!email || !pass) { showLoginErr('Please enter your email and password.'); return; }
+    err.classList.remove('show');
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-inline"></span>Signing in…';
+    const { error } = await sb.auth.signInWithPassword({ email, password: pass });
+    if (error) {
+      showLoginErr('Incorrect email or password.');
+      btn.disabled = false; btn.textContent = 'Sign In';
+    }
+  }
+  async function doLogout() { await sb.auth.signOut(); }
+  function showLoginErr(msg) { const el=document.getElementById('loginErr'); el.textContent='⚠ '+msg; el.classList.add('show'); }
+  document.getElementById('lPass').addEventListener('keydown', e => { if (e.key==='Enter') doLogin(); });
+  function hideLoader() { const o=document.getElementById('loadingOverlay'); o.classList.add('hidden'); setTimeout(()=>o.style.display='none',400); }
+  function showErr(msg) { document.getElementById('errorMsg').textContent='⚠ '+msg; document.getElementById('errorBanner').classList.add('show'); }
+
+  // ── DATA ───────────────────────────────────────────────────────────────────
+  async function loadAll() {
+    console.log('loadAll started');
+    const ev = await sb.from('events').select('*').order('date', {ascending:false});
+    console.log('events:', ev.error?.message || ev.data?.length + ' rows');
+    const cu = await sb.from('customers').select('*').order('name');
+    console.log('customers:', cu.error?.message || cu.data?.length + ' rows');
+    const pa = await sb.from('customer_payments').select('*').order('date', {ascending:false});
+    console.log('payments:', pa.error?.message || pa.data?.length + ' rows');
+    const la = await sb.from('labor').select('*').order('created_at', {ascending:false});
+    console.log('labor:', la.error?.message || la.data?.length + ' rows');
+    const ex = await sb.from('expenses').select('*').order('created_at', {ascending:false});
+    console.log('expenses:', ex.error?.message || ex.data?.length + ' rows');
+    cache.events    = ev.data || [];
+    cache.customers = cu.data || [];
+    cache.payments  = pa.data || [];
+    cache.labor     = la.data || [];
+    cache.expenses  = ex.data || [];
+    console.log('loadAll complete');
+  }
+
+  // ── HELPERS ────────────────────────────────────────────────────────────────
+  const fmt  = n => '$' + (parseFloat(n)||0).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g,',');
+  const fmtD = d => d ? new Date(d+'T00:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}) : '—';
+  const esc  = s => String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  function customerName(id) { const c=cache.customers.find(x=>x.id===id); return c?esc(c.name):'—'; }
+  function eventName(id)    { const e=cache.events.find(x=>x.id===id);    return e?esc(e.name):'—'; }
+  function customerBalance(cid) {
+    const invoiced = cache.events.filter(e=>e.customer_id===cid).reduce((s,e)=>s+(parseFloat(e.invoice_amount)||0),0);
+    const paid     = cache.payments.filter(p=>p.customer_id===cid).reduce((s,p)=>s+(parseFloat(p.amount)||0),0);
+    return { invoiced, paid, balance: invoiced - paid };
+  }
+  function eventFinancials(eid) {
+    const ev      = cache.events.find(e=>e.id===eid);
+    const revenue = parseFloat(ev?.invoice_amount)||0;
+    const labor   = cache.labor.filter(l=>l.event_id===eid).reduce((s,l)=>s+((parseFloat(l.hours)||0)*(parseFloat(l.rate)||0)),0);
+    const expenses= cache.expenses.filter(x=>x.event_id===eid).reduce((s,x)=>s+(parseFloat(x.amount)||0),0);
+    return { revenue, labor, expenses, profit: revenue - labor - expenses };
+  }
+
+  // ── NAV ────────────────────────────────────────────────────────────────────
+  function showTab(tab) {
+    currentTab = tab;
+    document.querySelectorAll('.nav-tab').forEach(t => t.classList.toggle('active', t.textContent.toLowerCase()===tab));
+    const renders = { dashboard:renderDashboard, events:renderEvents, customers:renderCustomers, payments:renderPayments, labor:renderLabor, expenses:renderExpenses };
+    if (renders[tab]) renders[tab]();
+  }
+
+  // ── DASHBOARD ──────────────────────────────────────────────────────────────
+  function renderDashboard() {
+    const totalInvoiced  = cache.events.reduce((s,e)=>s+(parseFloat(e.invoice_amount)||0),0);
+    const totalPaid      = cache.payments.reduce((s,p)=>s+(parseFloat(p.amount)||0),0);
+    const totalOwing     = totalInvoiced - totalPaid;
+    const totalLaborCost = cache.labor.reduce((s,l)=>s+((parseFloat(l.hours)||0)*(parseFloat(l.rate)||0)),0);
+    const totalExpenses  = cache.expenses.reduce((s,x)=>s+(parseFloat(x.amount)||0),0);
+    const grossProfit    = totalPaid - totalLaborCost - totalExpenses;
+    const upcomingEvents = cache.events.filter(e=>e.status==='upcoming'||!e.status).length;
+    const unpaidCount    = cache.customers.filter(c=>customerBalance(c.id).balance>0).length;
+    const recentEvents   = [...cache.events].slice(0,5);
+    document.getElementById('mainContent').innerHTML = `
+      <div class="stat-grid">
+        <div class="stat-card"><div class="stat-label">Total Invoiced</div><div class="stat-value">${fmt(totalInvoiced)}</div></div>
+        <div class="stat-card"><div class="stat-label">Total Collected</div><div class="stat-value green">${fmt(totalPaid)}</div></div>
+        <div class="stat-card"><div class="stat-label">Outstanding</div><div class="stat-value ${totalOwing>0?'amber':''}">${fmt(totalOwing)}</div></div>
+        <div class="stat-card"><div class="stat-label">Gross Profit</div><div class="stat-value ${grossProfit>=0?'green':'red'}">${fmt(grossProfit)}</div></div>
+        <div class="stat-card"><div class="stat-label">Upcoming Events</div><div class="stat-value amber">${upcomingEvents}</div></div>
+        <div class="stat-card"><div class="stat-label">Customers w/ Balance</div><div class="stat-value ${unpaidCount>0?'amber':''}">${unpaidCount}</div></div>
+      </div>
+      <div class="section-header"><div class="section-title">Recent Events</div><button class="btn btn-sm btn-outline" onclick="showTab('events')">View All</button></div>
+      <table class="data-table" style="margin-bottom:20px">
+        <thead><tr><th>Event</th><th>Date</th><th>Customer</th><th>Invoice</th><th>Status</th></tr></thead>
+        <tbody>${recentEvents.length ? recentEvents.map(e=>`
+          <tr><td style="font-weight:500">${esc(e.name)}</td><td>${fmtD(e.date)}</td>
+          <td>${customerName(e.customer_id)}</td>
+          <td>${e.invoice_amount?fmt(e.invoice_amount):'<span style="color:var(--muted)">—</span>'}</td>
+          <td><span class="badge ${e.status==='completed'?'badge-green':e.status==='cancelled'?'badge-red':'badge-amber'}">${e.status||'upcoming'}</span></td>
+          </tr>`).join('') : '<tr><td colspan="5" class="empty">No events yet</td></tr>'}</tbody>
+      </table>
+      <div class="section-header"><div class="section-title">Customer Balances</div><button class="btn btn-sm btn-outline" onclick="showTab('customers')">View All</button></div>
+      <table class="data-table">
+        <thead><tr><th>Customer</th><th>Invoiced</th><th>Paid</th><th>Balance</th></tr></thead>
+        <tbody>${cache.customers.length ? cache.customers.map(c=>{ const b=customerBalance(c.id); return `
+          <tr><td style="font-weight:500">${esc(c.name)}</td><td>${fmt(b.invoiced)}</td>
+          <td style="color:var(--green)">${fmt(b.paid)}</td>
+          <td><span class="badge ${b.balance>0?'badge-amber':b.balance<0?'badge-blue':'badge-green'}">${fmt(b.balance)}</span></td>
+          </tr>`}).join('') : '<tr><td colspan="4" class="empty">No customers yet</td></tr>'}</tbody>
+      </table>`;
+  }
+
+  // ── EVENTS ─────────────────────────────────────────────────────────────────
+  function renderEvents(detailId=null) {
+    if (detailId) { renderEventDetail(detailId); return; }
+    document.getElementById('mainContent').innerHTML = `
+      <div class="section-header">
+        <div class="section-title">Events (${cache.events.length})</div>
+        <button class="btn btn-sm" onclick="openEventModal()">+ Add Event</button>
+      </div>
+      <table class="data-table">
+        <thead><tr><th>Event</th><th>Date</th><th>Customer</th><th>Invoice</th><th>Profit</th><th>Status</th><th></th></tr></thead>
+        <tbody>${cache.events.length ? cache.events.map(e=>{
+          const fin=eventFinancials(e.id);
+          return `<tr style="cursor:pointer" onclick="renderEventDetail('${e.id}')">
+            <td style="font-weight:500">${esc(e.name)}</td><td>${fmtD(e.date)}</td>
+            <td>${customerName(e.customer_id)}</td>
+            <td>${e.invoice_amount?fmt(e.invoice_amount):'<span style="color:var(--muted)">—</span>'}</td>
+            <td style="color:${fin.profit>=0?'var(--green)':'var(--accent2)'}">${fmt(fin.profit)}</td>
+            <td><span class="badge ${e.status==='completed'?'badge-green':e.status==='cancelled'?'badge-red':'badge-amber'}">${e.status||'upcoming'}</span></td>
+            <td onclick="event.stopPropagation()"><div class="actions">
+              <button class="btn btn-sm btn-outline" onclick="openEventModal('${e.id}')">Edit</button>
+              <button class="btn btn-sm btn-danger" onclick="deleteRecord('events','${e.id}')">Del</button>
+            </div></td></tr>`;}).join('') :
+          '<tr><td colspan="7"><div class="empty"><div class="empty-icon">📅</div>No events yet</div></td></tr>'}</tbody>
+      </table>`;
+  }
+
+  function renderEventDetail(id) {
+    const e=cache.events.find(x=>x.id===id); if(!e) return;
+    const fin=eventFinancials(id);
+    const evLabor=cache.labor.filter(l=>l.event_id===id);
+    const evExpenses=cache.expenses.filter(x=>x.event_id===id);
+    const evPayments=cache.payments.filter(p=>p.event_id===id);
+    document.getElementById('mainContent').innerHTML = `
+      <div class="back-btn" onclick="renderEvents()">← Back to Events</div>
+      <div class="section-header"><div class="section-title">${esc(e.name)}</div>
+        <button class="btn btn-sm btn-outline" onclick="openEventModal('${id}')">Edit Event</button></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px">
+        <div class="detail-panel"><div class="detail-panel-title">Event Info</div>
+          <div class="detail-row"><span class="label">Date</span><span class="value">${fmtD(e.date)}</span></div>
+          <div class="detail-row"><span class="label">Venue</span><span class="value">${esc(e.venue||'—')}</span></div>
+          <div class="detail-row"><span class="label">Type</span><span class="value">${esc(e.type||'—')}</span></div>
+          <div class="detail-row"><span class="label">Customer</span><span class="value">${customerName(e.customer_id)}</span></div>
+          <div class="detail-row"><span class="label">Status</span><span class="value"><span class="badge ${e.status==='completed'?'badge-green':e.status==='cancelled'?'badge-red':'badge-amber'}">${e.status||'upcoming'}</span></span></div>
+        </div>
+        <div class="detail-panel"><div class="detail-panel-title">Financials</div>
+          <div class="detail-row"><span class="label">Invoice</span><span class="value">${fmt(fin.revenue)}</span></div>
+          <div class="detail-row"><span class="label">Labor Cost</span><span class="value" style="color:var(--accent2)">${fmt(fin.labor)}</span></div>
+          <div class="detail-row"><span class="label">Expenses</span><span class="value" style="color:var(--accent2)">${fmt(fin.expenses)}</span></div>
+          <div class="detail-row"><span class="label">Gross Profit</span><span class="value" style="color:${fin.profit>=0?'var(--green)':'var(--accent2)'}">${fmt(fin.profit)}</span></div>
+          <div class="detail-row"><span class="label">Margin</span><span class="value">${fin.revenue>0?((fin.profit/fin.revenue)*100).toFixed(1)+'%':'—'}</span></div>
+        </div>
+      </div>
+      <div class="section-header"><div class="section-title">Labor</div><button class="btn btn-sm" onclick="openLaborModal('${id}')">+ Add Hours</button></div>
+      <table class="data-table" style="margin-bottom:16px">
+        <thead><tr><th>Person</th><th>Hours</th><th>Rate</th><th>Earned</th><th>Notes</th><th></th></tr></thead>
+        <tbody>${evLabor.length ? evLabor.map(l=>`
+          <tr><td style="font-weight:500;text-transform:capitalize">${esc(l.person)}</td>
+          <td>${l.hours||'—'}</td><td>${l.rate?fmt(l.rate)+'/hr':'—'}</td>
+          <td style="color:var(--green)">${fmt((l.hours||0)*(l.rate||0))}</td>
+          <td style="color:var(--muted)">${esc(l.notes||'')}</td>
+          <td><button class="btn btn-sm btn-danger" onclick="deleteRecord('labor','${l.id}',()=>renderEventDetail('${id}'))">Del</button></td></tr>`).join('') :
+          '<tr><td colspan="6"><div class="empty">No labor recorded</div></td></tr>'}</tbody>
+      </table>
+      <div class="section-header"><div class="section-title">Expenses</div><button class="btn btn-sm" onclick="openExpenseModal('${id}')">+ Add Expense</button></div>
+      <table class="data-table" style="margin-bottom:16px">
+        <thead><tr><th>Person</th><th>Category</th><th>Description</th><th>Amount</th><th>Reimbursed</th><th></th></tr></thead>
+        <tbody>${evExpenses.length ? evExpenses.map(x=>`
+          <tr><td style="text-transform:capitalize">${esc(x.person||'—')}</td>
+          <td><span class="badge badge-blue">${esc(x.category||'other')}</span></td>
+          <td>${esc(x.description||'—')}</td><td>${fmt(x.amount)}</td>
+          <td><span class="badge ${x.reimbursed?'badge-green':'badge-amber'}">${x.reimbursed?'Yes':'No'}</span></td>
+          <td><div class="actions">
+            ${!x.reimbursed?`<button class="btn btn-sm btn-outline" onclick="markReimbursed('${x.id}','${id}')">✓ Reimb.</button>`:''}
+            <button class="btn btn-sm btn-danger" onclick="deleteRecord('expenses','${x.id}',()=>renderEventDetail('${id}'))">Del</button>
+          </div></td></tr>`).join('') :
+          '<tr><td colspan="6"><div class="empty">No expenses recorded</div></td></tr>'}</tbody>
+      </table>
+      <div class="section-header"><div class="section-title">Payments</div><button class="btn btn-sm" onclick="openPaymentModal(null,'${id}')">+ Record Payment</button></div>
+      <table class="data-table">
+        <thead><tr><th>Date</th><th>Amount</th><th>Method</th><th>Notes</th><th></th></tr></thead>
+        <tbody>${evPayments.length ? evPayments.map(p=>`
+          <tr><td>${fmtD(p.date)}</td><td style="color:var(--green)">${fmt(p.amount)}</td>
+          <td>${esc(p.method||'—')}</td><td style="color:var(--muted)">${esc(p.notes||'')}</td>
+          <td><button class="btn btn-sm btn-danger" onclick="deleteRecord('customer_payments','${p.id}',()=>renderEventDetail('${id}'))">Del</button></td></tr>`).join('') :
+          '<tr><td colspan="5"><div class="empty">No payments recorded</div></td></tr>'}</tbody>
+      </table>`;
+  }
+
+  // ── CUSTOMERS ──────────────────────────────────────────────────────────────
+  function renderCustomers(detailId=null) {
+    if (detailId) { renderCustomerDetail(detailId); return; }
+    document.getElementById('mainContent').innerHTML = `
+      <div class="section-header">
+        <div class="section-title">Customers (${cache.customers.length})</div>
+        <button class="btn btn-sm" onclick="openCustomerModal()">+ Add Customer</button>
+      </div>
+      <table class="data-table">
+        <thead><tr><th>Name</th><th>Email</th><th>Phone</th><th>Invoiced</th><th>Paid</th><th>Balance</th><th></th></tr></thead>
+        <tbody>${cache.customers.length ? cache.customers.map(c=>{ const b=customerBalance(c.id); return `
+          <tr style="cursor:pointer" onclick="renderCustomerDetail('${c.id}')">
+            <td style="font-weight:500">${esc(c.name)}</td>
+            <td style="color:var(--muted)">${esc(c.email||'—')}</td>
+            <td style="color:var(--muted)">${esc(c.phone||'—')}</td>
+            <td>${fmt(b.invoiced)}</td><td style="color:var(--green)">${fmt(b.paid)}</td>
+            <td><span class="badge ${b.balance>0?'badge-amber':b.balance<0?'badge-blue':'badge-green'}">${fmt(b.balance)}</span></td>
+            <td onclick="event.stopPropagation()"><div class="actions">
+              <button class="btn btn-sm btn-outline" onclick="openCustomerModal('${c.id}')">Edit</button>
+              <button class="btn btn-sm btn-danger" onclick="deleteRecord('customers','${c.id}')">Del</button>
+            </div></td></tr>`}).join('') :
+          '<tr><td colspan="7"><div class="empty"><div class="empty-icon">👥</div>No customers yet</div></td></tr>'}</tbody>
+      </table>`;
+  }
+
+  function renderCustomerDetail(id) {
+    const c=cache.customers.find(x=>x.id===id); if(!c) return;
+    const b=customerBalance(id);
+    const cEvents=cache.events.filter(e=>e.customer_id===id);
+    const cPayments=cache.payments.filter(p=>p.customer_id===id);
+    document.getElementById('mainContent').innerHTML = `
+      <div class="back-btn" onclick="renderCustomers()">← Back to Customers</div>
+      <div class="section-header"><div class="section-title">${esc(c.name)}</div>
+        <button class="btn btn-sm btn-outline" onclick="openCustomerModal('${id}')">Edit</button></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px">
+        <div class="detail-panel"><div class="detail-panel-title">Contact</div>
+          <div class="detail-row"><span class="label">Email</span><span class="value">${esc(c.email||'—')}</span></div>
+          <div class="detail-row"><span class="label">Phone</span><span class="value">${esc(c.phone||'—')}</span></div>
+          <div class="detail-row"><span class="label">Notes</span><span class="value">${esc(c.notes||'—')}</span></div>
+        </div>
+        <div class="detail-panel"><div class="detail-panel-title">Account Balance</div>
+          <div class="detail-row"><span class="label">Total Invoiced</span><span class="value">${fmt(b.invoiced)}</span></div>
+          <div class="detail-row"><span class="label">Total Paid</span><span class="value" style="color:var(--green)">${fmt(b.paid)}</span></div>
+          <div class="detail-row"><span class="label">Balance Owing</span><span class="value"><span class="badge ${b.balance>0?'badge-amber':'badge-green'}">${fmt(b.balance)}</span></span></div>
+        </div>
+      </div>
+      <div class="section-header"><div class="section-title">Events</div>
+        <button class="btn btn-sm" onclick="openPaymentModal('${id}')">+ Record Payment</button></div>
+      <table class="data-table" style="margin-bottom:16px">
+        <thead><tr><th>Event</th><th>Date</th><th>Invoice</th><th>Status</th></tr></thead>
+        <tbody>${cEvents.length ? cEvents.map(e=>`
+          <tr style="cursor:pointer" onclick="renderEventDetail('${e.id}')">
+            <td style="font-weight:500">${esc(e.name)}</td><td>${fmtD(e.date)}</td>
+            <td>${e.invoice_amount?fmt(e.invoice_amount):'—'}</td>
+            <td><span class="badge ${e.status==='completed'?'badge-green':e.status==='cancelled'?'badge-red':'badge-amber'}">${e.status||'upcoming'}</span></td>
+          </tr>`).join('') : '<tr><td colspan="4"><div class="empty">No events</div></td></tr>'}</tbody>
+      </table>
+      <div class="section-header"><div class="section-title">Payment History</div></div>
+      <table class="data-table">
+        <thead><tr><th>Date</th><th>Amount</th><th>Method</th><th>Event</th><th>Notes</th></tr></thead>
+        <tbody>${cPayments.length ? cPayments.map(p=>`
+          <tr><td>${fmtD(p.date)}</td><td style="color:var(--green)">${fmt(p.amount)}</td>
+          <td>${esc(p.method||'—')}</td><td>${p.event_id?eventName(p.event_id):'—'}</td>
+          <td style="color:var(--muted)">${esc(p.notes||'')}</td></tr>`).join('') :
+          '<tr><td colspan="5"><div class="empty">No payments</div></td></tr>'}</tbody>
+      </table>`;
+  }
+
+  // ── PAYMENTS ───────────────────────────────────────────────────────────────
+  function renderPayments() {
+    document.getElementById('mainContent').innerHTML = `
+      <div class="section-header">
+        <div class="section-title">Customer Payments (${cache.payments.length})</div>
+        <button class="btn btn-sm" onclick="openPaymentModal()">+ Record Payment</button>
+      </div>
+      <table class="data-table">
+        <thead><tr><th>Date</th><th>Customer</th><th>Amount</th><th>Method</th><th>Event</th><th>Notes</th><th></th></tr></thead>
+        <tbody>${cache.payments.length ? cache.payments.map(p=>`
+          <tr><td>${fmtD(p.date)}</td><td style="font-weight:500">${customerName(p.customer_id)}</td>
+          <td style="color:var(--green)">${fmt(p.amount)}</td><td>${esc(p.method||'—')}</td>
+          <td style="color:var(--muted)">${p.event_id?eventName(p.event_id):'—'}</td>
+          <td style="color:var(--muted)">${esc(p.notes||'')}</td>
+          <td><button class="btn btn-sm btn-danger" onclick="deleteRecord('customer_payments','${p.id}')">Del</button></td></tr>`).join('') :
+          '<tr><td colspan="7"><div class="empty"><div class="empty-icon">💰</div>No payments recorded</div></td></tr>'}</tbody>
+      </table>`;
+  }
+
+  // ── LABOR ──────────────────────────────────────────────────────────────────
+  function renderLabor() {
+    const johnTotal =cache.labor.filter(l=>l.person==='john').reduce((s,l)=>s+((l.hours||0)*(l.rate||0)),0);
+    const steveTotal=cache.labor.filter(l=>l.person==='steve').reduce((s,l)=>s+((l.hours||0)*(l.rate||0)),0);
+    document.getElementById('mainContent').innerHTML = `
+      <div class="stat-grid" style="margin-bottom:16px">
+        <div class="stat-card"><div class="stat-label">John — Total Earned</div><div class="stat-value green">${fmt(johnTotal)}</div></div>
+        <div class="stat-card"><div class="stat-label">Steve — Total Earned</div><div class="stat-value green">${fmt(steveTotal)}</div></div>
+      </div>
+      <div class="section-header">
+        <div class="section-title">Labor Records (${cache.labor.length})</div>
+        <button class="btn btn-sm" onclick="openLaborModal()">+ Add Hours</button>
+      </div>
+      <table class="data-table">
+        <thead><tr><th>Event</th><th>Person</th><th>Hours</th><th>Rate</th><th>Earned</th><th>Notes</th><th></th></tr></thead>
+        <tbody>${cache.labor.length ? cache.labor.map(l=>`
+          <tr><td style="font-weight:500">${eventName(l.event_id)}</td>
+          <td style="text-transform:capitalize">${esc(l.person)}</td>
+          <td>${l.hours||'—'}</td><td>${l.rate?fmt(l.rate)+'/hr':'—'}</td>
+          <td style="color:var(--green)">${fmt((l.hours||0)*(l.rate||0))}</td>
+          <td style="color:var(--muted)">${esc(l.notes||'')}</td>
+          <td><button class="btn btn-sm btn-danger" onclick="deleteRecord('labor','${l.id}')">Del</button></td></tr>`).join('') :
+          '<tr><td colspan="7"><div class="empty"><div class="empty-icon">⏱️</div>No labor recorded</div></td></tr>'}</tbody>
+      </table>`;
+  }
+
+  // ── EXPENSES ───────────────────────────────────────────────────────────────
+  function renderExpenses() {
+    const totalExp=cache.expenses.reduce((s,x)=>s+(parseFloat(x.amount)||0),0);
+    const unreimb =cache.expenses.filter(x=>!x.reimbursed).reduce((s,x)=>s+(parseFloat(x.amount)||0),0);
+    document.getElementById('mainContent').innerHTML = `
+      <div class="stat-grid" style="margin-bottom:16px">
+        <div class="stat-card"><div class="stat-label">Total Expenses</div><div class="stat-value">${fmt(totalExp)}</div></div>
+        <div class="stat-card"><div class="stat-label">Pending Reimbursement</div><div class="stat-value amber">${fmt(unreimb)}</div></div>
+      </div>
+      <div class="section-header">
+        <div class="section-title">Expenses (${cache.expenses.length})</div>
+        <button class="btn btn-sm" onclick="openExpenseModal()">+ Add Expense</button>
+      </div>
+      <table class="data-table">
+        <thead><tr><th>Event</th><th>Person</th><th>Category</th><th>Description</th><th>Amount</th><th>Reimbursed</th><th></th></tr></thead>
+        <tbody>${cache.expenses.length ? cache.expenses.map(x=>`
+          <tr><td style="font-weight:500">${eventName(x.event_id)}</td>
+          <td style="text-transform:capitalize">${esc(x.person||'—')}</td>
+          <td><span class="badge badge-blue">${esc(x.category||'other')}</span></td>
+          <td>${esc(x.description||'—')}</td><td>${fmt(x.amount)}</td>
+          <td><span class="badge ${x.reimbursed?'badge-green':'badge-amber'}">${x.reimbursed?'Yes':'No'}</span></td>
+          <td><div class="actions">
+            ${!x.reimbursed?`<button class="btn btn-sm btn-outline" onclick="markReimbursed('${x.id}')">✓</button>`:''}
+            <button class="btn btn-sm btn-danger" onclick="deleteRecord('expenses','${x.id}')">Del</button>
+          </div></td></tr>`).join('') :
+          '<tr><td colspan="7"><div class="empty"><div class="empty-icon">🧾</div>No expenses recorded</div></td></tr>'}</tbody>
+      </table>`;
+  }
+
+  // ── MODALS ─────────────────────────────────────────────────────────────────
+  function openModal(title, bodyHtml, saveFn) {
+    document.getElementById('modalTitle').textContent = title;
+    document.getElementById('modalBody').innerHTML = bodyHtml;
+    modalSaveFn = saveFn;
+    document.getElementById('modalOverlay').classList.add('open');
+  }
+  function closeModal() { document.getElementById('modalOverlay').classList.remove('open'); modalSaveFn=null; }
+  async function modalSave() {
+    const btn = document.getElementById('modalSaveBtn');
+    btn.disabled=true; btn.innerHTML='<span class="spinner-inline"></span>Saving…';
+    try { if (modalSaveFn) await modalSaveFn(); closeModal(); await loadAll(); showTab(currentTab); }
+    catch(err) { showErr(err.message); }
+    btn.disabled=false; btn.textContent='Save';
+  }
+  document.getElementById('modalOverlay').addEventListener('click', e => { if(e.target===document.getElementById('modalOverlay')) closeModal(); });
+
+  function eventOpts(selected='') { return `<option value="">— None —</option>`+cache.events.map(e=>`<option value="${e.id}"${e.id===selected?' selected':''}>${esc(e.name)} (${fmtD(e.date)})</option>`).join(''); }
+  function customerOpts(selected='') { return `<option value="">— Select —</option>`+cache.customers.map(c=>`<option value="${c.id}"${c.id===selected?' selected':''}>${esc(c.name)}</option>`).join(''); }
+
+  function openEventModal(id=null) {
+    const e=id?cache.events.find(x=>x.id===id):null;
+    openModal(id?'Edit Event':'Add Event', `
+      <div class="form-group"><label>Event Name</label><input type="text" id="mName" value="${esc(e?.name||'')}"></div>
+      <div class="grid-2">
+        <div class="form-group"><label>Date</label><input type="date" id="mDate" value="${e?.date||''}"></div>
+        <div class="form-group"><label>Status</label><select id="mStatus">
+          <option value="upcoming"${(!e||e.status==='upcoming')?' selected':''}>Upcoming</option>
+          <option value="completed"${e?.status==='completed'?' selected':''}>Completed</option>
+          <option value="cancelled"${e?.status==='cancelled'?' selected':''}>Cancelled</option>
+        </select></div>
+      </div>
+      <div class="form-group"><label>Venue</label><input type="text" id="mVenue" value="${esc(e?.venue||'')}"></div>
+      <div class="form-group"><label>Customer</label><select id="mCustomer">${customerOpts(e?.customer_id||'')}</select></div>
+      <div class="form-group"><label>Invoice Amount ($)</label><input type="number" id="mInvoice" step="0.01" value="${e?.invoice_amount||''}"></div>
+      <div class="form-group"><label>Notes</label><textarea id="mNotes">${esc(e?.notes||'')}</textarea></div>
+    `, async () => {
+      const name=document.getElementById('mName').value.trim();
+      const date=document.getElementById('mDate').value;
+      if(!name||!date) throw new Error('Name and date are required');
+      const row={name,date,status:document.getElementById('mStatus').value,venue:document.getElementById('mVenue').value.trim()||null,customer_id:document.getElementById('mCustomer').value||null,invoice_amount:parseFloat(document.getElementById('mInvoice').value)||null,notes:document.getElementById('mNotes').value.trim()||null,updated_at:new Date().toISOString()};
+      if(id){const{error}=await sb.from('events').update(row).eq('id',id);if(error)throw error;}
+      else{const{error}=await sb.from('events').insert(row);if(error)throw error;}
+    });
+  }
+
+  function openCustomerModal(id=null) {
+    const c=id?cache.customers.find(x=>x.id===id):null;
+    openModal(id?'Edit Customer':'Add Customer', `
+      <div class="form-group"><label>Name</label><input type="text" id="mName" value="${esc(c?.name||'')}"></div>
+      <div class="grid-2">
+        <div class="form-group"><label>Email</label><input type="email" id="mEmail" value="${esc(c?.email||'')}"></div>
+        <div class="form-group"><label>Phone</label><input type="text" id="mPhone" value="${esc(c?.phone||'')}"></div>
+      </div>
+      <div class="form-group"><label>Notes</label><textarea id="mNotes">${esc(c?.notes||'')}</textarea></div>
+    `, async () => {
+      const name=document.getElementById('mName').value.trim();
+      if(!name) throw new Error('Name is required');
+      const row={name,email:document.getElementById('mEmail').value.trim()||null,phone:document.getElementById('mPhone').value.trim()||null,notes:document.getElementById('mNotes').value.trim()||null};
+      if(id){const{error}=await sb.from('customers').update(row).eq('id',id);if(error)throw error;}
+      else{const{error}=await sb.from('customers').insert(row);if(error)throw error;}
+    });
+  }
+
+  function openPaymentModal(customerId=null, eventId=null) {
+    openModal('Record Payment', `
+      <div class="form-group"><label>Customer</label><select id="mCustomer">${customerOpts(customerId||'')}</select></div>
+      <div class="form-group"><label>Event (optional)</label><select id="mEvent">${eventOpts(eventId||'')}</select></div>
+      <div class="grid-2">
+        <div class="form-group"><label>Date</label><input type="date" id="mDate" value="${new Date().toISOString().split('T')[0]}"></div>
+        <div class="form-group"><label>Amount ($)</label><input type="number" id="mAmount" step="0.01" placeholder="0.00"></div>
+      </div>
+      <div class="form-group"><label>Method</label><select id="mMethod">
+        <option value="">— Select —</option>
+        <option>Cash</option><option>Check</option><option>Venmo</option><option>Zelle</option><option>Credit Card</option><option>Other</option>
+      </select></div>
+      <div class="form-group"><label>Notes</label><textarea id="mNotes" rows="2"></textarea></div>
+    `, async () => {
+      const customer_id=document.getElementById('mCustomer').value;
+      const amount=parseFloat(document.getElementById('mAmount').value);
+      const date=document.getElementById('mDate').value;
+      if(!customer_id) throw new Error('Customer is required');
+      if(!amount||amount<=0) throw new Error('Valid amount is required');
+      if(!date) throw new Error('Date is required');
+      const row={customer_id,date,amount,event_id:document.getElementById('mEvent').value||null,method:document.getElementById('mMethod').value||null,notes:document.getElementById('mNotes').value.trim()||null};
+      const{error}=await sb.from('customer_payments').insert(row);if(error)throw error;
+    });
+  }
+
+  function openLaborModal(eventId=null) {
+    openModal('Add Labor Hours', `
+      <div class="form-group"><label>Event</label><select id="mEvent">${eventOpts(eventId||'')}</select></div>
+      <div class="form-group"><label>Person</label><select id="mPerson">
+        <option value="john">John</option><option value="steve">Steve</option>
+      </select></div>
+      <div class="grid-2">
+        <div class="form-group"><label>Hours</label><input type="number" id="mHours" step="0.25" placeholder="0.00"></div>
+        <div class="form-group"><label>Rate ($/hr)</label><input type="number" id="mRate" step="0.01" placeholder="0.00"></div>
+      </div>
+      <div class="form-group"><label>Notes</label><textarea id="mNotes" rows="2"></textarea></div>
+    `, async () => {
+      const event_id=document.getElementById('mEvent').value;
+      const hours=parseFloat(document.getElementById('mHours').value);
+      if(!event_id) throw new Error('Event is required');
+      if(!hours||hours<=0) throw new Error('Valid hours required');
+      const row={event_id,person:document.getElementById('mPerson').value,hours,rate:parseFloat(document.getElementById('mRate').value)||null,notes:document.getElementById('mNotes').value.trim()||null};
+      const{error}=await sb.from('labor').insert(row);if(error)throw error;
+    });
+  }
+
+  function openExpenseModal(eventId=null) {
+    openModal('Add Expense', `
+      <div class="form-group"><label>Event</label><select id="mEvent">${eventOpts(eventId||'')}</select></div>
+      <div class="grid-2">
+        <div class="form-group"><label>Person</label><select id="mPerson">
+          <option value="john">John</option><option value="steve">Steve</option>
+        </select></div>
+        <div class="form-group"><label>Category</label><select id="mCategory">
+          <option value="travel">Travel</option><option value="toll">Toll</option>
+          <option value="equipment">Equipment</option><option value="helper">Helper Pay</option><option value="other">Other</option>
+        </select></div>
+      </div>
+      <div class="form-group"><label>Description</label><input type="text" id="mDesc" placeholder="e.g. Turnpike toll"></div>
+      <div class="form-group"><label>Amount ($)</label><input type="number" id="mAmount" step="0.01" placeholder="0.00"></div>
+      <div class="form-group"><label>Notes</label><textarea id="mNotes" rows="2"></textarea></div>
+    `, async () => {
+      const event_id=document.getElementById('mEvent').value;
+      const amount=parseFloat(document.getElementById('mAmount').value);
+      if(!event_id) throw new Error('Event is required');
+      if(!amount||amount<=0) throw new Error('Valid amount required');
+      const row={event_id,person:document.getElementById('mPerson').value,category:document.getElementById('mCategory').value,description:document.getElementById('mDesc').value.trim()||null,amount,reimbursed:false,notes:document.getElementById('mNotes').value.trim()||null};
+      const{error}=await sb.from('expenses').insert(row);if(error)throw error;
+    });
+  }
+
+  // ── ACTIONS ────────────────────────────────────────────────────────────────
+  async function deleteRecord(table, id, callback=null) {
+    if(!confirm('Delete this record?')) return;
+    const{error}=await sb.from(table).delete().eq('id',id);
+    if(error){showErr(error.message);return;}
+    await loadAll();
+    if(callback) callback(); else showTab(currentTab);
+  }
+
+  async function markReimbursed(expenseId, eventId=null) {
+    const{error}=await sb.from('expenses').update({reimbursed:true}).eq('id',expenseId);
+    if(error){showErr(error.message);return;}
+    await loadAll();
+    if(eventId) renderEventDetail(eventId); else showTab('expenses');
+  }
+
+  // expose functions needed by inline onclick handlers
+  window.showTab=showTab; window.openEventModal=openEventModal; window.openCustomerModal=openCustomerModal;
+  window.openPaymentModal=openPaymentModal; window.openLaborModal=openLaborModal; window.openExpenseModal=openExpenseModal;
+  window.closeModal=closeModal; window.modalSave=modalSave; window.deleteRecord=deleteRecord;
+  window.markReimbursed=markReimbursed; window.renderEventDetail=renderEventDetail;
+  window.renderCustomerDetail=renderCustomerDetail; window.renderCustomers=renderCustomers;
+  window.renderEvents=renderEvents; window.doLogin=doLogin; window.doLogout=doLogout;
+
+} // end initApp
+</script>
+</body>
+</html>
