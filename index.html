@@ -368,7 +368,7 @@ function renderDash(){
     (C.customers.map(function(c){var b=cuBal(c.id);return'<tr><td style="font-weight:500">'+esc(c.name)+'</td><td>'+fmt(b.inv)+'</td><td style="color:var(--green)">'+fmt(b.paid)+'</td><td><span class="badge '+(b.bal>0?'ba':b.bal<0?'bb':'bg')+'">'+fmt(b.bal)+'</span></td></tr>';}).join('')||'<tr><td colspan="4" class="empty">No customers</td></tr>')+
     '</tbody></table>';
 }
-function sc(lbl,val,cls){return'<div class="stat-card"><div class="stat-label">'+lbl+'</div><div class="stat-value '+(cls||'")>'+val+'</div></div>';}
+function sc(lbl,val,cls){return'<div class="stat-card"><div class="stat-label">'+lbl+'</div><div class="stat-value '+(cls||'')+'">'+ val+'</div></div>';}
 function sh(title,right){return'<div class="section-header"><div class="section-title">'+title+'</div>'+(right||'')+'</div>';}
 
 // ── CALENDAR ──────────────────────────────────────────────────────────────────
