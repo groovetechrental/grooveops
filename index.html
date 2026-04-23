@@ -422,10 +422,10 @@ function renderCalendar(){
     }
     cells+='<div class="'+cls+'" onclick="openEvModal(null,\''+ds+'\')">'+inner+'</div>';
   }
-  // List: only upcoming events in the 4-week window
+  // List: only upcoming events in the 4-week window (today → endDate)
   var monthEvs=C.events.filter(function(e){
     var d=new Date(e.date+'T00:00:00');
-    return d>=gridStart&&d<=endDate;
+    return d>=startDate&&d<=endDate;
   }).sort(function(a,b){return a.date.localeCompare(b.date);});
 
   var listHtml=monthEvs.length?monthEvs.map(function(e){
@@ -484,8 +484,7 @@ function renderCalendar(){
     +listHtml;
 }
 
-function calNav(dir){viewMonth+=dir;if(viewMonth>11){viewMonth=0;viewYear++;}else if(viewMonth<0){viewMonth=11;viewYear--;}renderCalendar();}
-function calToday(){viewYear=today.getFullYear();viewMonth=today.getMonth();renderCalendar();}
+// calendar nav no longer needed — always anchored to today
 function toggleEvCard(id){var c=document.getElementById('evc-'+id);if(c)c.classList.toggle('expanded');}
 
 // ── EVENTS LIST ───────────────────────────────────────────────────────────────
