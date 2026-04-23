@@ -117,7 +117,7 @@ header{background:var(--surface);border-bottom:1px solid var(--border);padding:1
 .cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:3px;}
 .cal-cell{background:var(--surface);border:1px solid var(--border);border-radius:7px;min-height:80px;padding:5px 4px;cursor:pointer;transition:border-color .15s;overflow:hidden;}
 .cal-cell:hover{border-color:var(--accent);}
-.cal-cell.other-month{opacity:.2;pointer-events:none;}
+.cal-cell.other-month{opacity:.35;}
 .cal-cell.today{border-color:var(--accent);}
 .cal-cell.today .date-num{color:var(--accent);font-weight:700;}
 .cal-cell.holiday-cell{background:#1a1a14;}
@@ -390,34 +390,42 @@ function getHolidays(year){
 
 function renderCalendar(){
   var hols=Object.assign({},getHolidays(viewYear-1),getHolidays(viewYear),getHolidays(viewYear+1));
-  var first=new Date(viewYear,viewMonth,1).getDay();
-  var dim=new Date(viewYear,viewMonth+1,0).getDate();
-  var dPrev=new Date(viewYear,viewMonth,0).getDate();
+  // 4-week look-ahead from today — always start from today regardless of viewYear/viewMonth
+  var startDate=new Date(today.getFullYear(),today.getMonth(),today.getDate());
+  var endDate=new Date(startDate);
+  endDate.setDate(endDate.getDate()+27); // 4 weeks = 28 days (today + 27)
+  // Build grid starting from the Sunday on or before startDate
+  var gridStart=new Date(startDate);
+  gridStart.setDate(gridStart.getDate()-gridStart.getDay());
   var cells='';
-  for(var i=0;i<42;i++){
-    var day,isOther=false,yr=viewYear,mo=viewMonth;
-    if(i<first){day=dPrev-first+1+i;mo--;if(mo<0){mo=11;yr--;}isOther=true;}
-    else if(i-first>=dim){day=i-first-dim+1;mo++;if(mo>11){mo=0;yr++;}isOther=true;}
-    else{day=i-first+1;}
+  for(var i=0;i<28;i++){
+    var cellDate=new Date(gridStart);
+    cellDate.setDate(gridStart.getDate()+i);
+    var yr=cellDate.getFullYear(),mo=cellDate.getMonth(),day=cellDate.getDate();
     var ds=yr+'-'+String(mo+1).padStart(2,'0')+'-'+String(day).padStart(2,'0');
+    var isPast=cellDate<startDate;
     var isTod=yr===today.getFullYear()&&mo===today.getMonth()&&day===today.getDate();
+    var isInRange=cellDate>=startDate&&cellDate<=endDate;
     var hol=hols[ds]||null;
-    var dayEvs=C.events.filter(function(e){return e.date===ds;});
-    var cls='cal-cell'+(isOther?' other-month':'')+(isTod?' today':'')+(hol?' holiday-cell':'');
-    var inner='<div class="date-num">'+day+'</div>';
-    if(hol)inner+='<div class="hol-lbl">'+hol+'</div>';
-    dayEvs.slice(0,2).forEach(function(e){
-      var tc=e.type||'other';
-      inner+='<span class="ev-chip '+tc+'">'+esc(e.name)+'</span>';
-      var crew=(e.labor||[]).filter(function(x){return x.name;});
-      if(crew.length){inner+='<div class="crew-hint">'+esc(crew.map(function(x){return(x.confirmed?'✓':'?')+x.name.split(' ')[0];}).join(' '))+'</div>';}
-    });
-    if(dayEvs.length>2)inner+='<div class="more-ind">+'+( dayEvs.length-2)+' more</div>';
-    cells+='<div class="'+cls+'"'+(isOther?'':' onclick="openEvModal(null,\''+ds+'\')"')+'>'+inner+'</div>';
+    var dayEvs=isInRange?C.events.filter(function(e){return e.date===ds;}):[];
+    var cls='cal-cell'+(isPast?' other-month':'')+(isTod?' today':'')+(hol&&isInRange?' holiday-cell':'');
+    var inner='<div class="date-num">'+String(mo+1).padStart(2,'0')+'/'+day+'</div>';
+    if(hol&&isInRange)inner+='<div class="hol-lbl">'+hol+'</div>';
+    if(isInRange){
+      dayEvs.slice(0,2).forEach(function(e){
+        var tc=e.type||'other';
+        inner+='<span class="ev-chip '+tc+'">'+esc(e.name)+'</span>';
+        var crew=(e.labor||[]).filter(function(x){return x.name;});
+        if(crew.length){inner+='<div class="crew-hint">'+esc(crew.map(function(x){return(x.confirmed?'✓':'?')+x.name.split(' ')[0];}).join(' '))+'</div>';}
+      });
+      if(dayEvs.length>2)inner+='<div class="more-ind">+'+(dayEvs.length-2)+' more</div>';
+    }
+    cells+='<div class="'+cls+'" onclick="openEvModal(null,\''+ds+'\')">'+inner+'</div>';
   }
+  // List: only upcoming events in the 4-week window
   var monthEvs=C.events.filter(function(e){
     var d=new Date(e.date+'T00:00:00');
-    return d.getFullYear()===viewYear&&d.getMonth()===viewMonth;
+    return d>=gridStart&&d<=endDate;
   }).sort(function(a,b){return a.date.localeCompare(b.date);});
 
   var listHtml=monthEvs.length?monthEvs.map(function(e){
