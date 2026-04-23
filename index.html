@@ -388,12 +388,16 @@ function getHolidays(year){
   return h;
 }
 
+var calOffset=0; // number of 4-week periods offset from today
+
 function renderCalendar(){
   var hols=Object.assign({},getHolidays(viewYear-1),getHolidays(viewYear),getHolidays(viewYear+1));
-  // 4-week look-ahead from today — always start from today regardless of viewYear/viewMonth
+  // Start from today + calOffset * 28 days
   var startDate=new Date(today.getFullYear(),today.getMonth(),today.getDate());
+  startDate.setDate(startDate.getDate()+(calOffset*28));
   var endDate=new Date(startDate);
-  endDate.setDate(endDate.getDate()+27); // 4 weeks = 28 days (today + 27)
+  endDate.setDate(endDate.getDate()+27);
+  var todayDate=new Date(today.getFullYear(),today.getMonth(),today.getDate());
   // Build grid starting from the Sunday on or before startDate
   var gridStart=new Date(startDate);
   gridStart.setDate(gridStart.getDate()-gridStart.getDay());
@@ -403,7 +407,7 @@ function renderCalendar(){
     cellDate.setDate(gridStart.getDate()+i);
     var yr=cellDate.getFullYear(),mo=cellDate.getMonth(),day=cellDate.getDate();
     var ds=yr+'-'+String(mo+1).padStart(2,'0')+'-'+String(day).padStart(2,'0');
-    var isPast=cellDate<startDate;
+    var isPast=cellDate<todayDate;
     var isTod=yr===today.getFullYear()&&mo===today.getMonth()&&day===today.getDate();
     var isInRange=cellDate>=startDate&&cellDate<=endDate;
     var hol=hols[ds]||null;
@@ -484,7 +488,8 @@ function renderCalendar(){
     +listHtml;
 }
 
-// calendar nav no longer needed — always anchored to today
+// calendar nav — moves in 4-week increments, 0 = today's window
+function calNav(dir){calOffset=(dir===0?0:calOffset+dir);renderCalendar();}
 function toggleEvCard(id){var c=document.getElementById('evc-'+id);if(c)c.classList.toggle('expanded');}
 
 // ── EVENTS LIST ───────────────────────────────────────────────────────────────
