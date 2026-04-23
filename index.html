@@ -553,9 +553,22 @@ function openEvDetail(id,returnTab){
       '</div>'+
     '</div>'+
     calPanel+
-    sh('Labor Hours','<button class="btn btn-sm" onclick="openLabModal(\''+sid(e.id)+'\')">+ Add Hours</button>')+
-    '<table class="tbl"><thead><tr><th>Person</th><th>Hours</th><th>Rate</th><th>Earned</th><th>Notes</th><th></th></tr></thead><tbody>'+
-    (eL.map(function(l){return'<tr><td style="text-transform:capitalize;font-weight:500">'+esc(l.person)+'</td><td>'+(l.hours||'—')+'</td><td>'+(l.rate?fmt(l.rate)+'/hr':'—')+'</td><td style="color:var(--green)">'+fmt((l.hours||0)*(l.rate||0))+'</td><td style="color:var(--muted)">'+esc(l.notes||'')+'</td><td><button class="btn btn-sm btn-danger" onclick="delRec(\'labor\',\''+sid(l.id)+'\',function(){openEvDetail(\''+sid(id)+'\',\''+prevTab+'\');})">Del</button></td></tr>';}).join('')||'<tr><td colspan="6" class="empty">No labor hours recorded</td></tr>')+
+    sh('Labor Hours','<div style="display:flex;gap:8px"><button class="btn btn-sm" onclick="openLabModal(\''+sid(e.id)+'\')">+ Owner Hours</button><button class="btn btn-sm btn-outline" onclick="openHelperLabModal(\''+sid(e.id)+'\')">+ Helper</button></div>')+
+    '<table class="tbl"><thead><tr><th>Person</th><th>Hours</th><th>Rate/Amount</th><th>Earned</th><th>Status</th><th></th></tr></thead><tbody>'+
+    (eL.map(function(l){
+      var isOwner=l.person==='john'||l.person==='steve';
+      var earned=parseFloat(l.total_amount)||((parseFloat(l.hours)||0)*(parseFloat(l.rate)||0));
+      return'<tr>'+
+        '<td style="text-transform:capitalize;font-weight:500">'+esc(l.person)+'</td>'+
+        '<td>'+(l.hours||'—')+'</td>'+
+        '<td>'+(isOwner?(l.rate?fmt(l.rate)+'/hr':'—'):(l.total_amount?fmt(l.total_amount)+' flat':'—'))+'</td>'+
+        '<td style="color:var(--green)">'+fmt(earned)+'</td>'+
+        '<td>'+(isOwner?'<span class="badge bb">Owner</span>':'<span class="badge '+(l.paid?'bg':'ba')+'">'+(l.paid?'Paid':'Unpaid')+'</span>')+'</td>'+
+        '<td><div class="acts">'+
+          (!isOwner&&!l.paid?'<button class="btn btn-sm btn-outline" onclick="markHelperPaid(\''+sid(l.id)+'\')">✓ Pay</button>':'')+
+          '<button class="btn btn-sm btn-danger" onclick="delRec(\'labor\',\''+sid(l.id)+'\',function(){openEvDetail(\''+sid(id)+'\',\''+prevTab+'\');})">Del</button>'+
+        '</div></td></tr>';
+    }).join('')||'<tr><td colspan="6" class="empty">No labor recorded</td></tr>')+
     '</tbody></table>'+
     sh('Expenses','<button class="btn btn-sm" onclick="openExpModal(\''+sid(e.id)+'\')">+ Add Expense</button>')+
     '<table class="tbl"><thead><tr><th>Person</th><th>Category</th><th>Description</th><th>Amount</th><th>Reimbursed</th><th></th></tr></thead><tbody>'+
@@ -616,13 +629,62 @@ function renderPayments(){
 
 // ── LABOR ─────────────────────────────────────────────────────────────────────
 function renderLabor(){
-  var jt=C.labor.filter(function(l){return l.person==='john';}).reduce(function(s,l){return s+((parseFloat(l.hours)||0)*(parseFloat(l.rate)||0));},0);
-  var st=C.labor.filter(function(l){return l.person==='steve';}).reduce(function(s,l){return s+((parseFloat(l.hours)||0)*(parseFloat(l.rate)||0));},0);
+  var owners=['john','steve'];
+  var ownerLab=C.labor.filter(function(l){return owners.includes(l.person);});
+  var helperLab=C.labor.filter(function(l){return!owners.includes(l.person);});
+  var jt=C.labor.filter(function(l){return l.person==='john';}).reduce(function(s,l){return s+(parseFloat(l.total_amount)||((parseFloat(l.hours)||0)*(parseFloat(l.rate)||0)));},0);
+  var st=C.labor.filter(function(l){return l.person==='steve';}).reduce(function(s,l){return s+(parseFloat(l.total_amount)||((parseFloat(l.hours)||0)*(parseFloat(l.rate)||0)));},0);
+  // group helpers by name
+  var helperNames=[...new Set(helperLab.map(function(l){return l.person;}))];
+  var helperSummary=helperNames.map(function(name){
+    var rows=helperLab.filter(function(l){return l.person===name;});
+    var total=rows.reduce(function(s,l){return s+(parseFloat(l.total_amount)||0);},0);
+    var unpaid=rows.filter(function(l){return!l.paid;}).reduce(function(s,l){return s+(parseFloat(l.total_amount)||0);},0);
+    return{name:name,total:total,unpaid:unpaid,rows:rows};
+  });
+  var unpaidTotal=helperLab.filter(function(l){return!l.paid;}).reduce(function(s,l){return s+(parseFloat(l.total_amount)||0);},0);
+
   document.getElementById('mc').innerHTML=
-    '<div class="stat-grid" style="margin-bottom:16px">'+sc('John — Total Earned',fmt(jt),'green')+sc('Steve — Total Earned',fmt(st),'green')+'</div>'+
-    sh('Labor Records ('+C.labor.length+')','<button class="btn btn-sm" onclick="openLabModal()">+ Add Hours</button>')+
+    '<div class="stat-grid" style="margin-bottom:16px">'+
+    sc('John — Total Earned',fmt(jt),'green')+
+    sc('Steve — Total Earned',fmt(st),'green')+
+    sc('Helpers — Unpaid',fmt(unpaidTotal),unpaidTotal>0?'amber':'')+
+    '</div>'+
+
+    sh('Owner Labor ('+ownerLab.length+')','<button class="btn btn-sm" onclick="openLabModal()">+ Add Hours</button>')+
     '<table class="tbl"><thead><tr><th>Event</th><th>Person</th><th>Hours</th><th>Rate</th><th>Earned</th><th>Notes</th><th></th></tr></thead><tbody>'+
-    (C.labor.map(function(l){return'<tr><td style="font-weight:500">'+evName(l.event_id)+'</td><td style="text-transform:capitalize">'+esc(l.person)+'</td><td>'+(l.hours||'—')+'</td><td>'+(l.rate?fmt(l.rate)+'/hr':'—')+'</td><td style="color:var(--green)">'+fmt((l.hours||0)*(l.rate||0))+'</td><td style="color:var(--muted)">'+esc(l.notes||'')+'</td><td><button class="btn btn-sm btn-danger" onclick="delRec(\'labor\',\''+sid(l.id)+'\')">Del</button></td></tr>';}).join('')||'<tr><td colspan="7" class="empty">No labor recorded</td></tr>')+
+    (ownerLab.map(function(l){
+      var earned=parseFloat(l.total_amount)||((parseFloat(l.hours)||0)*(parseFloat(l.rate)||0));
+      return'<tr><td style="font-weight:500">'+evName(l.event_id)+'</td>'+
+        '<td style="text-transform:capitalize">'+esc(l.person)+'</td>'+
+        '<td>'+(l.hours||'—')+'</td>'+
+        '<td>'+(l.rate?fmt(l.rate)+'/hr':'—')+'</td>'+
+        '<td style="color:var(--green)">'+fmt(earned)+'</td>'+
+        '<td style="color:var(--muted)">'+esc(l.notes||'')+'</td>'+
+        '<td><button class="btn btn-sm btn-danger" onclick="delRec(\'labor\',\''+sid(l.id)+'\')">Del</button></td></tr>';
+    }).join('')||'<tr><td colspan="7" class="empty">No owner labor recorded</td></tr>')+
+    '</tbody></table>'+
+
+    sh('Helper Labor ('+helperLab.length+')','<button class="btn btn-sm" onclick="openHelperLabModal()">+ Add Helper</button>')+
+    (helperSummary.length?
+      '<div class="stat-grid" style="margin-bottom:16px">'+
+      helperSummary.map(function(h){return'<div class="stat-card"><div class="stat-label">'+esc(h.name)+'</div>'+
+        '<div class="stat-value '+(h.unpaid>0?'amber':'green')+'">'+fmt(h.unpaid)+' unpaid</div>'+
+        '<div style="font-size:11px;color:var(--muted);margin-top:4px">'+fmt(h.total)+' total</div></div>';}).join('')+
+      '</div>':'')+
+    '<table class="tbl"><thead><tr><th>Event</th><th>Person</th><th>Hours</th><th>Amount</th><th>Status</th><th>Notes</th><th></th></tr></thead><tbody>'+
+    (helperLab.map(function(l){return'<tr>'+
+      '<td style="font-weight:500">'+evName(l.event_id)+'</td>'+
+      '<td style="text-transform:capitalize">'+esc(l.person)+'</td>'+
+      '<td>'+(l.hours||'—')+'</td>'+
+      '<td style="color:var(--green)">'+fmt(l.total_amount)+'</td>'+
+      '<td><span class="badge '+(l.paid?'bg':'ba')+'">'+(l.paid?'Paid':'Unpaid')+'</span>'+(l.paid&&l.paid_date?' <span style="font-size:10px;color:var(--muted)">'+fmtD(l.paid_date)+'</span>':'')+'</td>'+
+      '<td style="color:var(--muted)">'+esc(l.notes||'')+'</td>'+
+      '<td><div class="acts">'+
+        (!l.paid?'<button class="btn btn-sm btn-outline" onclick="markHelperPaid(\''+sid(l.id)+'\')">✓ Pay</button>':'')+
+        '<button class="btn btn-sm btn-danger" onclick="delRec(\'labor\',\''+sid(l.id)+'\')">Del</button>'+
+      '</div></td></tr>';
+    }).join('')||'<tr><td colspan="7" class="empty">No helper labor recorded</td></tr>')+
     '</tbody></table>';
 }
 
@@ -896,7 +958,58 @@ function openLabModal(eid){
   );
 }
 
-// ── EXPENSE MODAL ─────────────────────────────────────────────────────────────
+// ── HELPER LABOR MODAL ────────────────────────────────────────────────────────
+function openHelperLabModal(eid){
+  var helperNames=[...new Set(C.labor.filter(function(l){return l.person!=='john'&&l.person!=='steve';}).map(function(l){return l.person;}))];
+  var helperOpts=helperNames.map(function(n){return'<option value="'+esc(n)+'">'+esc(n)+'</option>';}).join('');
+  openModal('Add Helper Labor',
+    '<div class="form-group"><label>Event</label><select id="mE">'+evOpts(eid||'')+'</select></div>'+
+    '<div class="form-group"><label>Helper Name</label>'+
+      '<select id="mPsel" onchange="toggleHelperCustom(this.value)">'+
+        '<option value="">— Select or add new —</option>'+
+        helperOpts+
+        '<option value="__new__">＋ New helper…</option>'+
+      '</select>'+
+      '<input type="text" id="mPcustom" placeholder="Enter helper name" style="display:none;margin-top:8px">'+
+    '</div>'+
+    '<div class="g2">'+
+      '<div class="form-group"><label>Hours Worked</label><input type="number" id="mH" step="0.25" placeholder="0.00"></div>'+
+      '<div class="form-group"><label>Total Amount Owed ($)</label><input type="number" id="mA" step="0.01" placeholder="0.00"></div>'+
+    '</div>'+
+    '<div class="form-group"><label>Notes</label><textarea id="mNo" rows="2"></textarea></div>',
+    async function(){
+      var eid2=document.getElementById('mE').value;
+      if(!eid2)throw new Error('Event is required');
+      var sel=document.getElementById('mPsel').value;
+      var custom=document.getElementById('mPcustom').value.trim();
+      var person=sel==='__new__'?custom:sel;
+      if(!person)throw new Error('Helper name is required');
+      var amt=parseFloat(document.getElementById('mA').value);
+      if(!amt||amt<=0)throw new Error('Amount is required');
+      var r=await sb.from('labor').insert({
+        event_id:eid2,person:person,
+        hours:parseFloat(document.getElementById('mH').value)||null,
+        total_amount:amt,
+        paid:false,
+        notes:document.getElementById('mNo').value.trim()||null
+      });
+      if(r.error)throw r.error;
+    }
+  );
+}
+function toggleHelperCustom(v){
+  document.getElementById('mPcustom').style.display=v==='__new__'?'block':'none';
+}
+function markHelperPaid(id){
+  openModal('Mark as Paid',
+    '<div class="form-group"><label>Payment Date</label><input type="date" id="mD" value="'+new Date().toISOString().split('T')[0]+'"></div>'+
+    '<div class="form-group"><label>Notes</label><textarea id="mNo" rows="2" placeholder="e.g. Paid via Venmo"></textarea></div>',
+    async function(){
+      var r=await sb.from('labor').update({paid:true,paid_date:document.getElementById('mD').value,paid_notes:document.getElementById('mNo').value.trim()||null}).eq('id',id);
+      if(r.error)throw r.error;
+    }
+  );
+}
 function openExpModal(eid){
   openModal('Add Expense',
     '<div class="form-group"><label>Event</label><select id="mE">'+evOpts(eid||'')+'</select></div>'+
