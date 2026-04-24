@@ -208,6 +208,7 @@ header{background:var(--surface);border-bottom:1px solid var(--border);padding:1
     <div class="nav-tab" onclick="showTab('customers')">Customers</div>
     <div class="nav-tab" onclick="showTab('payments')">Payments</div>
     <div class="nav-tab" onclick="showTab('labor')">Labor</div>
+    <div class="nav-tab" onclick="showTab('ownerfinances')">Owner Finances</div>
     <div class="nav-tab" onclick="showTab('expenses')">Expenses</div>
   </div>
   <div class="content" id="mc"></div>
@@ -232,7 +233,7 @@ var today = new Date();
 var sb, currentTab='dashboard', saveFn=null, selectedType='gt';
 var viewYear=today.getFullYear(), viewMonth=today.getMonth();
 var savedLabor=['John Magnus','Steve Pfeffer','JP'];
-var C={events:[],customers:[],payments:[],labor:[],expenses:[]};
+var C={events:[],customers:[],payments:[],labor:[],expenses:[],profitShare:[]};
 
 function sid(x){return String(x==null?'':x);}
 function fmt(n){return'$'+(parseFloat(n)||0).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g,',');}
@@ -304,10 +305,11 @@ function loadAll(){
     sb.from('customers').select('*').order('name'),
     sb.from('customer_payments').select('*').order('date',{ascending:false}),
     sb.from('labor').select('*').order('created_at',{ascending:false}),
-    sb.from('expenses').select('*').order('created_at',{ascending:false})
+    sb.from('expenses').select('*').order('created_at',{ascending:false}),
+    sb.from('profit_share').select('*').order('date',{ascending:false})
   ]).then(function(r){
     C.events=r[0].data||[];C.customers=r[1].data||[];C.payments=r[2].data||[];
-    C.labor=r[3].data||[];C.expenses=r[4].data||[];
+    C.labor=r[3].data||[];C.expenses=r[4].data||[];C.profitShare=r[5].data||[];
   });
 }
 
@@ -341,6 +343,7 @@ function showTab(tab){
   else if(tab==='customers')renderCustomers();
   else if(tab==='payments')renderPayments();
   else if(tab==='labor')renderLabor();
+  else if(tab==='ownerfinances')renderOwnerFinances();
   else if(tab==='expenses')renderExpenses();
 }
 
@@ -488,8 +491,11 @@ function renderCalendar(){
     +listHtml;
 }
 
-// calendar nav — moves in 4-week increments, 0 = today's window
-function calNav(dir){calOffset=(dir===0?0:calOffset+dir);renderCalendar();}
+function calNav(dir){
+  if(dir==='today'){calOffset=0;}
+  else{calOffset=calOffset+dir;}
+  renderCalendar();
+}
 function toggleEvCard(id){var c=document.getElementById('evc-'+id);if(c)c.classList.toggle('expanded');}
 
 // ── EVENTS LIST ───────────────────────────────────────────────────────────────
@@ -584,7 +590,7 @@ function openEvDetail(id,returnTab){
     '</tbody></table>'+
     sh('Expenses','<button class="btn btn-sm" onclick="openExpModal(\''+sid(e.id)+'\')">+ Add Expense</button>')+
     '<table class="tbl"><thead><tr><th>Person</th><th>Category</th><th>Description</th><th>Amount</th><th>Reimbursed</th><th></th></tr></thead><tbody>'+
-    (eE.map(function(x){return'<tr><td style="text-transform:capitalize">'+esc(x.person||'—')+'</td><td><span class="badge bb">'+esc(x.category||'other')+'</span></td><td>'+esc(x.description||'—')+'</td><td>'+fmt(x.amount)+'</td><td><span class="badge '+(x.reimbursed?'bg':'ba')+'">'+(x.reimbursed?'Yes':'No')+'</span></td><td><div class="acts">'+(x.reimbursed?'':'<button class="btn btn-sm btn-outline" onclick="doReimb(\''+sid(x.id)+'\',\''+sid(id)+'\',\''+prevTab+'\')">✓</button>')+'<button class="btn btn-sm btn-danger" onclick="delRec(\'expenses\',\''+sid(x.id)+'\',function(){openEvDetail(\''+sid(id)+'\',\''+prevTab+'\');})">Del</button></div></td></tr>';}).join('')||'<tr><td colspan="6" class="empty">No expenses</td></tr>')+
+    (eE.map(function(x){return'<tr><td style="text-transform:capitalize">'+esc(x.person||'—')+'</td><td><span class="badge bb">'+esc(x.category||'other')+'</span></td><td>'+esc(x.description||'—')+'</td><td>'+fmt(x.amount)+'</td><td><span class="badge '+(x.reimbursed?'bg':'ba')+'">'+(x.reimbursed?'Yes':'No')+'</span></td><td><div class="acts">'+(x.reimbursed?'':'<button class="btn btn-sm btn-outline" onclick="doReimb(\''+sid(x.id)+'\',\''+sid(id)+'\',\''+prevTab+'\')">✓</button>')+'<button class="btn btn-sm btn-outline" onclick="openExpModal(null,\''+sid(x.id)+'\')">Edit</button><button class="btn btn-sm btn-danger" onclick="delRec(\'expenses\',\''+sid(x.id)+'\',function(){openEvDetail(\''+sid(id)+'\',\''+prevTab+'\');})">Del</button></div></td></tr>';}).join('')||'<tr><td colspan="6" class="empty">No expenses</td></tr>')+
     '</tbody></table>'+
     sh('Payments','<button class="btn btn-sm" onclick="openPayModal(null,\''+sid(e.id)+'\')">+ Record Payment</button>')+
     '<table class="tbl"><thead><tr><th>Date</th><th>Amount</th><th>Method</th><th>Notes</th><th></th></tr></thead><tbody>'+
@@ -700,7 +706,122 @@ function renderLabor(){
     '</tbody></table>';
 }
 
-// ── EXPENSES ──────────────────────────────────────────────────────────────────
+// ── OWNER FINANCES ────────────────────────────────────────────────────────────
+function ownerStats(person){
+  // Labor earned (hours x rate for owners)
+  var laborEarned=C.labor.filter(function(l){return l.person===person;})
+    .reduce(function(s,l){return s+(parseFloat(l.total_amount)||((parseFloat(l.hours)||0)*(parseFloat(l.rate)||0)));},0);
+  // Labor paid out
+  var laborPaid=C.labor.filter(function(l){return l.person===person&&l.paid;})
+    .reduce(function(s,l){return s+(parseFloat(l.paid_amount)||parseFloat(l.total_amount)||((parseFloat(l.hours)||0)*(parseFloat(l.rate)||0)));},0);
+  // Expenses paid out of pocket
+  var expPaid=C.expenses.filter(function(x){return x.person===person;})
+    .reduce(function(s,x){return s+(parseFloat(x.amount)||0);},0);
+  // Expenses reimbursed
+  var expReimb=C.expenses.filter(function(x){return x.person===person&&x.reimbursed;})
+    .reduce(function(s,x){return s+(parseFloat(x.amount)||0);},0);
+  // Profit share received
+  var psTotal=C.profitShare.filter(function(p){return p.person===person;})
+    .reduce(function(s,p){return s+(parseFloat(p.amount)||0);},0);
+  return{laborEarned:laborEarned,laborPaid:laborPaid,laborOwed:laborEarned-laborPaid,
+    expPaid:expPaid,expReimb:expReimb,expOwed:expPaid-expReimb,psTotal:psTotal};
+}
+
+function renderOwnerFinances(){
+  var john=ownerStats('john');
+  var steve=ownerStats('steve');
+
+  function personCard(name,s){
+    var label=name.charAt(0).toUpperCase()+name.slice(1);
+    var ps=C.profitShare.filter(function(p){return p.person===name;})
+      .sort(function(a,b){return b.date.localeCompare(a.date);});
+    return'<div style="margin-bottom:24px">'+
+      '<div class="section-title" style="margin-bottom:12px">'+label+'</div>'+
+      '<div class="stat-grid" style="margin-bottom:16px">'+
+        sc('Labor Earned',fmt(s.laborEarned),'green')+
+        sc('Labor Paid',fmt(s.laborPaid))+
+        sc('Labor Owed',fmt(s.laborOwed),s.laborOwed>0?'amber':'')+
+        sc('Expenses Out',fmt(s.expPaid))+
+        sc('Expenses Reimb.',fmt(s.expReimb))+
+        sc('Exp. Owed',fmt(s.expOwed),s.expOwed>0?'amber':'')+
+        sc('Profit Share',fmt(s.psTotal),'green')+
+        sc('Total Owed',fmt(s.laborOwed+s.expOwed),s.laborOwed+s.expOwed>0?'amber':'')+
+      '</div>'+
+      sh('Profit Share — '+label,'<button class="btn btn-sm" onclick="openPSModal(\''+name+'\')">+ Add Distribution</button>')+
+      '<table class="tbl"><thead><tr><th>Date</th><th>Amount</th><th>Method</th><th>Event</th><th>Notes</th><th></th></tr></thead><tbody>'+
+      (ps.map(function(p){return'<tr>'+
+        '<td>'+fmtD(p.date)+'</td>'+
+        '<td style="color:var(--green)">'+fmt(p.amount)+'</td>'+
+        '<td>'+esc(p.method||'—')+'</td>'+
+        '<td style="color:var(--muted)">'+(p.event_id?evName(p.event_id):'—')+'</td>'+
+        '<td style="color:var(--muted)">'+esc(p.notes||'')+'</td>'+
+        '<td><button class="btn btn-sm btn-danger" onclick="delRec(\'profit_share\',\''+sid(p.id)+'\')">Del</button></td>'+
+      '</tr>';}).join('')||'<tr><td colspan="6" class="empty">No profit share distributions yet</td></tr>')+
+      '</tbody></table>'+
+      sh('Labor Detail — '+label)+
+      '<table class="tbl"><thead><tr><th>Event</th><th>Hours</th><th>Earned</th><th>Paid</th><th></th></tr></thead><tbody>'+
+      (C.labor.filter(function(l){return l.person===name;}).map(function(l){
+        var earned=parseFloat(l.total_amount)||((parseFloat(l.hours)||0)*(parseFloat(l.rate)||0));
+        return'<tr>'+
+          '<td style="font-weight:500">'+evName(l.event_id)+'</td>'+
+          '<td>'+(l.hours||'—')+'</td>'+
+          '<td style="color:var(--green)">'+fmt(earned)+'</td>'+
+          '<td><span class="badge '+(l.paid?'bg':'ba')+'">'+(l.paid?'Paid':'Unpaid')+'</span></td>'+
+          '<td>'+(l.paid?'':'<button class="btn btn-sm btn-outline" onclick="markOwnerLaborPaid(\''+sid(l.id)+'\','+earned+')">✓ Pay</button>')+'</td>'+
+        '</tr>';
+      }).join('')||'<tr><td colspan="5" class="empty">No labor records</td></tr>')+
+      '</tbody></table>'+
+    '</div>';
+  }
+
+  document.getElementById('mc').innerHTML=
+    personCard('john',john)+
+    '<hr style="border:none;border-top:2px solid var(--border);margin:8px 0 24px">'+
+    personCard('steve',steve);
+}
+
+function openPSModal(person){
+  var label=person.charAt(0).toUpperCase()+person.slice(1);
+  openModal('Add Profit Share — '+label,
+    '<div class="g2">'+
+      '<div class="form-group"><label>Date</label><input type="date" id="mD" value="'+new Date().toISOString().split('T')[0]+'"></div>'+
+      '<div class="form-group"><label>Amount ($)</label><input type="number" id="mA" step="0.01" placeholder="0.00"></div>'+
+    '</div>'+
+    '<div class="form-group"><label>Method</label><select id="mM"><option value="">— Select —</option><option>Cash</option><option>Check</option><option>Venmo</option><option>Zelle</option><option>Bank Transfer</option><option>Other</option></select></div>'+
+    '<div class="form-group"><label>Event <span style="color:var(--muted);font-weight:400;text-transform:none">(optional)</span></label><select id="mE">'+evOpts('')+'</select></div>'+
+    '<div class="form-group"><label>Notes</label><textarea id="mNo" rows="2"></textarea></div>',
+    async function(){
+      var amt=parseFloat(document.getElementById('mA').value);
+      var dt=document.getElementById('mD').value;
+      if(!amt||amt<=0)throw new Error('Valid amount required');
+      if(!dt)throw new Error('Date is required');
+      var r=await sb.from('profit_share').insert({
+        person:person,date:dt,amount:amt,
+        method:document.getElementById('mM').value||null,
+        event_id:document.getElementById('mE').value||null,
+        notes:document.getElementById('mNo').value.trim()||null
+      });
+      if(r.error)throw r.error;
+    }
+  );
+}
+
+function markOwnerLaborPaid(id,earned){
+  openModal('Mark Labor as Paid',
+    '<div class="form-group"><label>Payment Date</label><input type="date" id="mD" value="'+new Date().toISOString().split('T')[0]+'"></div>'+
+    '<div class="form-group"><label>Amount Paid ($)</label><input type="number" id="mA" step="0.01" value="'+earned.toFixed(2)+'"></div>'+
+    '<div class="form-group"><label>Notes</label><textarea id="mNo" rows="2" placeholder="e.g. Paid via Venmo"></textarea></div>',
+    async function(){
+      var r=await sb.from('labor').update({
+        paid:true,
+        paid_date:document.getElementById('mD').value,
+        paid_amount:parseFloat(document.getElementById('mA').value)||null,
+        paid_notes:document.getElementById('mNo').value.trim()||null
+      }).eq('id',id);
+      if(r.error)throw r.error;
+    }
+  );
+}
 function renderExpenses(){
   var te=C.expenses.reduce(function(s,x){return s+(parseFloat(x.amount)||0);},0);
   var ur=C.expenses.filter(function(x){return!x.reimbursed;}).reduce(function(s,x){return s+(parseFloat(x.amount)||0);},0);
@@ -708,7 +829,7 @@ function renderExpenses(){
     '<div class="stat-grid" style="margin-bottom:16px">'+sc('Total Expenses',fmt(te))+sc('Pending Reimbursement',fmt(ur),'amber')+'</div>'+
     sh('Expenses ('+C.expenses.length+')','<button class="btn btn-sm" onclick="openExpModal()">+ Add Expense</button>')+
     '<table class="tbl"><thead><tr><th>Event</th><th>Person</th><th>Category</th><th>Description</th><th>Amount</th><th>Reimbursed</th><th></th></tr></thead><tbody>'+
-    (C.expenses.map(function(x){return'<tr><td style="font-weight:500">'+evName(x.event_id)+'</td><td style="text-transform:capitalize">'+esc(x.person||'—')+'</td><td><span class="badge bb">'+esc(x.category||'other')+'</span></td><td>'+esc(x.description||'—')+'</td><td>'+fmt(x.amount)+'</td><td><span class="badge '+(x.reimbursed?'bg':'ba')+'">'+(x.reimbursed?'Yes':'No')+'</span></td><td><div class="acts">'+(x.reimbursed?'':'<button class="btn btn-sm btn-outline" onclick="doReimb(\''+sid(x.id)+'\')">✓</button>')+'<button class="btn btn-sm btn-danger" onclick="delRec(\'expenses\',\''+sid(x.id)+'\')">Del</button></div></td></tr>';}).join('')||'<tr><td colspan="7" class="empty">No expenses</td></tr>')+
+    (C.expenses.map(function(x){return'<tr><td style="font-weight:500">'+evName(x.event_id)+'</td><td style="text-transform:capitalize">'+esc(x.person||'—')+'</td><td><span class="badge bb">'+esc(x.category||'other')+'</span></td><td>'+esc(x.description||'—')+'</td><td>'+fmt(x.amount)+'</td><td><span class="badge '+(x.reimbursed?'bg':'ba')+'">'+(x.reimbursed?'Yes':'No')+'</span></td><td><div class="acts">'+(x.reimbursed?'':'<button class="btn btn-sm btn-outline" onclick="doReimb(\''+sid(x.id)+'\')">✓</button>')+'<button class="btn btn-sm btn-outline" onclick="openExpModal(null,\''+sid(x.id)+'\')">Edit</button><button class="btn btn-sm btn-danger" onclick="delRec(\'expenses\',\''+sid(x.id)+'\')">Del</button></div></td></tr>';}).join('')||'<tr><td colspan="7" class="empty">No expenses</td></tr>')+
     '</tbody></table>';
 }
 
@@ -1022,26 +1143,29 @@ function markHelperPaid(id){
     }
   );
 }
-function openExpModal(eid){
-  openModal('Add Expense',
-    '<div class="form-group"><label>Event <span style="color:var(--muted);font-weight:400;text-transform:none">(optional)</span></label><select id="mE">'+evOpts(eid||'')+'</select></div>'+
-    '<div class="g2"><div class="form-group"><label>Person</label><select id="mP"><option value="john">John</option><option value="steve">Steve</option></select></div>'+
-    '<div class="form-group"><label>Category</label><select id="mCat"><option value="travel">Travel</option><option value="toll">Toll</option><option value="equipment">Equipment</option><option value="helper">Helper Pay</option><option value="other">Other</option></select></div></div>'+
-    '<div class="form-group"><label>Description</label><input type="text" id="mDesc" placeholder="e.g. Turnpike toll"></div>'+
-    '<div class="form-group"><label>Amount ($)</label><input type="number" id="mA" step="0.01" placeholder="0.00"></div>'+
-    '<div class="form-group"><label>Notes</label><textarea id="mNo" rows="2"></textarea></div>',
+function openExpModal(eid, xid){
+  var x=xid?C.expenses.find(function(e){return sid(e.id)===sid(xid);}):null;
+  openModal(xid?'Edit Expense':'Add Expense',
+    '<div class="form-group"><label>Event <span style="color:var(--muted);font-weight:400;text-transform:none">(optional)</span></label><select id="mE">'+evOpts(x&&x.event_id||eid||'')+'</select></div>'+
+    '<div class="g2"><div class="form-group"><label>Person</label><select id="mP"><option value="john"'+(x&&x.person==='john'?' selected':'')+'>John</option><option value="steve"'+(x&&x.person==='steve'?' selected':'')+'>Steve</option></select></div>'+
+    '<div class="form-group"><label>Category</label><select id="mCat">'+
+      ['travel','toll','equipment','helper','other'].map(function(c){return'<option value="'+c+'"'+(x&&x.category===c?' selected':'')+'>'+c.charAt(0).toUpperCase()+c.slice(1)+'</option>';}).join('')+
+    '</select></div></div>'+
+    '<div class="form-group"><label>Description</label><input type="text" id="mDesc" value="'+esc(x&&x.description||'')+'" placeholder="e.g. Turnpike toll"></div>'+
+    '<div class="form-group"><label>Amount ($)</label><input type="number" id="mA" step="0.01" value="'+(x&&x.amount||'')+'" placeholder="0.00"></div>'+
+    '<div class="form-group"><label>Notes</label><textarea id="mNo" rows="2">'+esc(x&&x.notes||'')+'</textarea></div>',
     async function(){
       var amt=parseFloat(document.getElementById('mA').value);
       if(!amt||amt<=0)throw new Error('Valid amount required');
-      var r=await sb.from('expenses').insert({
+      var row={
         event_id:document.getElementById('mE').value||null,
         person:document.getElementById('mP').value,
         category:document.getElementById('mCat').value,
         description:document.getElementById('mDesc').value.trim()||null,
         amount:amt,
-        reimbursed:false,
         notes:document.getElementById('mNo').value.trim()||null
-      });
+      };
+      var r=xid?await sb.from('expenses').update(row).eq('id',xid):await sb.from('expenses').insert({...row,reimbursed:false});
       if(r.error)throw r.error;
     }
   );
