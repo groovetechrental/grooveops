@@ -226,7 +226,7 @@ header{background:var(--surface);border-bottom:1px solid var(--border);padding:1
 </div>
 
 <script>
-var MAKE_WEBHOOK = 'https://hook.us2.make.com/4khond9t4dm0sccbk88tsqr73du3kq5f';
+var OWNER_RATE = 40;
 var MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
 var TYPE_LABELS = {gt:'GT',looch:'Looch',neon:'Neon Nights',other:'Other'};
 var today = new Date();
@@ -999,10 +999,10 @@ function openEvModal(id,dateStr){
         if(ownerKey){
           var existing=C.labor.find(function(l){return sid(l.event_id)===sid(eventId)&&l.person===ownerKey;});
           if(existing){
-            var ur=await sb.from('labor').update({hours:parseFloat(crewMember.qty)||null}).eq('id',existing.id);
+            var ur=await sb.from('labor').update({hours:parseFloat(crewMember.qty)||null,rate:OWNER_RATE}).eq('id',existing.id);
             if(ur.error)console.error('labor update error:',ur.error.message);
           } else {
-            var ir=await sb.from('labor').insert({event_id:eventId,person:ownerKey,hours:parseFloat(crewMember.qty)||null,rate:null,total_amount:null,paid:false});
+            var ir=await sb.from('labor').insert({event_id:eventId,person:ownerKey,hours:parseFloat(crewMember.qty)||null,rate:OWNER_RATE,total_amount:null,paid:false});
             if(ir.error)console.error('labor insert error:',ir.error.message);
           }
         }
