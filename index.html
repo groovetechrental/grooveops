@@ -507,6 +507,7 @@ function renderEvents(){
     var av,bv;
     if(evSort.col==='date'){av=a.date||'';bv=b.date||'';}
     else if(evSort.col==='name'){av=(a.name||'').toLowerCase();bv=(b.name||'').toLowerCase();}
+    else if(evSort.col==='venue'){av=(a.venue||'').toLowerCase();bv=(b.venue||'').toLowerCase();}
     else if(evSort.col==='customer'){av=cuName(a.customer_id).toLowerCase();bv=cuName(b.customer_id).toLowerCase();}
     else if(evSort.col==='hours'){av=C.labor.filter(function(l){return sid(l.event_id)===sid(a.id);}).reduce(function(s,l){return s+(parseFloat(l.hours)||0);},0);bv=C.labor.filter(function(l){return sid(l.event_id)===sid(b.id);}).reduce(function(s,l){return s+(parseFloat(l.hours)||0);},0);}
     else if(evSort.col==='invoice'){av=parseFloat(a.invoice_amount)||0;bv=parseFloat(b.invoice_amount)||0;}
@@ -523,7 +524,7 @@ function renderEvents(){
   document.getElementById('mc').innerHTML=
     sh('Events ('+C.events.length+')','<button class="btn btn-sm" onclick="openEvModal()">+ Add Event</button>')+
     '<table class="tbl"><thead><tr>'+
-      th('Event','name')+th('Date','date')+th('Type','type')+th('Customer','customer')+
+      th('Event','name')+th('Date','date')+th('Venue','venue')+th('Type','type')+th('Customer','customer')+
       th('Invoice','invoice')+th('Hours','hours')+th('Profit','profit')+th('Status','status')+'<th></th>'+
     '</tr></thead><tbody>'+
     (sorted.map(function(e){
@@ -533,6 +534,7 @@ function renderEvents(){
       var totalHours=laborTableHours||crewHours;
       return'<tr style="cursor:pointer" onclick="openEvDetail(\''+sid(e.id)+'\',\'events\')">'+
       '<td style="font-weight:500">'+esc(e.name)+'</td><td>'+fmtD(e.date)+'</td>'+
+      '<td style="color:var(--muted)">'+esc(e.venue||'—')+'</td>'+
       '<td><span class="badge '+(e.type==='gt'?'ba':e.type==='looch'?'br':e.type==='neon'?'bb':'')+'">'+( TYPE_LABELS[e.type||'other']||e.type||'—')+'</span></td>'+
       '<td>'+cuName(e.customer_id)+'</td>'+
       '<td>'+(e.invoice_amount?fmt(e.invoice_amount):'<span style="color:var(--muted)">—</span>')+'</td>'+
@@ -706,14 +708,17 @@ function renderLabor(){
     sh('Owner Labor ('+ownerLab.length+')','<button class="btn btn-sm" onclick="openLabModal()">+ Add Hours</button>')+
     '<table class="tbl"><thead><tr><th>Event</th><th>Person</th><th>Hours</th><th>Rate</th><th>Earned</th><th>Notes</th><th></th></tr></thead><tbody>'+
     (ownerLab.map(function(l){
-      var earned=parseFloat(l.total_amount)||((parseFloat(l.hours)||0)*(parseFloat(l.rate)||0));
+      var earned=parseFloat(l.total_amount)||((parseFloat(l.hours)||0)*(parseFloat(l.rate)||OWNER_RATE));
       return'<tr><td style="font-weight:500">'+evName(l.event_id)+'</td>'+
         '<td style="text-transform:capitalize">'+esc(l.person)+'</td>'+
         '<td>'+(l.hours||'—')+'</td>'+
-        '<td>'+(l.rate?fmt(l.rate)+'/hr':'—')+'</td>'+
+        '<td>'+(l.rate?fmt(l.rate)+'/hr':fmt(OWNER_RATE)+'/hr (default)')+'</td>'+
         '<td style="color:var(--green)">'+fmt(earned)+'</td>'+
         '<td style="color:var(--muted)">'+esc(l.notes||'')+'</td>'+
-        '<td><button class="btn btn-sm btn-danger" onclick="delRec(\'labor\',\''+sid(l.id)+'\')">Del</button></td></tr>';
+        '<td><div class="acts">'+
+          '<button class="btn btn-sm btn-outline" onclick="openEditLaborModal(\''+sid(l.id)+'\')">Edit</button>'+
+          '<button class="btn btn-sm btn-danger" onclick="delRec(\'labor\',\''+sid(l.id)+'\')">Del</button>'+
+        '</div></td></tr>';
     }).join('')||'<tr><td colspan="7" class="empty">No owner labor recorded</td></tr>')+
     '</tbody></table>'+
 
@@ -733,6 +738,7 @@ function renderLabor(){
       '<td><span class="badge '+(l.paid?'bg':'ba')+'">'+(l.paid?'Paid':'Unpaid')+'</span>'+(l.paid&&l.paid_date?' <span style="font-size:10px;color:var(--muted)">'+fmtD(l.paid_date)+'</span>':'')+'</td>'+
       '<td style="color:var(--muted)">'+esc(l.notes||'')+'</td>'+
       '<td><div class="acts">'+
+        '<button class="btn btn-sm btn-outline" onclick="openEditLaborModal(\''+sid(l.id)+'\')">Edit</button>'+
         (!l.paid?'<button class="btn btn-sm btn-outline" onclick="markHelperPaid(\''+sid(l.id)+'\')">✓ Pay</button>':'')+
         '<button class="btn btn-sm btn-danger" onclick="delRec(\'labor\',\''+sid(l.id)+'\')">Del</button>'+
       '</div></td></tr>';
@@ -1147,7 +1153,34 @@ function openLabModal(eid){
   );
 }
 
-// ── HELPER LABOR MODAL ────────────────────────────────────────────────────────
+function openEditLaborModal(id){
+  var l=C.labor.find(function(x){return sid(x.id)===sid(id);});
+  if(!l) return;
+  var isOwner=l.person==='john'||l.person==='steve';
+  var earned=parseFloat(l.total_amount)||((parseFloat(l.hours)||0)*(parseFloat(l.rate)||OWNER_RATE));
+  openModal('Edit Labor — '+l.person.charAt(0).toUpperCase()+l.person.slice(1),
+    '<div class="form-group"><label>Event</label><input type="text" value="'+evName(l.event_id)+'" disabled style="opacity:.5"></div>'+
+    '<div class="g2">'+
+      '<div class="form-group"><label>Hours</label><input type="number" id="mH" step="0.25" value="'+(l.hours||'')+'" placeholder="0.00"></div>'+
+      (isOwner
+        ? '<div class="form-group"><label>Rate ($/hr)</label><input type="number" id="mR" step="0.01" value="'+(l.rate||OWNER_RATE)+'" placeholder="'+OWNER_RATE+'"></div>'
+        : '<div class="form-group"><label>Total Amount ($)</label><input type="number" id="mA" step="0.01" value="'+(l.total_amount||'')+'" placeholder="0.00"></div>'
+      )+
+    '</div>'+
+    '<div class="form-group"><label>Notes</label><textarea id="mNo" rows="2">'+esc(l.notes||'')+'</textarea></div>',
+    async function(){
+      var row={hours:parseFloat(document.getElementById('mH').value)||null};
+      if(isOwner){
+        row.rate=parseFloat(document.getElementById('mR').value)||OWNER_RATE;
+      } else {
+        row.total_amount=parseFloat(document.getElementById('mA').value)||null;
+      }
+      row.notes=document.getElementById('mNo').value.trim()||null;
+      var r=await sb.from('labor').update(row).eq('id',id);
+      if(r.error) throw r.error;
+    }
+  );
+}
 function openHelperLabModal(eid){
   var helperNames=[...new Set(C.labor.filter(function(l){return l.person!=='john'&&l.person!=='steve';}).map(function(l){return l.person;}))];
   var helperOpts=helperNames.map(function(n){return'<option value="'+esc(n)+'">'+esc(n)+'</option>';}).join('');
