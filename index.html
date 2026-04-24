@@ -706,10 +706,12 @@ function renderLabor(){
     '</div>'+
 
     sh('Owner Labor ('+ownerLab.length+')','<button class="btn btn-sm" onclick="openLabModal()">+ Add Hours</button>')+
-    '<table class="tbl"><thead><tr><th>Event</th><th>Person</th><th>Hours</th><th>Rate</th><th>Earned</th><th>Notes</th><th></th></tr></thead><tbody>'+
+    '<table class="tbl"><thead><tr><th>Event</th><th>Venue</th><th>Person</th><th>Hours</th><th>Rate</th><th>Earned</th><th>Notes</th><th></th></tr></thead><tbody>'+
     (ownerLab.map(function(l){
       var earned=parseFloat(l.total_amount)||((parseFloat(l.hours)||0)*(parseFloat(l.rate)||OWNER_RATE));
+      var ev=findEv(l.event_id);
       return'<tr><td style="font-weight:500">'+evName(l.event_id)+'</td>'+
+        '<td style="color:var(--muted)">'+esc(ev&&ev.venue||'—')+'</td>'+
         '<td style="text-transform:capitalize">'+esc(l.person)+'</td>'+
         '<td>'+(l.hours||'—')+'</td>'+
         '<td>'+(l.rate?fmt(l.rate)+'/hr':fmt(OWNER_RATE)+'/hr (default)')+'</td>'+
@@ -719,7 +721,7 @@ function renderLabor(){
           '<button class="btn btn-sm btn-outline" onclick="openEditLaborModal(\''+sid(l.id)+'\')">Edit</button>'+
           '<button class="btn btn-sm btn-danger" onclick="delRec(\'labor\',\''+sid(l.id)+'\')">Del</button>'+
         '</div></td></tr>';
-    }).join('')||'<tr><td colspan="7" class="empty">No owner labor recorded</td></tr>')+
+    }).join('')||'<tr><td colspan="8" class="empty">No owner labor recorded</td></tr>')+
     '</tbody></table>'+
 
     sh('Helper Labor ('+helperLab.length+')','<button class="btn btn-sm" onclick="openHelperLabModal()">+ Add Helper</button>')+
@@ -729,9 +731,12 @@ function renderLabor(){
         '<div class="stat-value '+(h.unpaid>0?'amber':'green')+'">'+fmt(h.unpaid)+' unpaid</div>'+
         '<div style="font-size:11px;color:var(--muted);margin-top:4px">'+fmt(h.total)+' total</div></div>';}).join('')+
       '</div>':'')+
-    '<table class="tbl"><thead><tr><th>Event</th><th>Person</th><th>Hours</th><th>Amount</th><th>Status</th><th>Notes</th><th></th></tr></thead><tbody>'+
-    (helperLab.map(function(l){return'<tr>'+
+    '<table class="tbl"><thead><tr><th>Event</th><th>Venue</th><th>Person</th><th>Hours</th><th>Amount</th><th>Status</th><th>Notes</th><th></th></tr></thead><tbody>'+
+    (helperLab.map(function(l){
+      var ev=findEv(l.event_id);
+      return'<tr>'+
       '<td style="font-weight:500">'+evName(l.event_id)+'</td>'+
+      '<td style="color:var(--muted)">'+esc(ev&&ev.venue||'—')+'</td>'+
       '<td style="text-transform:capitalize">'+esc(l.person)+'</td>'+
       '<td>'+(l.hours||'—')+'</td>'+
       '<td style="color:var(--green)">'+fmt(l.total_amount)+'</td>'+
@@ -742,7 +747,7 @@ function renderLabor(){
         (!l.paid?'<button class="btn btn-sm btn-outline" onclick="markHelperPaid(\''+sid(l.id)+'\')">✓ Pay</button>':'')+
         '<button class="btn btn-sm btn-danger" onclick="delRec(\'labor\',\''+sid(l.id)+'\')">Del</button>'+
       '</div></td></tr>';
-    }).join('')||'<tr><td colspan="7" class="empty">No helper labor recorded</td></tr>')+
+    }).join('')||'<tr><td colspan="8" class="empty">No helper labor recorded</td></tr>')+
     '</tbody></table>';
 }
 
