@@ -508,6 +508,7 @@ function renderEvents(){
     if(evSort.col==='date'){av=a.date||'';bv=b.date||'';}
     else if(evSort.col==='name'){av=(a.name||'').toLowerCase();bv=(b.name||'').toLowerCase();}
     else if(evSort.col==='customer'){av=cuName(a.customer_id).toLowerCase();bv=cuName(b.customer_id).toLowerCase();}
+    else if(evSort.col==='hours'){av=C.labor.filter(function(l){return sid(l.event_id)===sid(a.id);}).reduce(function(s,l){return s+(parseFloat(l.hours)||0);},0);bv=C.labor.filter(function(l){return sid(l.event_id)===sid(b.id);}).reduce(function(s,l){return s+(parseFloat(l.hours)||0);},0);}
     else if(evSort.col==='invoice'){av=parseFloat(a.invoice_amount)||0;bv=parseFloat(b.invoice_amount)||0;}
     else if(evSort.col==='profit'){av=evFin(a.id).profit;bv=evFin(b.id).profit;}
     else if(evSort.col==='status'){av=a.status||'';bv=b.status||'';}
@@ -523,19 +524,23 @@ function renderEvents(){
     sh('Events ('+C.events.length+')','<button class="btn btn-sm" onclick="openEvModal()">+ Add Event</button>')+
     '<table class="tbl"><thead><tr>'+
       th('Event','name')+th('Date','date')+th('Type','type')+th('Customer','customer')+
-      th('Invoice','invoice')+th('Profit','profit')+th('Status','status')+'<th></th>'+
+      th('Invoice','invoice')+th('Hours','hours')+th('Profit','profit')+th('Status','status')+'<th></th>'+
     '</tr></thead><tbody>'+
-    (sorted.map(function(e){var f=evFin(e.id);return'<tr style="cursor:pointer" onclick="openEvDetail(\''+sid(e.id)+'\',\'events\')">'+
+    (sorted.map(function(e){
+      var f=evFin(e.id);
+      var totalHours=C.labor.filter(function(l){return sid(l.event_id)===sid(e.id);}).reduce(function(s,l){return s+(parseFloat(l.hours)||0);},0);
+      return'<tr style="cursor:pointer" onclick="openEvDetail(\''+sid(e.id)+'\',\'events\')">'+
       '<td style="font-weight:500">'+esc(e.name)+'</td><td>'+fmtD(e.date)+'</td>'+
       '<td><span class="badge '+(e.type==='gt'?'ba':e.type==='looch'?'br':e.type==='neon'?'bb':'')+'">'+( TYPE_LABELS[e.type||'other']||e.type||'—')+'</span></td>'+
       '<td>'+cuName(e.customer_id)+'</td>'+
       '<td>'+(e.invoice_amount?fmt(e.invoice_amount):'<span style="color:var(--muted)">—</span>')+'</td>'+
+      '<td>'+(totalHours>0?totalHours+'h':'<span style="color:var(--muted)">—</span>')+'</td>'+
       '<td style="color:'+(f.profit>=0?'var(--green)':'var(--accent2)')+'">'+fmt(f.profit)+'</td>'+
       '<td>'+statusBadge(e.status)+'</td>'+
       '<td onclick="event.stopPropagation()"><div class="acts">'+
         '<button class="btn btn-sm btn-outline" onclick="openEvModal(\''+sid(e.id)+'\')">Edit</button>'+
         '<button class="btn btn-sm btn-danger" onclick="delRec(\'events\',\''+sid(e.id)+'\')">Del</button>'+
-      '</div></td></tr>';}).join('')||'<tr><td colspan="8" class="empty">No events yet</td></tr>')+
+      '</div></td></tr>';}).join('')||'<tr><td colspan="9" class="empty">No events yet</td></tr>')+
     '</tbody></table>';
 }
 
