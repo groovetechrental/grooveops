@@ -528,7 +528,9 @@ function renderEvents(){
     '</tr></thead><tbody>'+
     (sorted.map(function(e){
       var f=evFin(e.id);
-      var totalHours=C.labor.filter(function(l){return sid(l.event_id)===sid(e.id);}).reduce(function(s,l){return s+(parseFloat(l.hours)||0);},0);
+      var laborTableHours=C.labor.filter(function(l){return sid(l.event_id)===sid(e.id);}).reduce(function(s,l){return s+(parseFloat(l.hours)||0);},0);
+      var crewHours=(e.labor||[]).filter(function(x){return x.name&&x.qty;}).reduce(function(s,x){return s+(parseFloat(x.qty)||0);},0);
+      var totalHours=laborTableHours||crewHours;
       return'<tr style="cursor:pointer" onclick="openEvDetail(\''+sid(e.id)+'\',\'events\')">'+
       '<td style="font-weight:500">'+esc(e.name)+'</td><td>'+fmtD(e.date)+'</td>'+
       '<td><span class="badge '+(e.type==='gt'?'ba':e.type==='looch'?'br':e.type==='neon'?'bb':'')+'">'+( TYPE_LABELS[e.type||'other']||e.type||'—')+'</span></td>'+
@@ -997,20 +999,30 @@ function openEvModal(id,dateStr){
       if(r.error)throw r.error;
       var saved=r.data;
       var eventId=saved.id;
-      // Auto-sync owner crew to labor table
+      // Auto-sync ALL crew to labor table (owners get rate, helpers get total_amount=null)
       var ownerMap={'John Magnus':'john','Steve Pfeffer':'steve'};
       for(var i=0;i<labor.length;i++){
         var crewMember=labor[i];
+        if(!crewMember.name) continue;
         var ownerKey=ownerMap[crewMember.name];
-        if(ownerKey){
-          var existing=C.labor.find(function(l){return sid(l.event_id)===sid(eventId)&&l.person===ownerKey;});
-          if(existing){
-            var ur=await sb.from('labor').update({hours:parseFloat(crewMember.qty)||null,rate:OWNER_RATE}).eq('id',existing.id);
-            if(ur.error)console.error('labor update error:',ur.error.message);
-          } else {
-            var ir=await sb.from('labor').insert({event_id:eventId,person:ownerKey,hours:parseFloat(crewMember.qty)||null,rate:OWNER_RATE,total_amount:null,paid:false});
-            if(ir.error)console.error('labor insert error:',ir.error.message);
-          }
+        var personKey=ownerKey||crewMember.name; // owners use 'john'/'steve', helpers use their name
+        var existing=C.labor.find(function(l){return sid(l.event_id)===sid(eventId)&&l.person===personKey;});
+        if(existing){
+          var updateData={hours:parseFloat(crewMember.qty)||null};
+          if(ownerKey) updateData.rate=OWNER_RATE;
+          var ur=await sb.from('labor').update(updateData).eq('id',existing.id);
+          if(ur.error)console.error('labor update error:',ur.error.message);
+        } else {
+          var insertData={
+            event_id:eventId,
+            person:personKey,
+            hours:parseFloat(crewMember.qty)||null,
+            rate:ownerKey?OWNER_RATE:null,
+            total_amount:null,
+            paid:false
+          };
+          var ir=await sb.from('labor').insert(insertData);
+          if(ir.error)console.error('labor insert error:',ir.error.message);
         }
       }
       syncToGCal(saved,!!id);
