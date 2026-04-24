@@ -999,30 +999,27 @@ function openEvModal(id,dateStr){
       if(r.error)throw r.error;
       var saved=r.data;
       var eventId=saved.id;
-      // Auto-sync ALL crew to labor table (owners get rate, helpers get total_amount=null)
+      // Auto-sync ALL crew to labor table
       var ownerMap={'John Magnus':'john','Steve Pfeffer':'steve'};
+      console.log('crew to sync:', labor);
       for(var i=0;i<labor.length;i++){
         var crewMember=labor[i];
+        console.log('processing crew member:', crewMember, 'eventId:', eventId);
         if(!crewMember.name) continue;
         var ownerKey=ownerMap[crewMember.name];
-        var personKey=ownerKey||crewMember.name; // owners use 'john'/'steve', helpers use their name
+        var personKey=ownerKey||crewMember.name;
         var existing=C.labor.find(function(l){return sid(l.event_id)===sid(eventId)&&l.person===personKey;});
+        console.log('existing labor record:', existing);
         if(existing){
           var updateData={hours:parseFloat(crewMember.qty)||null};
           if(ownerKey) updateData.rate=OWNER_RATE;
           var ur=await sb.from('labor').update(updateData).eq('id',existing.id);
-          if(ur.error)console.error('labor update error:',ur.error.message);
+          console.log('update result:', ur.error||'ok');
         } else {
-          var insertData={
-            event_id:eventId,
-            person:personKey,
-            hours:parseFloat(crewMember.qty)||null,
-            rate:ownerKey?OWNER_RATE:null,
-            total_amount:null,
-            paid:false
-          };
+          var insertData={event_id:eventId,person:personKey,hours:parseFloat(crewMember.qty)||null,rate:ownerKey?OWNER_RATE:null,total_amount:null,paid:false};
+          console.log('inserting:', insertData);
           var ir=await sb.from('labor').insert(insertData);
-          if(ir.error)console.error('labor insert error:',ir.error.message);
+          console.log('insert result:', ir.error||'ok');
         }
       }
       syncToGCal(saved,!!id);
