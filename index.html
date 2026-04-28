@@ -418,7 +418,7 @@ function renderDash(){
     (C.customers.map(function(c){var b=cuBal(c.id);return'<tr><td style="font-weight:500">'+esc(c.name)+'</td><td>'+fmt(b.inv)+'</td><td style="color:var(--green)">'+fmt(b.paid)+'</td><td><span class="badge '+(b.bal>0?'ba':b.bal<0?'bb':'bg')+'">'+fmt(b.bal)+'</span></td></tr>';}).join('')||'<tr><td colspan="4" class="empty">No customers</td></tr>')+
     '</tbody></table>';
 }
-function sc(lbl,val,cls){return'<div class="stat-card"><div class="stat-label">'+lbl+'</div><div class="stat-value '+(cls||'')+'">'+ val+'</div></div>';}
+function sc(lbl,val,cls){return'<div class="stat-card"><div class="stat-label">'+lbl+'</div><div class="stat-value'+(cls?' '+cls:'')+'">'+val+'</div></div>';}
 function sh(title,right){return'<div class="section-header"><div class="section-title">'+title+'</div>'+(right||'')+'</div>';}
 
 // ── CALENDAR ──────────────────────────────────────────────────────────────────
@@ -570,7 +570,7 @@ function renderEvents(){
   }
   document.getElementById('mc').innerHTML=
     periodSelector()+
-    sh('Events ('+filtered.length+')','<button class="btn btn-sm" onclick="openEvModal()">+ Add Event</button>')+
+    sh('Events ('+filtered.length+')','<div style="display:flex;gap:8px">'+exportBtn('exportEvents')+'<button class="btn btn-sm" onclick="openEvModal()">+ Add Event</button></div>')+
     '<table class="tbl"><thead><tr>'+
       th('Event','name')+th('Date','date')+th('Venue','venue')+th('Type','type')+th('Customer','customer')+
       th('Invoice','invoice')+th('Hours','hours')+th('Profit','profit')+th('Status','status')+'<th></th>'+
@@ -725,7 +725,7 @@ function renderPayments(){
   var filtered=filterByPeriod(C.payments,'date');
   document.getElementById('mc').innerHTML=
     periodSelector()+
-    sh('Payments ('+filtered.length+')','<button class="btn btn-sm" onclick="openPayModal()">+ Record Payment</button>')+
+    sh('Payments ('+filtered.length+')','<div style="display:flex;gap:8px">'+exportBtn('exportPayments')+'<button class="btn btn-sm" onclick="openPayModal()">+ Record Payment</button></div>')+
     '<table class="tbl"><thead><tr><th>Date</th><th>Customer</th><th>Amount</th><th>Method</th><th>Event</th><th>Notes</th><th></th></tr></thead><tbody>'+
     (filtered.map(function(p){return'<tr><td>'+fmtD(p.date)+'</td><td style="font-weight:500">'+cuName(p.customer_id)+'</td><td style="color:var(--green)">'+fmt(p.amount)+'</td><td>'+esc(p.method||'—')+'</td><td style="color:var(--muted)">'+(p.event_id?evName(p.event_id):'—')+'</td><td style="color:var(--muted)">'+esc(p.notes||'')+'</td><td><button class="btn btn-sm btn-danger" onclick="delRec(\'customer_payments\',\''+sid(p.id)+'\')">Del</button></td></tr>';}).join('')||'<tr><td colspan="7" class="empty">No payments in this period</td></tr>')+
     '</tbody></table>';
@@ -803,7 +803,91 @@ function renderLabor(){
     '</tbody></table>';
 }
 
-// ── OWNER FINANCES ────────────────────────────────────────────────────────────
+// ── CSV EXPORT ────────────────────────────────────────────────────────────────
+function toCSV(headers, rows){
+  var lines=[headers.map(function(h){return'"'+h+'"';}).join(',')];
+  rows.forEach(function(row){
+    lines.push(row.map(function(cell){
+      var v=cell==null?'':String(cell);
+      return'"'+v.replace(/"/g,'""')+'"';
+    }).join(','));
+  });
+  return lines.join('\r\n');
+}
+
+function downloadCSV(filename, csv){
+  var blob=new Blob([csv],{type:'text/csv;charset=utf-8;'});
+  var url=URL.createObjectURL(blob);
+  var a=document.createElement('a');
+  a.href=url;a.download=filename;a.click();
+  URL.revokeObjectURL(url);
+}
+
+function exportEvents(){
+  var filtered=filterByPeriod(C.events,'date');
+  var csv=toCSV(
+    ['Event','Date','Venue','Type','Customer','Invoice','Hours','Labor Cost','Expenses','Profit','Status'],
+    filtered.map(function(e){
+      var f=evFin(e.id);
+      var hrs=C.labor.filter(function(l){return sid(l.event_id)===sid(e.id);}).reduce(function(s,l){return s+(parseFloat(l.hours)||0);},0);
+      return[e.name,e.date,e.venue||'',TYPE_LABELS[e.type]||e.type||'',cuName(e.customer_id).replace(/&amp;/g,'&'),
+        e.invoice_amount||'',hrs||'',f.lab.toFixed(2),f.exp.toFixed(2),f.profit.toFixed(2),e.status||'upcoming'];
+    })
+  );
+  downloadCSV('events-'+getPeriodRange().label.replace(/\s/g,'-')+'.csv',csv);
+}
+
+function exportPayments(){
+  var filtered=filterByPeriod(C.payments,'date');
+  var csv=toCSV(
+    ['Date','Customer','Amount','Method','Event','Notes'],
+    filtered.map(function(p){
+      return[p.date,cuName(p.customer_id).replace(/&amp;/g,'&'),(p.amount||''),p.method||'',p.event_id?evName(p.event_id).replace(/&amp;/g,'&'):'',p.notes||''];
+    })
+  );
+  downloadCSV('payments-'+getPeriodRange().label.replace(/\s/g,'-')+'.csv',csv);
+}
+
+function exportLabor(){
+  var filtered=filterByPeriod(C.labor,'created_at');
+  var csv=toCSV(
+    ['Event','Venue','Person','Hours','Rate','Total Earned','Paid','Paid Date','Notes'],
+    filtered.map(function(l){
+      var ev=findEv(l.event_id);
+      var earned=parseFloat(l.total_amount)||((parseFloat(l.hours)||0)*(parseFloat(l.rate)||OWNER_RATE));
+      return[ev?ev.name:'',ev?ev.venue||'':'',l.person,l.hours||'',l.rate||'',earned.toFixed(2),l.paid?'Yes':'No',l.paid_date||'',l.notes||''];
+    })
+  );
+  downloadCSV('labor-'+getPeriodRange().label.replace(/\s/g,'-')+'.csv',csv);
+}
+
+function exportExpenses(){
+  var filtered=filterByPeriod(C.expenses,'created_at');
+  var csv=toCSV(
+    ['Event','Person','Category','Description','Amount','Reimbursed','Notes'],
+    filtered.map(function(x){
+      return[x.event_id?evName(x.event_id).replace(/&amp;/g,'&'):'',x.person||'',x.category||'',x.description||'',x.amount||'',x.reimbursed?'Yes':'No',x.notes||''];
+    })
+  );
+  downloadCSV('expenses-'+getPeriodRange().label.replace(/\s/g,'-')+'.csv',csv);
+}
+
+function exportOwnerFinances(person){
+  var label=person.charAt(0).toUpperCase()+person.slice(1);
+  var lab=filterByPeriod(C.labor,'created_at').filter(function(l){return l.person===person;});
+  var ps=filterByPeriod(C.profitShare,'date').filter(function(p){return p.person===person;});
+  var rows=[];
+  lab.forEach(function(l){
+    var ev=findEv(l.event_id);
+    var earned=parseFloat(l.total_amount)||((parseFloat(l.hours)||0)*(parseFloat(l.rate)||OWNER_RATE));
+    rows.push(['Labor',ev?ev.date:'',ev?ev.name:'',ev?ev.venue||'':'',l.hours||'',earned.toFixed(2),l.paid?'Yes':'No',l.paid_date||'',l.notes||'']);
+  });
+  ps.forEach(function(p){
+    rows.push(['Profit Share',p.date,p.event_id?evName(p.event_id).replace(/&amp;/g,'&'):'','','',p.amount||'','Yes',p.date,p.notes||'']);
+  });
+  var csv=toCSV(['Type','Date','Event','Venue','Hours','Amount','Paid','Paid Date','Notes'],rows);
+  downloadCSV(person+'-finances-'+getPeriodRange().label.replace(/\s/g,'-')+'.csv',csv);
+}
 function ownerStats(person){
   // Labor earned (hours x rate for owners)
   var laborEarned=C.labor.filter(function(l){return l.person===person;})
@@ -844,7 +928,7 @@ function renderOwnerFinances(){
         sc('Profit Share',fmt(s.psTotal),'green')+
         sc('Total Owed',fmt(s.laborOwed+s.expOwed),s.laborOwed+s.expOwed>0?'amber':'')+
       '</div>'+
-      sh('Profit Share — '+label,'<button class="btn btn-sm" onclick="openPSModal(\''+name+'\')">+ Add Distribution</button>')+
+      sh('Profit Share — '+label,'<div style="display:flex;gap:8px"><button class="btn btn-sm btn-outline" onclick="exportOwnerFinances(\''+name+'\')">⬇ Export CSV</button><button class="btn btn-sm" onclick="openPSModal(\''+name+'\')">+ Add Distribution</button></div>')+
       '<table class="tbl"><thead><tr><th>Date</th><th>Amount</th><th>Method</th><th>Event</th><th>Notes</th><th></th></tr></thead><tbody>'+
       (ps.map(function(p){return'<tr>'+
         '<td>'+fmtD(p.date)+'</td>'+
@@ -927,7 +1011,7 @@ function renderExpenses(){
   document.getElementById('mc').innerHTML=
     periodSelector()+
     '<div class="stat-grid" style="margin-bottom:16px">'+sc('Total Expenses',fmt(te))+sc('Pending Reimbursement',fmt(ur),'amber')+'</div>'+
-    sh('Expenses ('+filtered.length+')','<button class="btn btn-sm" onclick="openExpModal()">+ Add Expense</button>')+
+    sh('Expenses ('+filtered.length+')','<div style="display:flex;gap:8px">'+exportBtn('exportExpenses')+'<button class="btn btn-sm" onclick="openExpModal()">+ Add Expense</button></div>')+
     '<table class="tbl"><thead><tr><th>Event</th><th>Person</th><th>Category</th><th>Description</th><th>Amount</th><th>Reimbursed</th><th></th></tr></thead><tbody>'+
     (filtered.map(function(x){return'<tr><td style="font-weight:500">'+evName(x.event_id)+'</td><td style="text-transform:capitalize">'+esc(x.person||'—')+'</td><td><span class="badge bb">'+esc(x.category||'other')+'</span></td><td>'+esc(x.description||'—')+'</td><td>'+fmt(x.amount)+'</td><td><span class="badge '+(x.reimbursed?'bg':'ba')+'">'+(x.reimbursed?'Yes':'No')+'</span></td><td><div class="acts">'+(x.reimbursed?'':'<button class="btn btn-sm btn-outline" onclick="doReimb(\''+sid(x.id)+'\')">✓</button>')+'<button class="btn btn-sm btn-outline" onclick="openExpModal(null,\''+sid(x.id)+'\')">Edit</button><button class="btn btn-sm btn-danger" onclick="delRec(\'expenses\',\''+sid(x.id)+'\')">Del</button></div></td></tr>';}).join('')||'<tr><td colspan="7" class="empty">No expenses in this period</td></tr>')+
     '</tbody></table>';
