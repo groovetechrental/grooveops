@@ -228,6 +228,52 @@ header{background:var(--surface);border-bottom:1px solid var(--border);padding:1
 <script>
 var MAKE_WEBHOOK = 'https://hook.us2.make.com/4khond9t4dm0sccbk88tsqr73du3kq5f';
 var OWNER_RATE = 40;
+var BUSINESS_START = '2025-01-01'; // earliest date for "All Time" filter
+
+// ── YEAR FILTER ───────────────────────────────────────────────────────────────
+var currentYear = new Date().getFullYear();
+var selectedPeriod = 'ytd'; // 'ytd', 'lastyear', 'all', or a year number like 2025
+
+function getPeriodRange(){
+  var now = new Date();
+  var yr = now.getFullYear();
+  if(selectedPeriod==='ytd')   return{start:yr+'-01-01', end:now.toISOString().split('T')[0], label:'Year to Date ('+yr+')'};
+  if(selectedPeriod==='all')   return{start:BUSINESS_START, end:'9999-12-31', label:'All Time'};
+  // specific year
+  var y=parseInt(selectedPeriod);
+  if(y===yr) return{start:y+'-01-01',end:now.toISOString().split('T')[0],label:'Year to Date ('+y+')'};
+  return{start:y+'-01-01',end:y+'-12-31',label:''+y};
+}
+
+function inPeriod(dateStr){
+  var r=getPeriodRange();
+  return dateStr>=r.start&&dateStr<=r.end;
+}
+
+function filterByPeriod(arr,dateField){
+  return arr.filter(function(x){return inPeriod(x[dateField]||'');});
+}
+
+function periodSelector(){
+  var yr=new Date().getFullYear();
+  // Build year options from 2025 to current year
+  var yearOpts='';
+  for(var y=2025;y<=yr;y++){
+    yearOpts+='<option value="'+y+'"'+(selectedPeriod==y?' selected':'')+'>'+y+(y===yr?' (Current)':'')+'</option>';
+  }
+  return'<div style="display:flex;align-items:center;gap:8px;margin-bottom:16px">'+
+    '<span style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.8px">Period:</span>'+
+    '<select onchange="setPeriod(this.value)" style="width:auto;padding:6px 10px;font-size:13px">'+
+      '<option value="ytd"'+(selectedPeriod==='ytd'?' selected':'')+'>Year to Date</option>'+
+      yearOpts+
+      '<option value="lastyear"'+(selectedPeriod==='lastyear'?' selected':'')+'>'+(yr-1)+' (Last Year)</option>'+
+      '<option value="all"'+(selectedPeriod==='all'?' selected':'')+'>All Time (2025–today)</option>'+
+    '</select>'+
+    '<span style="font-size:12px;color:var(--muted)">'+getPeriodRange().label+'</span>'+
+  '</div>';
+}
+
+function setPeriod(val){selectedPeriod=val;showTab(currentTab);}
 var MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
 var TYPE_LABELS = {gt:'GT',looch:'Looch',neon:'Neon Nights',other:'Other'};
 var today = new Date();
@@ -503,7 +549,8 @@ function toggleEvCard(id){var c=document.getElementById('evc-'+id);if(c)c.classL
 var evSort={col:'date',dir:-1}; // default: newest first
 
 function renderEvents(){
-  var sorted=[].concat(C.events).sort(function(a,b){
+  var filtered=filterByPeriod(C.events,'date');
+  var sorted=filtered.slice().sort(function(a,b){
     var av,bv;
     if(evSort.col==='date'){av=a.date||'';bv=b.date||'';}
     else if(evSort.col==='name'){av=(a.name||'').toLowerCase();bv=(b.name||'').toLowerCase();}
@@ -522,7 +569,8 @@ function renderEvents(){
     return'<th style="cursor:pointer;user-select:none" onclick="sortEv(\''+col+'\')">'+label+arrow+'</th>';
   }
   document.getElementById('mc').innerHTML=
-    sh('Events ('+C.events.length+')','<button class="btn btn-sm" onclick="openEvModal()">+ Add Event</button>')+
+    periodSelector()+
+    sh('Events ('+filtered.length+')','<button class="btn btn-sm" onclick="openEvModal()">+ Add Event</button>')+
     '<table class="tbl"><thead><tr>'+
       th('Event','name')+th('Date','date')+th('Venue','venue')+th('Type','type')+th('Customer','customer')+
       th('Invoice','invoice')+th('Hours','hours')+th('Profit','profit')+th('Status','status')+'<th></th>'+
@@ -674,18 +722,21 @@ function openCuDetail(id){
 
 // ── PAYMENTS ──────────────────────────────────────────────────────────────────
 function renderPayments(){
+  var filtered=filterByPeriod(C.payments,'date');
   document.getElementById('mc').innerHTML=
-    sh('Payments ('+C.payments.length+')','<button class="btn btn-sm" onclick="openPayModal()">+ Record Payment</button>')+
+    periodSelector()+
+    sh('Payments ('+filtered.length+')','<button class="btn btn-sm" onclick="openPayModal()">+ Record Payment</button>')+
     '<table class="tbl"><thead><tr><th>Date</th><th>Customer</th><th>Amount</th><th>Method</th><th>Event</th><th>Notes</th><th></th></tr></thead><tbody>'+
-    (C.payments.map(function(p){return'<tr><td>'+fmtD(p.date)+'</td><td style="font-weight:500">'+cuName(p.customer_id)+'</td><td style="color:var(--green)">'+fmt(p.amount)+'</td><td>'+esc(p.method||'—')+'</td><td style="color:var(--muted)">'+(p.event_id?evName(p.event_id):'—')+'</td><td style="color:var(--muted)">'+esc(p.notes||'')+'</td><td><button class="btn btn-sm btn-danger" onclick="delRec(\'customer_payments\',\''+sid(p.id)+'\')">Del</button></td></tr>';}).join('')||'<tr><td colspan="7" class="empty">No payments</td></tr>')+
+    (filtered.map(function(p){return'<tr><td>'+fmtD(p.date)+'</td><td style="font-weight:500">'+cuName(p.customer_id)+'</td><td style="color:var(--green)">'+fmt(p.amount)+'</td><td>'+esc(p.method||'—')+'</td><td style="color:var(--muted)">'+(p.event_id?evName(p.event_id):'—')+'</td><td style="color:var(--muted)">'+esc(p.notes||'')+'</td><td><button class="btn btn-sm btn-danger" onclick="delRec(\'customer_payments\',\''+sid(p.id)+'\')">Del</button></td></tr>';}).join('')||'<tr><td colspan="7" class="empty">No payments in this period</td></tr>')+
     '</tbody></table>';
 }
 
 // ── LABOR ─────────────────────────────────────────────────────────────────────
 function renderLabor(){
+  var allLabor=filterByPeriod(C.labor,'created_at');
   var owners=['john','steve'];
-  var ownerLab=C.labor.filter(function(l){return owners.includes(l.person);});
-  var helperLab=C.labor.filter(function(l){return!owners.includes(l.person);});
+  var ownerLab=allLabor.filter(function(l){return owners.includes(l.person);});
+  var helperLab=allLabor.filter(function(l){return!owners.includes(l.person);});
   var jt=C.labor.filter(function(l){return l.person==='john';}).reduce(function(s,l){return s+(parseFloat(l.total_amount)||((parseFloat(l.hours)||0)*(parseFloat(l.rate)||0)));},0);
   var st=C.labor.filter(function(l){return l.person==='steve';}).reduce(function(s,l){return s+(parseFloat(l.total_amount)||((parseFloat(l.hours)||0)*(parseFloat(l.rate)||0)));},0);
   // group helpers by name
@@ -699,6 +750,7 @@ function renderLabor(){
   var unpaidTotal=helperLab.filter(function(l){return!l.paid;}).reduce(function(s,l){return s+(parseFloat(l.total_amount)||0);},0);
 
   document.getElementById('mc').innerHTML=
+    periodSelector()+
     '<div class="stat-grid" style="margin-bottom:16px">'+
     sc('John — Total Earned',fmt(jt),'green')+
     sc('Steve — Total Earned',fmt(st),'green')+
@@ -820,6 +872,7 @@ function renderOwnerFinances(){
   }
 
   document.getElementById('mc').innerHTML=
+    periodSelector()+
     personCard('john',john)+
     '<hr style="border:none;border-top:2px solid var(--border);margin:8px 0 24px">'+
     personCard('steve',steve);
@@ -868,13 +921,15 @@ function markOwnerLaborPaid(id,earned){
   );
 }
 function renderExpenses(){
-  var te=C.expenses.reduce(function(s,x){return s+(parseFloat(x.amount)||0);},0);
-  var ur=C.expenses.filter(function(x){return!x.reimbursed;}).reduce(function(s,x){return s+(parseFloat(x.amount)||0);},0);
+  var filtered=filterByPeriod(C.expenses,'created_at');
+  var te=filtered.reduce(function(s,x){return s+(parseFloat(x.amount)||0);},0);
+  var ur=filtered.filter(function(x){return!x.reimbursed;}).reduce(function(s,x){return s+(parseFloat(x.amount)||0);},0);
   document.getElementById('mc').innerHTML=
+    periodSelector()+
     '<div class="stat-grid" style="margin-bottom:16px">'+sc('Total Expenses',fmt(te))+sc('Pending Reimbursement',fmt(ur),'amber')+'</div>'+
-    sh('Expenses ('+C.expenses.length+')','<button class="btn btn-sm" onclick="openExpModal()">+ Add Expense</button>')+
+    sh('Expenses ('+filtered.length+')','<button class="btn btn-sm" onclick="openExpModal()">+ Add Expense</button>')+
     '<table class="tbl"><thead><tr><th>Event</th><th>Person</th><th>Category</th><th>Description</th><th>Amount</th><th>Reimbursed</th><th></th></tr></thead><tbody>'+
-    (C.expenses.map(function(x){return'<tr><td style="font-weight:500">'+evName(x.event_id)+'</td><td style="text-transform:capitalize">'+esc(x.person||'—')+'</td><td><span class="badge bb">'+esc(x.category||'other')+'</span></td><td>'+esc(x.description||'—')+'</td><td>'+fmt(x.amount)+'</td><td><span class="badge '+(x.reimbursed?'bg':'ba')+'">'+(x.reimbursed?'Yes':'No')+'</span></td><td><div class="acts">'+(x.reimbursed?'':'<button class="btn btn-sm btn-outline" onclick="doReimb(\''+sid(x.id)+'\')">✓</button>')+'<button class="btn btn-sm btn-outline" onclick="openExpModal(null,\''+sid(x.id)+'\')">Edit</button><button class="btn btn-sm btn-danger" onclick="delRec(\'expenses\',\''+sid(x.id)+'\')">Del</button></div></td></tr>';}).join('')||'<tr><td colspan="7" class="empty">No expenses</td></tr>')+
+    (filtered.map(function(x){return'<tr><td style="font-weight:500">'+evName(x.event_id)+'</td><td style="text-transform:capitalize">'+esc(x.person||'—')+'</td><td><span class="badge bb">'+esc(x.category||'other')+'</span></td><td>'+esc(x.description||'—')+'</td><td>'+fmt(x.amount)+'</td><td><span class="badge '+(x.reimbursed?'bg':'ba')+'">'+(x.reimbursed?'Yes':'No')+'</span></td><td><div class="acts">'+(x.reimbursed?'':'<button class="btn btn-sm btn-outline" onclick="doReimb(\''+sid(x.id)+'\')">✓</button>')+'<button class="btn btn-sm btn-outline" onclick="openExpModal(null,\''+sid(x.id)+'\')">Edit</button><button class="btn btn-sm btn-danger" onclick="delRec(\'expenses\',\''+sid(x.id)+'\')">Del</button></div></td></tr>';}).join('')||'<tr><td colspan="7" class="empty">No expenses in this period</td></tr>')+
     '</tbody></table>';
 }
 
