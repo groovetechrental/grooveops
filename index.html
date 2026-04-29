@@ -961,7 +961,7 @@ function modalSave(){
 }
 document.getElementById('mo').addEventListener('click',function(e){if(e.target===this)closeModal();});
 
-function cuOpts(sel){return'<option value="__new__">＋ Add new customer…</option><option value="">— None —</option>'+C.customers.map(function(c){return'<option value="'+sid(c.id)+'"'+(sid(c.id)===sid(sel)?' selected':'')+'>'+esc(c.name)+'</option>';}).join('');}
+function cuOpts(sel){return'<option value="">— None —</option><option value="__new__">＋ Add new customer…</option>'+C.customers.map(function(c){return'<option value="'+sid(c.id)+'"'+(sid(c.id)===sid(sel)?' selected':'')+'>'+esc(c.name)+'</option>';}).join('');}
 function evOpts(sel){return'<option value="">— None —</option>'+C.events.map(function(e){return'<option value="'+sid(e.id)+'"'+(sid(e.id)===sid(sel)?' selected':'')+'>'+esc(e.name)+' ('+fmtD(e.date)+')</option>';}).join('');}
 function toggleNC(v){document.getElementById('ncbox').style.display=v==='__new__'?'block':'none';}
 function setType(t){selectedType=t;document.querySelectorAll('.type-opt').forEach(function(b){b.classList.toggle('active',b.dataset.type===t);});}
