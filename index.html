@@ -1263,7 +1263,10 @@ init();
     '<table class="tbl"><thead><tr>'+lth('Date','date')+lth('Event','event')+lth('Venue','venue')+lth('Person','person')+lth('Hours','hours')+'<th>Amount</th><th>Status</th><th>Notes</th><th></th></tr></thead><tbody>'+
     (sortedHelper.map(function(l){
       var ev=findEv(l.event_id);
-      return'<tr><td>'+fmtD(ev?ev.date:'')+'</td><td style="font-weight:500">'+evName(l.event_id)+'</td><td style="color:var(--muted)">'+esc(ev&&ev.venue||'—')+'</td><td style="text-transform:capitalize">'+esc(l.person)+'</td><td>'+(l.hours||'—')+'</td><td style="color:var(--green)">'+fmt(l.total_amount)+'</td><td><span class="badge '+(l.paid?'bg':'ba')+'">'+(l.paid?'Paid':'Unpaid')+'</span>'+(l.paid&&l.paid_date?' <span style="font-size:10px;color:var(--muted)">'+fmtD(l.paid_date)+'</span>':'')+'</td><td style="color:var(--muted)">'+esc(l.notes||'')+'</td>'+
+      var hevDate=hev?hev.date:'';
+      var hevVenue=hev?hev.venue||'—':'—';
+      var totalAmt=parseFloat(l.total_amount)||0;
+      return'<tr><td>'+fmtD(hevDate)+'</td><td style="font-weight:500">'+evName(l.event_id)+'</td><td style="color:var(--muted)">'+esc(hevVenue)+'</td><td style="text-transform:capitalize">'+esc(l.person)+'</td><td>'+(l.hours||'—')+'</td><td style="color:var(--green)">'+fmt(totalAmt)+'</td><td><span class="badge '+(l.paid?'bg':'ba')+'">'+(l.paid?'Paid':'Unpaid')+'</span>'+(l.paid&&l.paid_date?' <span style="font-size:10px;color:var(--muted)">'+fmtD(l.paid_date)+'</span>':'')+'</td><td style="color:var(--muted)">'+esc(l.notes||'')+'</td>'+
       '<td><div class="acts"><button class="btn btn-sm btn-outline" onclick="openEditLaborModal(\''+sid(l.id)+'\')">Edit</button>'+(!l.paid?'<button class="btn btn-sm btn-outline" onclick="markHelperPaid(\''+sid(l.id)+'\')">✓ Pay</button>':'')+'<button class="btn btn-sm btn-danger" onclick="delRec(\'labor\',\''+sid(l.id)+'\')">Del</button></div></td></tr>';
     }).join('')||'<tr><td colspan="9" class="empty">No helper labor recorded</td></tr>')+
     '</tbody></table>';
