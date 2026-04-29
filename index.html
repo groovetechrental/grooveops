@@ -345,7 +345,14 @@ function periodSelector(){
   '</div>';
 }
 
-// ── INIT ──────────────────────────────────────────────────────────────────────
+// Filter labor by the event date rather than created_at (created_at has timezone offset that breaks date string comparison)
+function filterLaborByPeriod(laborArr){
+  return laborArr.filter(function(l){
+    var e=findEv(l.event_id);
+    var d=e?e.date:(l.created_at?l.created_at.split('T')[0]:'');
+    return inPeriod(d);
+  });
+}
 function init(){
   if(typeof supabase==='undefined'||!supabase.createClient){setTimeout(init,100);return;}
   sb=supabase.createClient(
@@ -451,7 +458,7 @@ function exportPayments(){
 function exportLabor(){
   downloadCSV('labor-'+getPeriodRange().label.replace(/\s/g,'-')+'.csv',toCSV(
     ['Event','Venue','Person','Hours','Rate','Total Earned','Paid','Paid Date','Notes'],
-    filterByPeriod(C.labor,'created_at').map(function(l){var ev=findEv(l.event_id);var earned=parseFloat(l.total_amount)||((parseFloat(l.hours)||0)*(parseFloat(l.rate)||OWNER_RATE));
+    filterLaborByPeriod(C.labor).map(function(l){var ev=findEv(l.event_id);var earned=parseFloat(l.total_amount)||((parseFloat(l.hours)||0)*(parseFloat(l.rate)||OWNER_RATE));
       return[ev?ev.name:'',ev?ev.venue||'':'',l.person,l.hours||'',l.rate||'',earned.toFixed(2),l.paid?'Yes':'No',l.paid_date||'',l.notes||''];})
   ));
 }
@@ -489,7 +496,7 @@ function showTab(tab){
 // ── DASHBOARD ─────────────────────────────────────────────────────────────────
 function renderDash(){
   var evts=filterByPeriod(C.events,'date'),pmts=filterByPeriod(C.payments,'date');
-  var lab=filterByPeriod(C.labor,'created_at'),exp=filterByPeriod(C.expenses,'created_at');
+  var lab=filterLaborByPeriod(C.labor),exp=filterByPeriod(C.expenses,'created_at');
   var ti=evts.reduce(function(s,e){return s+(parseFloat(e.invoice_amount)||0);},0);
   var tp=pmts.reduce(function(s,p){return s+(parseFloat(p.amount)||0);},0);
   var tl=lab.reduce(function(s,l){return s+(parseFloat(l.total_amount)||((parseFloat(l.hours)||0)*(parseFloat(l.rate)||OWNER_RATE)));},0);
@@ -510,7 +517,7 @@ function renderDash(){
     '</tbody></table>'+
     sh('Customer Balances','<button class="btn btn-sm btn-outline" onclick="showTab(\'customers\')">View All</button>')+
     '<table class="tbl"><thead><tr><th>Customer</th><th>Invoiced</th><th>Paid</th><th>Balance</th></tr></thead><tbody>'+
-    (C.customers.map(function(c){var b=cuBal(c.id);return'<tr><td style="font-weight:500">'+esc(c.name)+'</td><td>'+fmt(b.inv)+'</td><td style="color:var(--green)">'+fmt(b.paid)+'</td><td><span class="badge '+(b.bal>0?'ba':b.bal<0?'bb':'bg')+'">'+fmt(b.bal)+'</span></td></tr>';}).join('')||'<tr><td colspan="4" class="empty">No customers</td></tr>')+
+    (C.customers.filter(function(c){return cuBal(c.id).bal>0;}).map(function(c){var b=cuBal(c.id);return'<tr><td style="font-weight:500">'+esc(c.name)+'</td><td>'+fmt(b.inv)+'</td><td style="color:var(--green)">'+fmt(b.paid)+'</td><td><span class="badge ba">'+fmt(b.bal)+'</span></td></tr>';}).join('')||'<tr><td colspan="4" class="empty">No outstanding balances</td></tr>')+
     '</tbody></table>';
 }
 
@@ -735,7 +742,7 @@ function renderPayments(){
 
 // ── LABOR ─────────────────────────────────────────────────────────────────────
 function renderLabor(){
-  var allLabor=filterByPeriod(C.labor,'created_at');
+  var allLabor=filterLaborByPeriod(C.labor);
   var owners=['john','steve'];
   var ownerLab=allLabor.filter(function(l){return owners.includes(l.person);});
   var helperLab=allLabor.filter(function(l){return!owners.includes(l.person);});
@@ -763,7 +770,7 @@ function renderLabor(){
 
 // ── OWNER FINANCES ────────────────────────────────────────────────────────────
 function ownerStats(person){
-  var lab=filterByPeriod(C.labor,'created_at').filter(function(l){return l.person===person;});
+  var lab=filterLaborByPeriod(C.labor).filter(function(l){return l.person===person;});
   var exp=filterByPeriod(C.expenses,'created_at').filter(function(x){return x.person===person;});
   var ps=filterByPeriod(C.profitShare,'date').filter(function(p){return p.person===person;});
   var laborEarned=lab.reduce(function(s,l){return s+(parseFloat(l.total_amount)||((parseFloat(l.hours)||0)*(parseFloat(l.rate)||OWNER_RATE)));},0);
@@ -778,7 +785,7 @@ function renderOwnerFinances(){
   function personCard(name,s){
     var label=name.charAt(0).toUpperCase()+name.slice(1);
     var ps=filterByPeriod(C.profitShare,'date').filter(function(p){return p.person===name;}).sort(function(a,b){return b.date.localeCompare(a.date);});
-    var labRows=filterByPeriod(C.labor,'created_at').filter(function(l){return l.person===name;});
+    var labRows=filterLaborByPeriod(C.labor).filter(function(l){return l.person===name;});
     return'<div style="margin-bottom:24px">'+
       '<div class="section-title" style="margin-bottom:12px">'+label+'</div>'+
       '<div class="stat-grid" style="margin-bottom:16px">'+sc('Labor Earned',fmt(s.laborEarned),'green')+sc('Labor Paid',fmt(s.laborPaid))+sc('Labor Owed',fmt(s.laborOwed),s.laborOwed>0?'amber':'')+sc('Expenses Out',fmt(s.expPaid))+sc('Expenses Reimb.',fmt(s.expReimb))+sc('Exp. Owed',fmt(s.expOwed),s.expOwed>0?'amber':'')+sc('Profit Share',fmt(s.psTotal),'green')+sc('Total Owed',fmt(s.laborOwed+s.expOwed),s.laborOwed+s.expOwed>0?'amber':'')+'</div>'+
@@ -813,12 +820,15 @@ function renderExpenses(){
 }
 
 // ── EQUIPMENT CATALOG ─────────────────────────────────────────────────────────
+var openEqCardId=null;
+
 function renderEquipment(){
   document.getElementById('mc').innerHTML=
     sh('Equipment Catalog ('+C.equipItems.length+')','<button class="btn btn-sm" onclick="openEqItemModal()">+ Add Item</button>')+
     (C.equipItems.length?C.equipItems.map(function(item){
       var comps=C.equipComponents.filter(function(c){return c.equipment_item_id===item.id;}).sort(function(a,b){return(a.sort_order||0)-(b.sort_order||0);});
-      return'<div class="eq-card open" id="eqc-'+item.id+'">'+
+      var isOpen=openEqCardId===item.id;
+      return'<div class="eq-card'+(isOpen?' open':'')+'" id="eqc-'+item.id+'">'+
         '<div class="eq-card-head" onclick="toggleEqCard(\''+item.id+'\')">'+
           '<div><div class="eq-card-name">'+esc(item.name)+'</div>'+
           (item.category?'<div style="font-size:11px;color:var(--muted)">'+esc(item.category)+'</div>':'')+
@@ -838,7 +848,7 @@ function renderEquipment(){
       '</div>';
     }).join(''):'<div class="empty">No equipment items yet. Add your first item to get started.</div>');
 }
-function toggleEqCard(id){var c=document.getElementById('eqc-'+id);if(c)c.classList.toggle('open');}
+function toggleEqCard(id){openEqCardId=(openEqCardId===id?null:id);renderEquipment();}
 
 // ── PACKING LIST ──────────────────────────────────────────────────────────────
 function hasPackingList(e){
@@ -951,7 +961,7 @@ function modalSave(){
 }
 document.getElementById('mo').addEventListener('click',function(e){if(e.target===this)closeModal();});
 
-function cuOpts(sel){return'<option value="">— None —</option>'+C.customers.map(function(c){return'<option value="'+sid(c.id)+'"'+(sid(c.id)===sid(sel)?' selected':'')+'>'+esc(c.name)+'</option>';}).join('')+'<option value="__new__">＋ Add new customer…</option>';}
+function cuOpts(sel){return'<option value="__new__">＋ Add new customer…</option><option value="">— None —</option>'+C.customers.map(function(c){return'<option value="'+sid(c.id)+'"'+(sid(c.id)===sid(sel)?' selected':'')+'>'+esc(c.name)+'</option>';}).join('');}
 function evOpts(sel){return'<option value="">— None —</option>'+C.events.map(function(e){return'<option value="'+sid(e.id)+'"'+(sid(e.id)===sid(sel)?' selected':'')+'>'+esc(e.name)+' ('+fmtD(e.date)+')</option>';}).join('');}
 function toggleNC(v){document.getElementById('ncbox').style.display=v==='__new__'?'block':'none';}
 function setType(t){selectedType=t;document.querySelectorAll('.type-opt').forEach(function(b){b.classList.toggle('active',b.dataset.type===t);});}
@@ -1151,6 +1161,7 @@ function openEqItemModal(id){
 
 // ── EQUIPMENT COMPONENT MODAL ─────────────────────────────────────────────────
 function openEqCompModal(itemId,compId){
+  openEqCardId=itemId;
   var comp=compId?C.equipComponents.find(function(c){return c.id===compId;}):null;
   var item=C.equipItems.find(function(i){return i.id===itemId;});
   openModal((compId?'Edit':'Add')+' Component'+(item?' — '+item.name:''),
