@@ -1659,7 +1659,7 @@ function openExpModal(eid,xid){
     '<div class="form-group"><label>Description</label><input type="text" id="mDesc" value="'+esc(x&&x.description||'')+'" placeholder="e.g. Turnpike toll"></div>'+
     '<div class="form-group"><label>Amount ($)</label><input type="number" id="mA" step="0.01" value="'+(x&&x.amount||'')+'" placeholder="0.00"></div>'+
     '<div class="form-group"><label>Notes</label><textarea id="mNo" rows="2">'+esc(x&&x.notes||'')+'</textarea></div>',
-    async function(){var amt=parseFloat(document.getElementById('mA').value);if(!amt||amt<=0)throw new Error('Valid amount required');var row={event_id:document.getElementById('mE').value||null,person:document.getElementById('mP').value,category:document.getElementById('mCat').value,description:document.getElementById('mDesc').value.trim()||null,amount:amt,notes:document.getElementById('mNo').value.trim()||null};var r=xid?await sb.from('expenses').update(row).eq('id',xid):await sb.from('expenses').insert({...row,reimbursed:false});if(r.error)throw r.error;}
+    async function(){var amt=parseFloat(document.getElementById('mA').value);if(!amt||amt<=0)throw new Error('Valid amount required');var row={event_id:document.getElementById('mE').value||null,person:document.getElementById('mP').value,category:document.getElementById('mCat').value,description:document.getElementById('mDesc').value.trim()||null,amount:amt,notes:document.getElementById('mNo').value.trim()||null};var r=xid?await sb.from('expenses').update(row).eq('id',xid):await sb.from('expenses').insert(Object.assign(row,{reimbursed:false}));if(r.error)throw r.error;}
   );
 }
 
