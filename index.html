@@ -978,6 +978,8 @@ function printPackingList(){
 
 // ── MODALS ────────────────────────────────────────────────────────────────────
 function openModal(title,body,fn){
+  // Replace type="number" with type="text" inputmode="decimal" to avoid browser validation warnings on dynamic values
+  body=body.replace(/type="number"/g,'type="text" inputmode="decimal"');
   document.getElementById('mt').textContent=title;
   document.getElementById('mb').innerHTML=body;
   saveFn=fn;
@@ -994,7 +996,7 @@ function modalSave(){
 }
 document.getElementById('mo').addEventListener('click',function(e){if(e.target===this)closeModal();});
 
-function cuOpts(sel){return'<option value="">— None —</option><option value="__new__">＋ Add new customer…</option>'+C.customers.map(function(c){return'<option value="'+sid(c.id)+'"'+(sid(c.id)===sid(sel)?' selected':'')+'>'+esc(c.name)+'</option>';}).join('');}
+function todayStr(){return new Date().toISOString().split('T')[0];}return'<option value="">— None —</option><option value="__new__">＋ Add new customer…</option>'+C.customers.map(function(c){return'<option value="'+sid(c.id)+'"'+(sid(c.id)===sid(sel)?' selected':'')+'>'+esc(c.name)+'</option>';}).join('');}
 function evOpts(sel){return'<option value="">— None —</option>'+C.events.map(function(e){return'<option value="'+sid(e.id)+'"'+(sid(e.id)===sid(sel)?' selected':'')+'>'+esc(e.name)+' ('+fmtD(e.date)+')</option>';}).join('');}
 function toggleNC(v){document.getElementById('ncbox').style.display=v==='__new__'?'block':'none';}
 function setType(t){selectedType=t;document.querySelectorAll('.type-opt').forEach(function(b){b.classList.toggle('active',b.dataset.type===t);});}
@@ -1098,7 +1100,7 @@ function openPayModal(cid,eid){
   openModal('Record Payment',
     '<div class="form-group"><label>Customer</label><select id="mC">'+cuOpts(cid||'')+'</select></div>'+
     '<div class="form-group"><label>Event (optional)</label><select id="mE">'+evOpts(eid||'')+'</select></div>'+
-    '<div class="g2"><div class="form-group"><label>Date</label><input type="date" id="mD" value="'+new Date().toISOString().split('T')[0]+'"></div><div class="form-group"><label>Amount ($)</label><input type="number" id="mA" step="0.01" placeholder="0.00"></div></div>'+
+    '<div class="g2"><div class="form-group"><label>Date</label><input type="date" id="mD" value="'+todayStr()+'"></div><div class="form-group"><label>Amount ($)</label><input type="number" id="mA" step="0.01" placeholder="0.00"></div></div>'+
     '<div class="form-group"><label>Method</label><select id="mM"><option value="">— Select —</option><option>Cash</option><option>Check</option><option>Venmo</option><option>Zelle</option><option>Credit Card</option><option>Other</option></select></div>'+
     '<div class="form-group"><label>Notes</label><textarea id="mNo" rows="2"></textarea></div>',
     async function(){var cust=document.getElementById('mC').value,amt=parseFloat(document.getElementById('mA').value),dt=document.getElementById('mD').value;if(!cust)throw new Error('Customer is required');if(!amt||amt<=0)throw new Error('Valid amount required');if(!dt)throw new Error('Date is required');var r=await sb.from('customer_payments').insert({customer_id:cust,date:dt,amount:amt,event_id:document.getElementById('mE').value||null,method:document.getElementById('mM').value||null,notes:document.getElementById('mNo').value.trim()||null});if(r.error)throw r.error;}
@@ -1141,7 +1143,7 @@ function openEditLaborModal(id){
 }
 function markHelperPaid(id){
   openModal('Mark as Paid',
-    '<div class="form-group"><label>Payment Date</label><input type="date" id="mD" value="'+new Date().toISOString().split('T')[0]+'"></div>'+
+    '<div class="form-group"><label>Payment Date</label><input type="date" id="mD" value="'+todayStr()+'"></div>'+
     '<div class="form-group"><label>Notes</label><textarea id="mNo" rows="2" placeholder="e.g. Paid via Venmo"></textarea></div>',
     async function(){var r=await sb.from('labor').update({paid:true,paid_date:document.getElementById('mD').value,paid_notes:document.getElementById('mNo').value.trim()||null}).eq('id',id);if(r.error)throw r.error;}
   );
@@ -1165,7 +1167,7 @@ function openExpModal(eid,xid){
     '<div class="form-group"><label>Description</label><input type="text" id="mDesc" value="'+esc(x&&x.description||'')+'" placeholder="e.g. Turnpike toll"></div>'+
     '<div class="form-group"><label>Amount ($)</label><input type="number" id="mA" step="0.01" value="'+(x&&x.amount||'')+'" placeholder="0.00"></div>'+
     '<div class="form-group"><label>Notes</label><textarea id="mNo" rows="2">'+esc(x&&x.notes||'')+'</textarea></div>',
-    async function(){var amt=parseFloat(document.getElementById('mA').value);if(!amt||amt<=0)throw new Error('Valid amount required');var row={event_id:document.getElementById('mE').value||null,person:document.getElementById('mP').value,category:document.getElementById('mCat').value,description:document.getElementById('mDesc').value.trim()||null,amount:amt,notes:document.getElementById('mNo').value.trim()||null};var r=xid?await sb.from('expenses').update(row).eq('id',xid):await sb.from('expenses').insert({...row,reimbursed:false});if(r.error)throw r.error;}
+    async function(){var amt=parseFloat(document.getElementById('mA').value);if(!amt||amt<=0)throw new Error('Valid amount required');var row={event_id:document.getElementById('mE').value||null,person:document.getElementById('mP').value,category:document.getElementById('mCat').value,description:document.getElementById('mDesc').value.trim()||null,amount:amt,notes:document.getElementById('mNo').value.trim()||null};var r=xid?await sb.from('expenses').update(row).eq('id',xid):await sb.from('expenses').insert(Object.assign({},row,{reimbursed:false}));if(r.error)throw r.error;}
   );
 }
 
