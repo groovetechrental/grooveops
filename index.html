@@ -750,7 +750,7 @@ function renderLabor(){
   var ownerLab=allLabor.filter(function(l){return owners.includes(l.person);});
   var helperLab=allLabor.filter(function(l){return!owners.includes(l.person);});
   function getLabDate(l){var e=findEv(l.event_id);return e?e.date:'';}
-  function sortLab(arr){
+  function sortLabArr(arr){
     return arr.slice().sort(function(a,b){
       var av,bv;
       if(laborSort.col==='date'){av=getLabDate(a);bv=getLabDate(b);}
@@ -766,20 +766,102 @@ function renderLabor(){
   var jt=ownerLab.filter(function(l){return l.person==='john';}).reduce(function(s,l){return s+(parseFloat(l.total_amount)||((parseFloat(l.hours)||0)*(parseFloat(l.rate)||OWNER_RATE)));},0);
   var st=ownerLab.filter(function(l){return l.person==='steve';}).reduce(function(s,l){return s+(parseFloat(l.total_amount)||((parseFloat(l.hours)||0)*(parseFloat(l.rate)||OWNER_RATE)));},0);
   var helperNames=[...new Set(helperLab.map(function(l){return l.person;}))];
-  var helperSummary=helperNames.map(function(name){var rows=helperLab.filter(function(l){return l.person===name;});var total=rows.reduce(function(s,l){return s+(parseFloat(l.total_amount)||0);},0);var unpaid=rows.filter(function(l){return!l.paid;}).reduce(function(s,l){return s+(parseFloat(l.total_amount)||0);},0);return{name:name,total:total,unpaid:unpaid};});
+  var helperSummary=helperNames.map(function(name){
+    var rows=helperLab.filter(function(l){return l.person===name;});
+    var total=rows.reduce(function(s,l){return s+(parseFloat(l.total_amount)||0);},0);
+    var unpaid=rows.filter(function(l){return!l.paid;}).reduce(function(s,l){return s+(parseFloat(l.total_amount)||0);},0);
+    return{name:name,total:total,unpaid:unpaid};
+  });
   var unpaidTotal=helperLab.filter(function(l){return!l.paid;}).reduce(function(s,l){return s+(parseFloat(l.total_amount)||0);},0);
-  var sortedOwner=sortLab(ownerLab);
-  var sortedHelper=sortLab(helperLab);
-  document.getElementById('mc').innerHTML=
-    periodSelector()+
-    '<div class="stat-grid" style="margin-bottom:16px">'+sc('John — Total Earned',fmt(jt),'green')+sc('Steve — Total Earned',fmt(st),'green')+sc('Helpers — Unpaid',fmt(unpaidTotal),unpaidTotal>0?'amber':'')+'</div>'+
-    sh('Owner Labor ('+ownerLab.length+')',exportBtn('exportLabor')+'<button class="btn btn-sm" onclick="openLabModal()">+ Add Hours</button>')+
-    '<table class="tbl"><thead><tr>'+lth('Date','date')+lth('Event','event')+lth('Venue','venue')+lth('Person','person')+lth('Hours','hours')+lth('Rate','rate')+lth('Earned','earned')+'<th>Notes</th><th></th></tr></thead><tbody>'+
-    (sortedOwner.map(function(l){
-      var earned=parseFloat(l.total_amount)||((parseFloat(l.hours)||0)*(parseFloat(l.rate)||OWNER_RATE));
-      var ev=findEv(l.event_id);
-      return'<tr><td>'+fmtD(ev?ev.date:'')+'</td><td style="font-weight:500">'+evName(l.event_id)+'</td><td style="color:var(--muted)">'+esc(ev&&ev.venue||'—')+'</td><td style="text-transform:capitalize">'+esc(l.person)+'</td><td>'+(l.hours||'—')+'</td><td>'+(l.rate?fmt(l.rate)+'/hr':'
+  var sortedOwner=sortLabArr(ownerLab);
+  var sortedHelper=sortLabArr(helperLab);
 
+  var ownerRows=sortedOwner.map(function(l){
+    var ev=findEv(l.event_id);
+    var evDate=ev ? ev.date : '';
+    var evVenue=ev ? (ev.venue||'—') : '—';
+    var rateStr=l.rate ? fmt(l.rate)+'/hr' : '$'+OWNER_RATE+'/hr';
+    var earned=parseFloat(l.total_amount)||((parseFloat(l.hours)||0)*(parseFloat(l.rate)||OWNER_RATE));
+    return '<tr>'
+      +'<td>'+fmtD(evDate)+'</td>'
+      +'<td style="font-weight:500">'+evName(l.event_id)+'</td>'
+      +'<td style="color:var(--muted)">'+esc(evVenue)+'</td>'
+      +'<td style="text-transform:capitalize">'+esc(l.person)+'</td>'
+      +'<td>'+(l.hours||'—')+'</td>'
+      +'<td>'+rateStr+'</td>'
+      +'<td style="color:var(--green)">'+fmt(earned)+'</td>'
+      +'<td style="color:var(--muted)">'+esc(l.notes||'')+'</td>'
+      +'<td><div class="acts">'
+        +'<button class="btn btn-sm btn-outline" onclick="openEditLaborModal(\''+sid(l.id)+'\')">Edit</button>'
+        +'<button class="btn btn-sm btn-danger" onclick="delRec(\'labor\',\''+sid(l.id)+'\')">Del</button>'
+      +'</div></td>'
+    +'</tr>';
+  }).join('');
+
+  var helperRows=sortedHelper.map(function(l){
+    var hev=findEv(l.event_id);
+    var hevDate=hev ? hev.date : '';
+    var hevVenue=hev ? (hev.venue||'—') : '—';
+    var totalAmt=parseFloat(l.total_amount)||0;
+    var paidBadge='<span class="badge '+(l.paid?'bg':'ba')+'">'+(l.paid?'Paid':'Unpaid')+'</span>';
+    var paidDate=l.paid&&l.paid_date ? ' <span style="font-size:10px;color:var(--muted)">'+fmtD(l.paid_date)+'</span>' : '';
+    var payBtn=!l.paid ? '<button class="btn btn-sm btn-outline" onclick="markHelperPaid(\''+sid(l.id)+'\')">Pay</button>' : '';
+    return '<tr>'
+      +'<td>'+fmtD(hevDate)+'</td>'
+      +'<td style="font-weight:500">'+evName(l.event_id)+'</td>'
+      +'<td style="color:var(--muted)">'+esc(hevVenue)+'</td>'
+      +'<td style="text-transform:capitalize">'+esc(l.person)+'</td>'
+      +'<td>'+(l.hours||'—')+'</td>'
+      +'<td style="color:var(--green)">'+fmt(totalAmt)+'</td>'
+      +'<td>'+paidBadge+paidDate+'</td>'
+      +'<td style="color:var(--muted)">'+esc(l.notes||'')+'</td>'
+      +'<td><div class="acts">'
+        +'<button class="btn btn-sm btn-outline" onclick="openEditLaborModal(\''+sid(l.id)+'\')">Edit</button>'
+        +payBtn
+        +'<button class="btn btn-sm btn-danger" onclick="delRec(\'labor\',\''+sid(l.id)+'\')">Del</button>'
+      +'</div></td>'
+    +'</tr>';
+  }).join('');
+
+  var helperStatsHtml='';
+  if(helperSummary.length){
+    helperStatsHtml='<div class="stat-grid" style="margin-bottom:16px">'
+      +helperSummary.map(function(h){
+        return '<div class="stat-card">'
+          +'<div class="stat-label">'+esc(h.name)+'</div>'
+          +'<div class="stat-value '+(h.unpaid>0?'amber':'green')+'">'+fmt(h.unpaid)+' unpaid</div>'
+          +'<div style="font-size:11px;color:var(--muted);margin-top:4px">'+fmt(h.total)+' total</div>'
+        +'</div>';
+      }).join('')
+    +'</div>';
+  }
+
+  document.getElementById('mc').innerHTML=
+    periodSelector()
+    +'<div class="stat-grid" style="margin-bottom:16px">'
+      +sc('John — Total Earned',fmt(jt),'green')
+      +sc('Steve — Total Earned',fmt(st),'green')
+      +sc('Helpers — Unpaid',fmt(unpaidTotal),unpaidTotal>0?'amber':'')
+    +'</div>'
+    +sh('Owner Labor ('+ownerLab.length+')',exportBtn('exportLabor')+'<button class="btn btn-sm" onclick="openLabModal()">+ Add Hours</button>')
+    +'<table class="tbl"><thead><tr>'
+      +lth('Date','date')+lth('Event','event')+lth('Venue','venue')
+      +lth('Person','person')+lth('Hours','hours')+lth('Rate','rate')+lth('Earned','earned')
+      +'<th>Notes</th><th></th>'
+    +'</tr></thead><tbody>'
+    +(ownerRows||'<tr><td colspan="9" class="empty">No owner labor recorded</td></tr>')
+    +'</tbody></table>'
+    +sh('Helper Labor ('+helperLab.length+')','<button class="btn btn-sm" onclick="openHelperLabModal()">+ Add Helper</button>')
+    +helperStatsHtml
+    +'<table class="tbl"><thead><tr>'
+      +lth('Date','date')+lth('Event','event')+lth('Venue','venue')
+      +lth('Person','person')+lth('Hours','hours')
+      +'<th>Amount</th><th>Status</th><th>Notes</th><th></th>'
+    +'</tr></thead><tbody>'
+    +(helperRows||'<tr><td colspan="9" class="empty">No helper labor recorded</td></tr>')
+    +'</tbody></table>';
+}
+function sortLab(col){if(laborSort.col===col){laborSort.dir*=-1;}else{laborSort.col=col;laborSort.dir=-1;}renderLabor();}
 // ── OWNER FINANCES ────────────────────────────────────────────────────────────
 function ownerStats(person){
   var lab=filterLaborByPeriod(C.labor).filter(function(l){return l.person===person;});
