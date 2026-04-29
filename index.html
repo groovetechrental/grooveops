@@ -1059,7 +1059,7 @@ function openEvModal(id,dateStr){
       for(var i=0;i<labor.length;i++){
         var cm=labor[i];if(!cm.name)continue;
         var ok=ownerMap[cm.name],pk=ok||cm.name;
-        var existing=C.labor.find(function(l){return sid(l.event_id)===sid(eventId)&&l.person===pk;});
+      var existing=C.labor.find(function(l){return sid(l.event_id)===sid(eventId)&&l.person===pk;});
         if(existing){await sb.from('labor').update({hours:parseFloat(cm.qty)||null,rate:ok?OWNER_RATE:undefined}).eq('id',existing.id);}
         else{await sb.from('labor').insert({event_id:eventId,person:pk,hours:parseFloat(cm.qty)||null,rate:ok?OWNER_RATE:null,total_amount:null,paid:false});}
       }
@@ -1167,7 +1167,26 @@ function openExpModal(eid,xid){
     '<div class="form-group"><label>Description</label><input type="text" id="mDesc" value="'+esc(x&&x.description||'')+'" placeholder="e.g. Turnpike toll"></div>'+
     '<div class="form-group"><label>Amount ($)</label><input type="number" id="mA" step="0.01" value="'+(x&&x.amount||'')+'" placeholder="0.00"></div>'+
     '<div class="form-group"><label>Notes</label><textarea id="mNo" rows="2">'+esc(x&&x.notes||'')+'</textarea></div>',
-    async function(){var amt=parseFloat(document.getElementById('mA').value);if(!amt||amt<=0)throw new Error('Valid amount required');var row={event_id:document.getElementById('mE').value||null,person:document.getElementById('mP').value,category:document.getElementById('mCat').value,description:document.getElementById('mDesc').value.trim()||null,amount:amt,notes:document.getElementById('mNo').value.trim()||null};var r=xid?await sb.from('expenses').update(row).eq('id',xid):await sb.from('expenses').insert(Object.assign({},row,{reimbursed:false}));if(r.error)throw r.error;}
+    async function(){
+      var amt=parseFloat(document.getElementById('mA').value);
+      if(!amt||amt<=0)throw new Error('Valid amount required');
+      var row={
+        event_id:document.getElementById('mE').value||null,
+        person:document.getElementById('mP').value,
+        category:document.getElementById('mCat').value,
+        description:document.getElementById('mDesc').value.trim()||null,
+        amount:amt,
+        notes:document.getElementById('mNo').value.trim()||null
+      };
+      var r;
+      if(xid){
+        r=await sb.from('expenses').update(row).eq('id',xid);
+      } else {
+        row.reimbursed=false;
+        r=await sb.from('expenses').insert(row);
+      }
+      if(r.error)throw r.error;
+    }
   );
 }
 
