@@ -329,13 +329,16 @@ function filterByPeriod(arr,f){return arr.filter(function(x){return inPeriod(x[f
 function setPeriod(v){selectedPeriod=v;showTab(currentTab);}
 function periodSelector(){
   var yr=new Date().getFullYear(),opts='';
-  for(var y=2025;y<=yr;y++) opts+='<option value="'+y+'"'+(selectedPeriod==y?' selected':'')+'>'+y+(y===yr?' (Current)':'')+'</option>';
+  // Show all years from 2025 to current — current year shows as YTD, past years show full year
+  for(var y=yr;y>=2025;y--){
+    var lbl=y===yr?y+' (Year to Date)':String(y);
+    opts+='<option value="'+y+'"'+(selectedPeriod==y?' selected':'')+'>'+lbl+'</option>';
+  }
   return'<div class="period-bar">'+
     '<span style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.8px">Period:</span>'+
     '<select onchange="setPeriod(this.value)" style="width:auto;padding:6px 10px;font-size:13px">'+
       '<option value="ytd"'+(selectedPeriod==='ytd'?' selected':'')+'>Year to Date</option>'+
       opts+
-      '<option value="lastyear"'+(selectedPeriod==='lastyear'?' selected':'')+'>'+(yr-1)+' (Last Year)</option>'+
       '<option value="all"'+(selectedPeriod==='all'?' selected':'')+'>All Time (2025–today)</option>'+
     '</select>'+
     '<span class="period-label">'+getPeriodRange().label+'</span>'+
@@ -815,7 +818,7 @@ function renderEquipment(){
     sh('Equipment Catalog ('+C.equipItems.length+')','<button class="btn btn-sm" onclick="openEqItemModal()">+ Add Item</button>')+
     (C.equipItems.length?C.equipItems.map(function(item){
       var comps=C.equipComponents.filter(function(c){return c.equipment_item_id===item.id;}).sort(function(a,b){return(a.sort_order||0)-(b.sort_order||0);});
-      return'<div class="eq-card" id="eqc-'+item.id+'">'+
+      return'<div class="eq-card open" id="eqc-'+item.id+'">'+
         '<div class="eq-card-head" onclick="toggleEqCard(\''+item.id+'\')">'+
           '<div><div class="eq-card-name">'+esc(item.name)+'</div>'+
           (item.category?'<div style="font-size:11px;color:var(--muted)">'+esc(item.category)+'</div>':'')+
@@ -828,8 +831,8 @@ function renderEquipment(){
         '</div>'+
         '<div class="eq-card-body">'+
           sh('Components','<button class="btn btn-sm" onclick="openEqCompModal(\''+item.id+'\')">+ Add Component</button>')+
-          '<table class="tbl"><thead><tr><th>Component</th><th>Qty</th><th>Unit</th><th></th></tr></thead><tbody>'+
-          (comps.map(function(c){return'<tr><td style="font-weight:500">'+esc(c.name)+'</td><td>'+(c.quantity||'—')+'</td><td style="color:var(--muted)">'+esc(c.unit||'—')+'</td><td><div class="acts"><button class="btn btn-sm btn-outline" onclick="openEqCompModal(\''+item.id+'\',\''+c.id+'\')">Edit</button><button class="btn btn-sm btn-danger" onclick="delRec(\'equipment_components\',\''+c.id+'\')">Del</button></div></td></tr>';}).join('')||'<tr><td colspan="4" class="empty">No components yet</td></tr>')+
+          '<table class="tbl"><thead><tr><th>Component</th><th>Qty</th><th>Unit</th><th>Order</th><th></th></tr></thead><tbody>'+
+          (comps.map(function(c){return'<tr><td style="font-weight:500">'+esc(c.name)+'</td><td>'+(c.quantity||'—')+'</td><td style="color:var(--muted)">'+esc(c.unit||'—')+'</td><td style="color:var(--muted)">'+(c.sort_order||0)+'</td><td><div class="acts"><button class="btn btn-sm btn-outline" onclick="openEqCompModal(\''+item.id+'\',\''+c.id+'\')">Edit</button><button class="btn btn-sm btn-danger" onclick="delRec(\'equipment_components\',\''+c.id+'\')">Del</button></div></td></tr>';}).join('')||'<tr><td colspan="5" class="empty">No components yet — click + Add Component above</td></tr>')+
           '</tbody></table>'+
         '</div>'+
       '</div>';
