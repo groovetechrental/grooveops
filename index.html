@@ -366,8 +366,8 @@ function init(){
       document.getElementById('loginScreen').style.display='none';
       document.getElementById('app').style.display='block';
       document.getElementById('uc').textContent=session.user.email;
-      setTimeout(hideLoader,5000);
-      loadAll().then(function(){hideLoader();showTab('dashboard');});
+      setTimeout(hideLoader,8000);
+      loadAll().then(function(){hideLoader();showTab('dashboard');}).catch(function(err){hideLoader();showErr('Failed to load data: '+(err.message||String(err)));showTab('dashboard');});
     } else {
       document.getElementById('loginScreen').style.display='flex';
       document.getElementById('app').style.display='none';
@@ -405,6 +405,8 @@ function loadAll(){
     sb.from('packing_list_checks').select('*'),
     sb.from('labor_payments').select('*').order('date',{ascending:false})
   ]).then(function(r){
+    var errs=r.filter(function(x){return x.error;}).map(function(x){return x.error.message;});
+    if(errs.length)console.warn('loadAll partial errors:',errs.join('; '));
     C.events=r[0].data||[];C.customers=r[1].data||[];C.payments=r[2].data||[];
     C.labor=r[3].data||[];C.expenses=r[4].data||[];C.profitShare=r[5].data||[];
     C.equipItems=r[6].data||[];C.equipComponents=r[7].data||[];C.packChecks=r[8].data||[];
