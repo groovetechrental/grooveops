@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>GrooveOps</title>
-<script src="https://unpkg.com/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
 <style>
 :root{--bg:#0e0e12;--surface:#17171f;--surface2:#1e1e2a;--border:#2a2a3a;--accent:#9c6fe4;--accent2:#e05c5c;--green:#4caf50;--blue:#4fc3f7;--text:#e8e8f0;--muted:#6b6b80;--radius:12px;--gt:#f5a623;--looch:#e05c5c;--neon:#b39ddb;--other:#6b6b80;}
@@ -354,7 +354,17 @@ function filterLaborByPeriod(laborArr){
     return inPeriod(d);
   });
 }
+var _initAttempts=0;
 function init(){
+  _initAttempts++;
+  if(_initAttempts>100){
+    hideLoader();
+    document.getElementById('loginScreen').style.display='flex';
+    document.getElementById('app').style.display='none';
+    document.getElementById('lerr').textContent='⚠ Could not load Supabase library. Check your internet connection and reload.';
+    document.getElementById('lerr').classList.add('show');
+    return;
+  }
   if(typeof supabase==='undefined'||!supabase.createClient){setTimeout(init,100);return;}
   sb=supabase.createClient(
     'https://rbtzcswnounmybumqbwu.supabase.co',
