@@ -279,8 +279,9 @@ var viewYear=today.getFullYear(),viewMonth=today.getMonth(),calOffset=0;
 var savedLabor=['John Magnus','Steve Pfeffer','JP'];
 var selectedPeriod='ytd';
 var evSort={col:'date',dir:-1};
+var laborSort={col:'date',dir:-1};
 var currentPackEventId=null;
-var C={events:[],customers:[],payments:[],labor:[],expenses:[],profitShare:[],equipItems:[],equipComponents:[],packChecks:[]};
+var C={events:[],customers:[],payments:[],labor:[],expenses:[],profitShare:[],equipItems:[],equipComponents:[],packChecks:[],laborPayments:[]};
 
 // ── HELPERS ───────────────────────────────────────────────────────────────────
 function sid(x){return String(x==null?'':x);}
@@ -401,11 +402,13 @@ function loadAll(){
     sb.from('profit_share').select('*').order('date',{ascending:false}),
     sb.from('equipment_items').select('*').order('name'),
     sb.from('equipment_components').select('*').order('sort_order'),
-    sb.from('packing_list_checks').select('*')
+    sb.from('packing_list_checks').select('*'),
+    sb.from('labor_payments').select('*').order('date',{ascending:false})
   ]).then(function(r){
     C.events=r[0].data||[];C.customers=r[1].data||[];C.payments=r[2].data||[];
     C.labor=r[3].data||[];C.expenses=r[4].data||[];C.profitShare=r[5].data||[];
     C.equipItems=r[6].data||[];C.equipComponents=r[7].data||[];C.packChecks=r[8].data||[];
+    C.laborPayments=r[9].data||[];
   });
 }
 
@@ -746,25 +749,48 @@ function renderLabor(){
   var owners=['john','steve'];
   var ownerLab=allLabor.filter(function(l){return owners.includes(l.person);});
   var helperLab=allLabor.filter(function(l){return!owners.includes(l.person);});
-  var jt=allLabor.filter(function(l){return l.person==='john';}).reduce(function(s,l){return s+(parseFloat(l.total_amount)||((parseFloat(l.hours)||0)*(parseFloat(l.rate)||OWNER_RATE)));},0);
-  var st=allLabor.filter(function(l){return l.person==='steve';}).reduce(function(s,l){return s+(parseFloat(l.total_amount)||((parseFloat(l.hours)||0)*(parseFloat(l.rate)||OWNER_RATE)));},0);
+  function getLabDate(l){var e=findEv(l.event_id);return e?e.date:'';}
+  function sortLab(arr){
+    return arr.slice().sort(function(a,b){
+      var av,bv;
+      if(laborSort.col==='date'){av=getLabDate(a);bv=getLabDate(b);}
+      else if(laborSort.col==='event'){av=evName(a.event_id).toLowerCase();bv=evName(b.event_id).toLowerCase();}
+      else if(laborSort.col==='venue'){var ea=findEv(a.event_id),eb=findEv(b.event_id);av=(ea&&ea.venue||'').toLowerCase();bv=(eb&&eb.venue||'').toLowerCase();}
+      else if(laborSort.col==='person'){av=(a.person||'').toLowerCase();bv=(b.person||'').toLowerCase();}
+      else if(laborSort.col==='hours'){av=parseFloat(a.hours)||0;bv=parseFloat(b.hours)||0;}
+      else if(laborSort.col==='earned'){av=parseFloat(a.total_amount)||((parseFloat(a.hours)||0)*(parseFloat(a.rate)||OWNER_RATE));bv=parseFloat(b.total_amount)||((parseFloat(b.hours)||0)*(parseFloat(b.rate)||OWNER_RATE));}
+      if(av<bv)return-1*laborSort.dir;if(av>bv)return 1*laborSort.dir;return 0;
+    });
+  }
+  function lth(lbl,col){var arrow=laborSort.col===col?(laborSort.dir===1?' ↑':' ↓'):'';return'<th style="cursor:pointer;user-select:none" onclick="sortLab(\''+col+'\')">'+lbl+arrow+'</th>';}
+  var jt=ownerLab.filter(function(l){return l.person==='john';}).reduce(function(s,l){return s+(parseFloat(l.total_amount)||((parseFloat(l.hours)||0)*(parseFloat(l.rate)||OWNER_RATE)));},0);
+  var st=ownerLab.filter(function(l){return l.person==='steve';}).reduce(function(s,l){return s+(parseFloat(l.total_amount)||((parseFloat(l.hours)||0)*(parseFloat(l.rate)||OWNER_RATE)));},0);
   var helperNames=[...new Set(helperLab.map(function(l){return l.person;}))];
   var helperSummary=helperNames.map(function(name){var rows=helperLab.filter(function(l){return l.person===name;});var total=rows.reduce(function(s,l){return s+(parseFloat(l.total_amount)||0);},0);var unpaid=rows.filter(function(l){return!l.paid;}).reduce(function(s,l){return s+(parseFloat(l.total_amount)||0);},0);return{name:name,total:total,unpaid:unpaid};});
   var unpaidTotal=helperLab.filter(function(l){return!l.paid;}).reduce(function(s,l){return s+(parseFloat(l.total_amount)||0);},0);
+  var sortedOwner=sortLab(ownerLab);
+  var sortedHelper=sortLab(helperLab);
   document.getElementById('mc').innerHTML=
     periodSelector()+
     '<div class="stat-grid" style="margin-bottom:16px">'+sc('John — Total Earned',fmt(jt),'green')+sc('Steve — Total Earned',fmt(st),'green')+sc('Helpers — Unpaid',fmt(unpaidTotal),unpaidTotal>0?'amber':'')+'</div>'+
     sh('Owner Labor ('+ownerLab.length+')',exportBtn('exportLabor')+'<button class="btn btn-sm" onclick="openLabModal()">+ Add Hours</button>')+
-    '<table class="tbl"><thead><tr><th>Event</th><th>Venue</th><th>Person</th><th>Hours</th><th>Rate</th><th>Earned</th><th>Notes</th><th></th></tr></thead><tbody>'+
-    (ownerLab.map(function(l){var earned=parseFloat(l.total_amount)||((parseFloat(l.hours)||0)*(parseFloat(l.rate)||OWNER_RATE));var ev=findEv(l.event_id);
-      return'<tr><td style="font-weight:500">'+evName(l.event_id)+'</td><td style="color:var(--muted)">'+esc(ev&&ev.venue||'—')+'</td><td style="text-transform:capitalize">'+esc(l.person)+'</td><td>'+(l.hours||'—')+'</td><td>'+(l.rate?fmt(l.rate)+'/hr':'$'+OWNER_RATE+'/hr')+'</td><td style="color:var(--green)">'+fmt(earned)+'</td><td style="color:var(--muted)">'+esc(l.notes||'')+'</td>'+
-      '<td><div class="acts"><button class="btn btn-sm btn-outline" onclick="openEditLaborModal(\''+sid(l.id)+'\')">Edit</button><button class="btn btn-sm btn-danger" onclick="delRec(\'labor\',\''+sid(l.id)+'\')">Del</button></div></td></tr>';}).join('')||'<tr><td colspan="8" class="empty">No owner labor recorded</td></tr>')+
+    '<table class="tbl"><thead><tr>'+lth('Date','date')+lth('Event','event')+lth('Venue','venue')+lth('Person','person')+lth('Hours','hours')+lth('Rate','rate')+lth('Earned','earned')+'<th>Notes</th><th></th></tr></thead><tbody>'+
+    (sortedOwner.map(function(l){
+      var earned=parseFloat(l.total_amount)||((parseFloat(l.hours)||0)*(parseFloat(l.rate)||OWNER_RATE));
+      var ev=findEv(l.event_id);
+      return'<tr><td>'+fmtD(ev?ev.date:'')+'</td><td style="font-weight:500">'+evName(l.event_id)+'</td><td style="color:var(--muted)">'+esc(ev&&ev.venue||'—')+'</td><td style="text-transform:capitalize">'+esc(l.person)+'</td><td>'+(l.hours||'—')+'</td><td>'+(l.rate?fmt(l.rate)+'/hr':'—')+'</td><td style="color:var(--green)">'+fmt(earned)+'</td><td style="color:var(--muted)">'+esc(l.notes||'')+'</td>'+
+      '<td><div class="acts"><button class="btn btn-sm btn-outline" onclick="openEditLaborModal(\''+sid(l.id)+'\')">Edit</button><button class="btn btn-sm btn-danger" onclick="delRec(\'labor\',\''+sid(l.id)+'\')">Del</button></div></td></tr>';
+    }).join('')||'<tr><td colspan="9" class="empty">No owner labor in this period</td></tr>')+
     '</tbody></table>'+
-    sh('Helper Labor ('+helperLab.length+')','<button class="btn btn-sm" onclick="openHelperLabModal()">+ Add Helper</button>')+
-    (helperSummary.length?'<div class="stat-grid" style="margin-bottom:16px">'+helperSummary.map(function(h){return'<div class="stat-card"><div class="stat-label">'+esc(h.name)+'</div><div class="stat-value '+(h.unpaid>0?'amber':'green')+'">'+fmt(h.unpaid)+' unpaid</div><div style="font-size:11px;color:var(--muted);margin-top:4px">'+fmt(h.total)+' total</div></div>';}).join('')+'</div>':'')+
-    '<table class="tbl"><thead><tr><th>Event</th><th>Venue</th><th>Person</th><th>Hours</th><th>Amount</th><th>Status</th><th>Notes</th><th></th></tr></thead><tbody>'+
-    (helperLab.map(function(l){var ev=findEv(l.event_id);return'<tr><td style="font-weight:500">'+evName(l.event_id)+'</td><td style="color:var(--muted)">'+esc(ev&&ev.venue||'—')+'</td><td style="text-transform:capitalize">'+esc(l.person)+'</td><td>'+(l.hours||'—')+'</td><td style="color:var(--green)">'+fmt(l.total_amount)+'</td><td><span class="badge '+(l.paid?'bg':'ba')+'">'+(l.paid?'Paid':'Unpaid')+'</span>'+(l.paid&&l.paid_date?' <span style="font-size:10px;color:var(--muted)">'+fmtD(l.paid_date)+'</span>':'')+'</td><td style="color:var(--muted)">'+esc(l.notes||'')+'</td>'+
-      '<td><div class="acts"><button class="btn btn-sm btn-outline" onclick="openEditLaborModal(\''+sid(l.id)+'\')">Edit</button>'+(!l.paid?'<button class="btn btn-sm btn-outline" onclick="markHelperPaid(\''+sid(l.id)+'\')">✓ Pay</button>':'')+'<button class="btn btn-sm btn-danger" onclick="delRec(\'labor\',\''+sid(l.id)+'\')">Del</button></div></td></tr>';}).join('')||'<tr><td colspan="8" class="empty">No helper labor recorded</td></tr>')+
+    sh('Helper Labor ('+helperLab.length+')','<button class="btn btn-sm" onclick="openLabModal()">+ Add Hours</button>')+
+    (helperSummary.length?'<div class="stat-grid" style="margin-bottom:16px">'+helperSummary.map(function(h){return sc(h.name.charAt(0).toUpperCase()+h.name.slice(1)+' — Total',fmt(h.total))+sc(h.name.charAt(0).toUpperCase()+h.name.slice(1)+' — Unpaid',fmt(h.unpaid),h.unpaid>0?'amber':'');}).join('')+'</div>':'')+
+    '<table class="tbl"><thead><tr><th>Date</th><th>Event</th><th>Venue</th><th>Person</th><th>Hours</th><th>Rate</th><th>Earned</th><th>Paid</th><th>Notes</th><th></th></tr></thead><tbody>'+
+    (sortedHelper.map(function(l){
+      var earned=parseFloat(l.total_amount)||0;
+      var ev=findEv(l.event_id);
+      return'<tr><td>'+fmtD(ev?ev.date:'')+'</td><td style="font-weight:500">'+evName(l.event_id)+'</td><td style="color:var(--muted)">'+esc(ev&&ev.venue||'—')+'</td><td style="text-transform:capitalize">'+esc(l.person)+'</td><td>'+(l.hours||'—')+'</td><td>'+(l.rate?fmt(l.rate)+'/hr':'—')+'</td><td style="color:var(--green)">'+fmt(earned)+'</td><td><span class="badge '+(l.paid?'bg':'ba')+'">'+(l.paid?'Paid':'Unpaid')+'</span></td><td style="color:var(--muted)">'+esc(l.notes||'')+'</td>'+
+      '<td><div class="acts"><button class="btn btn-sm btn-outline" onclick="openEditLaborModal(\''+sid(l.id)+'\')">Edit</button><button class="btn btn-sm btn-danger" onclick="delRec(\'labor\',\''+sid(l.id)+'\')">Del</button></div></td></tr>';
+    }).join('')||'<tr><td colspan="10" class="empty">No helper labor in this period</td></tr>')+
     '</tbody></table>';
 }
 
@@ -773,8 +799,9 @@ function ownerStats(person){
   var lab=filterLaborByPeriod(C.labor).filter(function(l){return l.person===person;});
   var exp=filterByPeriod(C.expenses,'created_at').filter(function(x){return x.person===person;});
   var ps=filterByPeriod(C.profitShare,'date').filter(function(p){return p.person===person;});
+  var lp=filterByPeriod(C.laborPayments,'date').filter(function(p){return p.person===person;});
   var laborEarned=lab.reduce(function(s,l){return s+(parseFloat(l.total_amount)||((parseFloat(l.hours)||0)*(parseFloat(l.rate)||OWNER_RATE)));},0);
-  var laborPaid=lab.filter(function(l){return l.paid;}).reduce(function(s,l){return s+(parseFloat(l.paid_amount)||parseFloat(l.total_amount)||((parseFloat(l.hours)||0)*(parseFloat(l.rate)||OWNER_RATE)));},0);
+  var laborPaid=lp.reduce(function(s,p){return s+(parseFloat(p.amount)||0);},0);
   var expPaid=exp.reduce(function(s,x){return s+(parseFloat(x.amount)||0);},0);
   var expReimb=exp.filter(function(x){return x.reimbursed;}).reduce(function(s,x){return s+(parseFloat(x.amount)||0);},0);
   var psTotal=ps.reduce(function(s,p){return s+(parseFloat(p.amount)||0);},0);
@@ -785,19 +812,530 @@ function renderOwnerFinances(){
   function personCard(name,s){
     var label=name.charAt(0).toUpperCase()+name.slice(1);
     var ps=filterByPeriod(C.profitShare,'date').filter(function(p){return p.person===name;}).sort(function(a,b){return b.date.localeCompare(a.date);});
+    var lp=filterByPeriod(C.laborPayments,'date').filter(function(p){return p.person===name;}).sort(function(a,b){return b.date.localeCompare(a.date);});
     var labRows=filterLaborByPeriod(C.labor).filter(function(l){return l.person===name;});
     return'<div style="margin-bottom:24px">'+
       '<div class="section-title" style="margin-bottom:12px">'+label+'</div>'+
-      '<div class="stat-grid" style="margin-bottom:16px">'+sc('Labor Earned',fmt(s.laborEarned),'green')+sc('Labor Paid',fmt(s.laborPaid))+sc('Labor Owed',fmt(s.laborOwed),s.laborOwed>0?'amber':'')+sc('Expenses Out',fmt(s.expPaid))+sc('Expenses Reimb.',fmt(s.expReimb))+sc('Exp. Owed',fmt(s.expOwed),s.expOwed>0?'amber':'')+sc('Profit Share',fmt(s.psTotal),'green')+sc('Total Owed',fmt(s.laborOwed+s.expOwed),s.laborOwed+s.expOwed>0?'amber':'')+'</div>'+
-      sh('Profit Share — '+label,'<button class="btn btn-sm btn-outline" onclick="exportOwnerFinances(\''+name+'\')">⬇ CSV</button><button class="btn btn-sm" onclick="openPSModal(\''+name+'\')">+ Add Distribution</button>')+
+      '<div class="stat-grid" style="margin-bottom:16px">'+
+        sc('Labor Earned',fmt(s.laborEarned),'green')+
+        sc('Labor Paid',fmt(s.laborPaid))+
+        sc('Labor Owed',fmt(s.laborOwed),s.laborOwed>0?'amber':'')+
+        sc('Expenses Out',fmt(s.expPaid))+
+        sc('Expenses Reimb.',fmt(s.expReimb))+
+        sc('Exp. Owed',fmt(s.expOwed),s.expOwed>0?'amber':'')+
+        sc('Profit Share',fmt(s.psTotal),'green')+
+        sc('Total Owed',fmt(s.laborOwed+s.expOwed),s.laborOwed+s.expOwed>0?'amber':'')+
+      '</div>'+
+      sh('Labor Payments — '+label,'<button class="btn btn-sm btn-outline" onclick="exportOwnerFinances(\''+name+'\')">⬇ CSV</button><button class="btn btn-sm" onclick="openLaborPayModal(\''+name+'\')">+ Add Labor Payment</button>')+
+      '<table class="tbl"><thead><tr><th>Date</th><th>Amount</th><th>Method</th><th>Notes</th><th></th></tr></thead><tbody>'+
+      (lp.map(function(p){return'<tr>'+
+        '<td>'+fmtD(p.date)+'</td>'+
+        '<td style="color:var(--green)">'+fmt(p.amount)+'</td>'+
+        '<td>'+esc(p.method||'—')+'</td>'+
+        '<td style="color:var(--muted)">'+esc(p.notes||'')+'</td>'+
+        '<td><button class="btn btn-sm btn-danger" onclick="delRec(\'labor_payments\',\''+p.id+'\')">Del</button></td>'+
+      '</tr>';}).join('')||'<tr><td colspan="5" class="empty">No labor payments recorded</td></tr>')+
+      '</tbody></table>'+
+      sh('Profit Share — '+label,'<button class="btn btn-sm" onclick="openPSModal(\''+name+'\')">+ Add Distribution</button>')+
       '<table class="tbl"><thead><tr><th>Date</th><th>Amount</th><th>Method</th><th>Event</th><th>Notes</th><th></th></tr></thead><tbody>'+
       (ps.map(function(p){return'<tr><td>'+fmtD(p.date)+'</td><td style="color:var(--green)">'+fmt(p.amount)+'</td><td>'+esc(p.method||'—')+'</td><td style="color:var(--muted)">'+(p.event_id?evName(p.event_id):'—')+'</td><td style="color:var(--muted)">'+esc(p.notes||'')+'</td><td><button class="btn btn-sm btn-danger" onclick="delRec(\'profit_share\',\''+sid(p.id)+'\')">Del</button></td></tr>';}).join('')||'<tr><td colspan="6" class="empty">No profit share distributions yet</td></tr>')+
       '</tbody></table>'+
       sh('Labor Detail — '+label)+
-      '<table class="tbl"><thead><tr><th>Event</th><th>Hours</th><th>Earned</th><th>Paid</th><th></th></tr></thead><tbody>'+
-      (labRows.map(function(l){var earned=parseFloat(l.total_amount)||((parseFloat(l.hours)||0)*(parseFloat(l.rate)||OWNER_RATE));
-        return'<tr><td style="font-weight:500">'+evName(l.event_id)+'</td><td>'+(l.hours||'—')+'</td><td style="color:var(--green)">'+fmt(earned)+'</td><td><span class="badge '+(l.paid?'bg':'ba')+'">'+(l.paid?'Paid':'Unpaid')+'</span></td>'+
-        '<td><div class="acts"><button class="btn btn-sm btn-outline" onclick="openEditLaborModal(\''+sid(l.id)+'\')">Edit</button>'+(!l.paid?'<button class="btn btn-sm btn-outline" onclick="markOwnerLaborPaid(\''+sid(l.id)+'\','+earned+')">✓ Pay</button>':'')+'</div></td></tr>';}).join('')||'<tr><td colspan="5" class="empty">No labor records</td></tr>')+
+      '<table class="tbl"><thead><tr><th>Event</th><th>Date</th><th>Hours</th><th>Earned</th><th>Notes</th><th></th></tr></thead><tbody>'+
+      (labRows.map(function(l){var ev=findEv(l.event_id);var earned=parseFloat(l.total_amount)||((parseFloat(l.hours)||0)*(parseFloat(l.rate)||OWNER_RATE));
+        return'<tr><td style="font-weight:500">'+evName(l.event_id)+'</td><td>'+(ev?fmtD(ev.date):'—')+'</td><td>'+(l.hours||'—')+'</td><td style="color:var(--green)">'+fmt(earned)+'</td><td style="color:var(--muted)">'+esc(l.notes||'')+'</td>'+
+        '<td><div class="acts"><button class="btn btn-sm btn-outline" onclick="openEditLaborModal(\''+sid(l.id)+'\')">Edit</button></div></td></tr>';}).join('')||'<tr><td colspan="6" class="empty">No labor records</td></tr>')+
+      '</tbody></table>'+
+    '</div>';
+  }
+  document.getElementById('mc').innerHTML=
+    periodSelector()+personCard('john',john)+'<hr style="border:none;border-top:2px solid var(--border);margin:8px 0 24px">'+personCard('steve',steve);
+}
+
+// ── EXPENSES ──────────────────────────────────────────────────────────────────
+function renderExpenses(){
+  var filtered=filterByPeriod(C.expenses,'created_at');
+  var te=filtered.reduce(function(s,x){return s+(parseFloat(x.amount)||0);},0);
+  var ur=filtered.filter(function(x){return!x.reimbursed;}).reduce(function(s,x){return s+(parseFloat(x.amount)||0);},0);
+  document.getElementById('mc').innerHTML=
+    periodSelector()+
+    '<div class="stat-grid" style="margin-bottom:16px">'+sc('Total Expenses',fmt(te))+sc('Pending Reimbursement',fmt(ur),'amber')+'</div>'+
+    sh('Expenses ('+filtered.length+')',exportBtn('exportExpenses')+'<button class="btn btn-sm" onclick="openExpModal()">+ Add Expense</button>')+
+    '<table class="tbl"><thead><tr><th>Event</th><th>Person</th><th>Category</th><th>Description</th><th>Amount</th><th>Reimbursed</th><th></th></tr></thead><tbody>'+
+    (filtered.map(function(x){return'<tr><td style="font-weight:500">'+(x.event_id?evName(x.event_id):'<span style="color:var(--muted)">—</span>')+'</td><td style="text-transform:capitalize">'+esc(x.person||'—')+'</td><td><span class="badge bb">'+esc(x.category||'other')+'</span></td><td>'+esc(x.description||'—')+'</td><td>'+fmt(x.amount)+'</td><td><span class="badge '+(x.reimbursed?'bg':'ba')+'">'+(x.reimbursed?'Yes':'No')+'</span></td><td><div class="acts">'+(x.reimbursed?'':'<button class="btn btn-sm btn-outline" onclick="doReimb(\''+sid(x.id)+'\')">✓</button>')+'<button class="btn btn-sm btn-outline" onclick="openExpModal(null,\''+sid(x.id)+'\')">Edit</button><button class="btn btn-sm btn-danger" onclick="delRec(\'expenses\',\''+sid(x.id)+'\')">Del</button></div></td></tr>';}).join('')||'<tr><td colspan="7" class="empty">No expenses in this period</td></tr>')+
+    '</tbody></table>';
+}
+
+// ── EQUIPMENT CATALOG ─────────────────────────────────────────────────────────
+var openEqCardId=null;
+
+function renderEquipment(){
+  document.getElementById('mc').innerHTML=
+    sh('Equipment Catalog ('+C.equipItems.length+')','<button class="btn btn-sm" onclick="openEqItemModal()">+ Add Item</button>')+
+    (C.equipItems.length?C.equipItems.map(function(item){
+      var comps=C.equipComponents.filter(function(c){return c.equipment_item_id===item.id;}).sort(function(a,b){return(a.sort_order||0)-(b.sort_order||0);});
+      var isOpen=openEqCardId===item.id;
+      return'<div class="eq-card'+(isOpen?' open':'')+'" id="eqc-'+item.id+'">'+
+        '<div class="eq-card-head" onclick="toggleEqCard(\''+item.id+'\')">'+
+          '<div><div class="eq-card-name">'+esc(item.name)+'</div>'+
+          (item.category?'<div style="font-size:11px;color:var(--muted)">'+esc(item.category)+'</div>':'')+
+          '<div style="font-size:11px;color:var(--muted);margin-top:2px">'+comps.length+' component'+(comps.length!==1?'s':'')+'</div></div>'+
+          '<div style="display:flex;align-items:center;gap:8px">'+
+            '<button class="btn btn-sm btn-outline" onclick="event.stopPropagation();openEqItemModal(\''+item.id+'\')">Edit</button>'+
+            '<button class="btn btn-sm btn-danger" onclick="event.stopPropagation();delRec(\'equipment_items\',\''+item.id+'\')">Del</button>'+
+            '<span class="expand-arrow">▼</span>'+
+          '</div>'+
+        '</div>'+
+        '<div class="eq-card-body">'+
+          sh('Components','<button class="btn btn-sm" onclick="openEqCompModal(\''+item.id+'\')">+ Add Component</button>')+
+          '<table class="tbl"><thead><tr><th>Component</th><th>Qty</th><th>Unit</th><th>Order</th><th></th></tr></thead><tbody>'+
+          (comps.map(function(c){return'<tr><td style="font-weight:500">'+esc(c.name)+'</td><td>'+(c.quantity||'—')+'</td><td style="color:var(--muted)">'+esc(c.unit||'—')+'</td><td style="color:var(--muted)">'+(c.sort_order||0)+'</td><td><div class="acts"><button class="btn btn-sm btn-outline" onclick="openEqCompModal(\''+item.id+'\',\''+c.id+'\')">Edit</button><button class="btn btn-sm btn-danger" onclick="delRec(\'equipment_components\',\''+c.id+'\')">Del</button></div></td></tr>';}).join('')||'<tr><td colspan="5" class="empty">No components yet — click + Add Component above</td></tr>')+
+          '</tbody></table>'+
+        '</div>'+
+      '</div>';
+    }).join(''):'<div class="empty">No equipment items yet. Add your first item to get started.</div>');
+}
+function toggleEqCard(id){openEqCardId=(openEqCardId===id?null:id);renderEquipment();}
+
+// ── PACKING LIST ──────────────────────────────────────────────────────────────
+function hasPackingList(e){
+  var main=(e.main_equip||[]).filter(function(x){return x.name;});
+  return main.some(function(x){return C.equipItems.find(function(i){return i.name.toLowerCase()===x.name.toLowerCase();});});
+}
+
+function openPackingList(eventId){
+  var e=findEv(eventId);if(!e)return;
+  currentPackEventId=eventId;
+  document.getElementById('packTitle').textContent='📦 Packing List — '+e.name+' ('+fmtD(e.date)+')';
+  renderPackingList();
+  document.getElementById('packOverlay').classList.add('open');
+}
+function closePackingList(){document.getElementById('packOverlay').classList.remove('open');currentPackEventId=null;}
+
+function renderPackingList(){
+  var e=findEv(currentPackEventId);if(!e)return;
+  var main=(e.main_equip||[]).filter(function(x){return x.name;});
+  var sections=[],totalComps=0,checkedComps=0;
+  main.forEach(function(equip){
+    var item=C.equipItems.find(function(i){return i.name.toLowerCase()===equip.name.toLowerCase();});
+    if(!item)return;
+    var qty=parseFloat(equip.qty)||1;
+    var comps=C.equipComponents.filter(function(c){return c.equipment_item_id===item.id;}).sort(function(a,b){return(a.sort_order||0)-(b.sort_order||0);});
+    if(!comps.length)return;
+    var compRows=comps.map(function(c){
+      var check=C.packChecks.find(function(pc){return sid(pc.event_id)===sid(currentPackEventId)&&pc.component_id===c.id;});
+      var isChecked=check&&check.checked;
+      totalComps++;if(isChecked)checkedComps++;
+      var compQty=c.quantity?Math.ceil(c.quantity*qty)+' '+(c.unit||''):((c.unit||'')+(qty>1?' × '+qty:''));
+      return'<div class="pack-item'+(isChecked?' checked':'')+'" onclick="togglePackCheck(\''+c.id+'\')">'+
+        '<div class="pack-check">'+(isChecked?'✓':'')+'</div>'+
+        '<div class="pack-name">'+esc(c.name)+'</div>'+
+        '<div class="pack-qty">'+esc(compQty)+'</div>'+
+      '</div>';
+    }).join('');
+    sections.push('<div class="pack-section"><div class="pack-section-title">'+esc(item.name)+(qty>1?' × '+qty:'')+'</div>'+compRows+'</div>');
+  });
+  var pct=totalComps>0?Math.round((checkedComps/totalComps)*100):0;
+  document.getElementById('packProgress').innerHTML=
+    '<div class="pack-progress">'+
+      '<div style="font-size:13px;color:var(--muted)">'+checkedComps+' of '+totalComps+' items packed</div>'+
+      '<div class="pack-bar-wrap"><div class="pack-bar" style="width:'+pct+'%"></div></div>'+
+      '<div class="pack-pct">'+pct+'%</div>'+
+    '</div>';
+  document.getElementById('packBody').innerHTML=sections.length?sections.join(''):'<div class="empty">No equipment with components found for this event.<br>Make sure equipment names match your catalog exactly.</div>';
+}
+
+async function togglePackCheck(componentId){
+  var e=findEv(currentPackEventId);if(!e)return;
+  var existing=C.packChecks.find(function(pc){return sid(pc.event_id)===sid(currentPackEventId)&&pc.component_id===componentId;});
+  var session=await sb.auth.getSession();
+  var userEmail=session&&session.data&&session.data.session?session.data.session.user.email:'';
+  if(existing){
+    var newVal=!existing.checked;
+    var r=await sb.from('packing_list_checks').update({checked:newVal,checked_by:newVal?userEmail:null,checked_at:newVal?new Date().toISOString():null}).eq('id',existing.id);
+    if(r.error){showErr(r.error.message);return;}
+    existing.checked=newVal;existing.checked_by=newVal?userEmail:null;
+  } else {
+    var r2=await sb.from('packing_list_checks').insert({event_id:currentPackEventId,component_id:componentId,checked:true,checked_by:userEmail,checked_at:new Date().toISOString()}).select().single();
+    if(r2.error){showErr(r2.error.message);return;}
+    C.packChecks.push(r2.data);
+  }
+  renderPackingList();
+}
+
+async function resetPackingList(){
+  if(!confirm('Reset all checks for this event?'))return;
+  var r=await sb.from('packing_list_checks').update({checked:false,checked_by:null,checked_at:null}).eq('event_id',currentPackEventId);
+  if(r.error){showErr(r.error.message);return;}
+  C.packChecks.forEach(function(pc){if(sid(pc.event_id)===sid(currentPackEventId))pc.checked=false;});
+  renderPackingList();
+}
+
+function printPackingList(){
+  var e=findEv(currentPackEventId);if(!e)return;
+  var w=window.open('','_blank');
+  w.document.write('<html><head><title>Packing List — '+e.name+'</title><style>body{font-family:sans-serif;padding:20px;}h1{font-size:18px;margin-bottom:4px;}h2{font-size:14px;color:#666;margin:16px 0 8px;}table{width:100%;border-collapse:collapse;}td{padding:6px 8px;border-bottom:1px solid #eee;font-size:13px;}.check{width:20px;text-align:center;}</style></head><body>');
+  w.document.write('<h1>📦 Packing List — '+e.name+'</h1><p style="color:#666;font-size:12px">'+fmtD(e.date)+(e.venue?' · '+e.venue:'')+'</p>');
+  var main=(e.main_equip||[]).filter(function(x){return x.name;});
+  main.forEach(function(equip){
+    var item=C.equipItems.find(function(i){return i.name.toLowerCase()===equip.name.toLowerCase();});
+    if(!item)return;
+    var qty=parseFloat(equip.qty)||1;
+    var comps=C.equipComponents.filter(function(c){return c.equipment_item_id===item.id;}).sort(function(a,b){return(a.sort_order||0)-(b.sort_order||0);});
+    if(!comps.length)return;
+    w.document.write('<h2>'+item.name+(qty>1?' × '+qty:'')+'</h2><table>');
+    comps.forEach(function(c){var compQty=c.quantity?Math.ceil(c.quantity*qty)+' '+(c.unit||''):'';w.document.write('<tr><td class="check">☐</td><td>'+c.name+'</td><td style="color:#999">'+compQty+'</td></tr>');});
+    w.document.write('</table>');
+  });
+  w.document.write('</body></html>');w.document.close();w.print();
+}
+
+// ── MODALS ────────────────────────────────────────────────────────────────────
+function openModal(title,body,fn){
+  // Replace type="number" with type="text" inputmode="decimal" to avoid browser validation warnings on dynamic values
+  body=body.replace(/type="number"/g,'type="text" inputmode="decimal"');
+  document.getElementById('mt').textContent=title;
+  document.getElementById('mb').innerHTML=body;
+  saveFn=fn;
+  document.getElementById('msb').disabled=false;
+  document.getElementById('msb').textContent='Save';
+  document.getElementById('mo').classList.add('open');
+  document.getElementById('mo').scrollTop=0;
+}
+function closeModal(){document.getElementById('mo').classList.remove('open');saveFn=null;}
+function modalSave(){
+  var btn=document.getElementById('msb');
+  btn.disabled=true;btn.innerHTML='<span class="sp"></span>Saving…';
+  Promise.resolve().then(function(){return saveFn&&saveFn();}).then(function(){closeModal();return loadAll();}).then(function(){showTab(currentTab);}).catch(function(err){showErr(err.message||String(err));btn.disabled=false;btn.textContent='Save';});
+}
+document.getElementById('mo').addEventListener('click',function(e){if(e.target===this)closeModal();});
+
+function todayStr(){return new Date().toISOString().split('T')[0];}
+function cuOpts(sel){return'<option value="">— None —</option><option value="__new__">＋ Add new customer…</option>'+C.customers.map(function(c){return'<option value="'+sid(c.id)+'"'+(sid(c.id)===sid(sel)?' selected':'')+'>'+esc(c.name)+'</option>';}).join('');}
+function evOpts(sel){return'<option value="">— None —</option>'+C.events.map(function(e){return'<option value="'+sid(e.id)+'"'+(sid(e.id)===sid(sel)?' selected':'')+'>'+esc(e.name)+' ('+fmtD(e.date)+')</option>';}).join('');}
+function toggleNC(v){document.getElementById('ncbox').style.display=v==='__new__'?'block':'none';}
+function setType(t){selectedType=t;document.querySelectorAll('.type-opt').forEach(function(b){b.classList.toggle('active',b.dataset.type===t);});}
+
+// Equipment item options for event modal dropdowns
+function eqItemOpts(){return C.equipItems.map(function(i){return'<option value="'+esc(i.name)+'">'+esc(i.name)+'</option>';}).join('');}
+
+// ── EVENT MODAL ───────────────────────────────────────────────────────────────
+function openEvModal(id,dateStr){
+  var e=id?findEv(id):null;
+  selectedType=(e&&e.type)||'gt';
+  var laborRowsHtml='';if(e&&e.labor){e.labor.forEach(function(r){if(r.name)laborRowsHtml+=makeLaborRowHtml(r.name,r.qty||'',r.confirmed||false);});}
+  var mainRowsHtml='';if(e&&e.main_equip){e.main_equip.forEach(function(r){if(r.name)mainRowsHtml+=makeEquipRowHtml(r.name,r.qty||'');});}
+  var secRowsHtml='';if(e&&e.sec_equip){e.sec_equip.forEach(function(r){if(r.name)secRowsHtml+=makeEquipRowHtml(r.name,r.qty||'');});}
+  openModal(id?'Edit Event':'Add Event',
+    '<div class="form-group"><label>Event Name</label><input type="text" id="mN" value="'+esc(e&&e.name||'')+'"></div>'+
+    '<div class="g2"><div class="form-group"><label>Date</label><input type="date" id="mD" value="'+(e&&e.date||dateStr||'')+'"></div>'+
+    '<div class="form-group"><label>Time</label><input type="text" id="mTime" placeholder="8 PM – 1 AM" value="'+esc(e&&e.time||'')+'"></div></div>'+
+    '<div class="form-group"><label>Venue</label><input type="text" id="mV" value="'+esc(e&&e.venue||'')+'"></div>'+
+    '<div class="form-group"><label>Event Type</label><div class="type-sel">'+
+      '<button class="type-opt'+(selectedType==='gt'?' active':'')+' gt" data-type="gt" onclick="setType(\'gt\')">GT</button>'+
+      '<button class="type-opt'+(selectedType==='looch'?' active':'')+' looch" data-type="looch" onclick="setType(\'looch\')">Looch</button>'+
+      '<button class="type-opt'+(selectedType==='neon'?' active':'')+' neon" data-type="neon" onclick="setType(\'neon\')">Neon Nights</button>'+
+      '<button class="type-opt'+(selectedType==='other'?' active':'')+' other" data-type="other" onclick="setType(\'other\')">Other</button>'+
+    '</div></div>'+
+    '<hr style="border:none;border-top:1px solid var(--border);margin:14px 0">'+
+    '<div class="form-group"><div style="font-size:11px;font-weight:700;color:var(--blue);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px">👷 Crew</div>'+
+    '<div class="labor-col-hdr"><span>Name</span><span>Hours</span><span>Confirmed</span><span></span></div>'+
+    '<div id="laborRows">'+laborRowsHtml+'</div>'+
+    '<button class="add-row-btn" onclick="addLaborRow()">＋ Add Person</button></div>'+
+    '<div class="form-group"><div style="font-size:11px;font-weight:700;color:var(--green);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px">🎛️ Main Equipment</div>'+
+    '<div class="equip-col-hdr"><span>Item</span><span>Qty</span><span></span></div>'+
+    '<div id="mainEquipRows">'+mainRowsHtml+'</div>'+
+    (C.equipItems.length?'<div style="font-size:11px;color:var(--muted);margin-bottom:6px">Quick add from catalog: <select onchange="quickAddEquip(\'mainEquipRows\',this)" style="width:auto;padding:4px 8px;font-size:12px"><option value="">— select —</option>'+eqItemOpts()+'</select></div>':'')+
+    '<button class="add-row-btn" onclick="addEquipRow(\'mainEquipRows\')">＋ Custom Item</button></div>'+
+    '<div class="form-group"><div style="font-size:11px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px">📦 Secondary Equipment</div>'+
+    '<div class="equip-col-hdr"><span>Item</span><span>Qty</span><span></span></div>'+
+    '<div id="secEquipRows">'+secRowsHtml+'</div>'+
+    '<button class="add-row-btn" onclick="addEquipRow(\'secEquipRows\')">＋ Add Item</button></div>'+
+    '<hr style="border:none;border-top:1px solid var(--border);margin:14px 0">'+
+    '<div class="g2"><div class="form-group"><label>Status</label><select id="mS"><option value="upcoming"'+(!e||e.status==='upcoming'?' selected':'')+'>Upcoming</option><option value="completed"'+(e&&e.status==='completed'?' selected':'')+'>Completed</option><option value="cancelled"'+(e&&e.status==='cancelled'?' selected':'')+'>Cancelled</option></select></div>'+
+    '<div class="form-group"><label>Invoice Amount ($)</label><input type="number" id="mI" step="0.01" value="'+(e&&e.invoice_amount||'')+'"></div></div>'+
+    '<div class="form-group"><label>Customer</label><select id="mC" onchange="toggleNC(this.value)">'+cuOpts(e&&e.customer_id||'')+'</select>'+
+    '<div class="new-cust" id="ncbox"><div class="new-cust-title">New Customer</div>'+
+    '<div class="form-group" style="margin-bottom:8px"><label>Name *</label><input type="text" id="ncN" placeholder="Full name"></div>'+
+    '<div class="g2"><div class="form-group" style="margin-bottom:0"><label>Email</label><input type="email" id="ncE"></div>'+
+    '<div class="form-group" style="margin-bottom:0"><label>Phone</label><input type="text" id="ncP"></div></div></div></div>'+
+    '<div class="form-group"><label>Notes</label><textarea id="mNo">'+esc(e&&e.notes||'')+'</textarea></div>',
+    async function(){
+      var name=document.getElementById('mN').value.trim(),date=document.getElementById('mD').value;
+      if(!name||!date)throw new Error('Name and date are required');
+      var cid=document.getElementById('mC').value||null;
+      if(cid==='__new__'){var nn=document.getElementById('ncN').value.trim();if(!nn)throw new Error('New customer name is required');var nr=await sb.from('customers').insert({name:nn,email:document.getElementById('ncE').value.trim()||null,phone:document.getElementById('ncP').value.trim()||null}).select().single();if(nr.error)throw nr.error;cid=nr.data.id;}
+      var labor=collectLaborRows(),mainEquip=collectEquipRows('mainEquipRows'),secEquip=collectEquipRows('secEquipRows');
+      var row={name:name,date:date,time:document.getElementById('mTime').value.trim()||null,venue:document.getElementById('mV').value.trim()||null,type:selectedType,labor:labor,main_equip:mainEquip,sec_equip:secEquip,status:document.getElementById('mS').value,invoice_amount:parseFloat(document.getElementById('mI').value)||null,customer_id:cid,notes:document.getElementById('mNo').value.trim()||null,updated_at:new Date().toISOString()};
+      var r=id?await sb.from('events').update(row).eq('id',id).select().single():await sb.from('events').insert(row).select().single();
+      if(r.error)throw r.error;
+      var saved=r.data,eventId=saved.id;
+      var ownerMap={'John Magnus':'john','Steve Pfeffer':'steve'};
+      for(var i=0;i<labor.length;i++){
+        var cm=labor[i];if(!cm.name)continue;
+        var ok=ownerMap[cm.name],pk=ok||cm.name;
+      var existing=C.labor.find(function(l){return sid(l.event_id)===sid(eventId)&&l.person===pk;});
+        if(existing){await sb.from('labor').update({hours:parseFloat(cm.qty)||null,rate:ok?OWNER_RATE:undefined}).eq('id',existing.id);}
+        else{await sb.from('labor').insert({event_id:eventId,person:pk,hours:parseFloat(cm.qty)||null,rate:ok?OWNER_RATE:null,total_amount:null,paid:false});}
+      }
+      syncToGCal(saved,!!id);
+    }
+  );
+}
+function quickAddEquip(containerId,sel){if(!sel.value)return;addEquipRow(containerId,sel.value,'');sel.value='';}
+
+// Labor row helpers
+function makeLaborRowHtml(nameVal,qtyVal,conf){
+  var isCustom=nameVal&&!savedLabor.includes(nameVal);
+  var opts=savedLabor.map(function(n){return'<option value="'+esc(n)+'"'+(n===nameVal?' selected':'')+'>'+esc(n)+'</option>';}).join('');
+  if(isCustom)return'<div class="labor-row"><input type="text" class="lname" value="'+esc(nameVal)+'" placeholder="Name"><input type="text" class="lqty" placeholder="hrs" value="'+esc(qtyVal)+'"><button type="button" class="conf-toggle '+(conf?'on':'off')+'" onclick="toggleConf(this)">'+(conf?'✓ Yes':'? No')+'</button><button class="row-remove" onclick="this.closest(\'.labor-row\').remove()">×</button></div>';
+  return'<div class="labor-row"><select class="lname" onchange="onLaborSel(this)"><option value="">— Select —</option>'+opts+'<option value="__custom__">＋ Custom…</option></select><input type="text" class="lqty" placeholder="hrs" value="'+esc(qtyVal)+'"><button type="button" class="conf-toggle '+(conf?'on':'off')+'" onclick="toggleConf(this)">'+(conf?'✓ Yes':'? No')+'</button><button class="row-remove" onclick="this.closest(\'.labor-row\').remove()">×</button></div>';
+}
+function makeEquipRowHtml(nameVal,qtyVal){return'<div class="equip-row"><input type="text" class="ename" placeholder="e.g. CDJ-3000" value="'+esc(nameVal)+'"><input type="text" class="eqty" placeholder="qty" value="'+esc(qtyVal)+'"><button class="row-remove" onclick="this.closest(\'.equip-row\').remove()">×</button></div>';}
+function addLaborRow(){document.getElementById('laborRows').insertAdjacentHTML('beforeend',makeLaborRowHtml('','',false));}
+function addEquipRow(cid,nameVal,qtyVal){document.getElementById(cid).insertAdjacentHTML('beforeend',makeEquipRowHtml(nameVal||'',qtyVal||''));}
+function onLaborSel(sel){if(sel.value==='__custom__'){var inp=document.createElement('input');inp.type='text';inp.className='lname';inp.placeholder='Enter name…';sel.replaceWith(inp);inp.focus();}}
+function toggleConf(btn){var on=btn.classList.contains('on');btn.classList.toggle('on',!on);btn.classList.toggle('off',on);btn.textContent=on?'? No':'✓ Yes';}
+function collectLaborRows(){var rows=[];document.querySelectorAll('#laborRows .labor-row').forEach(function(row){var ni=row.querySelector('.lname'),qi=row.querySelector('.lqty'),ci=row.querySelector('.conf-toggle'),name=(ni&&ni.value||'').trim();if(name)rows.push({name:name,qty:(qi&&qi.value||'').trim(),confirmed:ci?ci.classList.contains('on'):false});});return rows;}
+function collectEquipRows(cid){var rows=[];document.querySelectorAll('#'+cid+' .equip-row').forEach(function(row){var ni=row.querySelector('.ename'),qi=row.querySelector('.eqty'),name=(ni&&ni.value||'').trim();if(name)rows.push({name:name,qty:(qi&&qi.value||'').trim()});});return rows;}
+
+// ── CUSTOMER MODAL ────────────────────────────────────────────────────────────
+function openCuModal(id){
+  var c=id?findCu(id):null;
+  openModal(id?'Edit Customer':'Add Customer',
+    '<div class="form-group"><label>Name</label><input type="text" id="mN" value="'+esc(c&&c.name||'')+'"></div>'+
+    '<div class="g2"><div class="form-group"><label>Email</label><input type="email" id="mE" value="'+esc(c&&c.email||'')+'"></div><div class="form-group"><label>Phone</label><input type="text" id="mP" value="'+esc(c&&c.phone||'')+'"></div></div>'+
+    '<div class="form-group"><label>Notes</label><textarea id="mNo">'+esc(c&&c.notes||'')+'</textarea></div>',
+    async function(){var name=document.getElementById('mN').value.trim();if(!name)throw new Error('Name is required');var row={name:name,email:document.getElementById('mE').value.trim()||null,phone:document.getElementById('mP').value.trim()||null,notes:document.getElementById('mNo').value.trim()||null};var r=id?await sb.from('customers').update(row).eq('id',id):await sb.from('customers').insert(row);if(r.error)throw r.error;}
+  );
+}
+
+// ── PAYMENT MODAL ─────────────────────────────────────────────────────────────
+function openPayModal(cid,eid){
+  openModal('Record Payment',
+    '<div class="form-group"><label>Customer</label><select id="mC">'+cuOpts(cid||'')+'</select></div>'+
+    '<div class="form-group"><label>Event (optional)</label><select id="mE">'+evOpts(eid||'')+'</select></div>'+
+    '<div class="g2"><div class="form-group"><label>Date</label><input type="date" id="mD" value="'+todayStr()+'"></div><div class="form-group"><label>Amount ($)</label><input type="number" id="mA" step="0.01" placeholder="0.00"></div></div>'+
+    '<div class="form-group"><label>Method</label><select id="mM"><option value="">— Select —</option><option>Cash</option><option>Check</option><option>Venmo</option><option>Zelle</option><option>Credit Card</option><option>Other</option></select></div>'+
+    '<div class="form-group"><label>Notes</label><textarea id="mNo" rows="2"></textarea></div>',
+    async function(){var cust=document.getElementById('mC').value,amt=parseFloat(document.getElementById('mA').value),dt=document.getElementById('mD').value;if(!cust)throw new Error('Customer is required');if(!amt||amt<=0)throw new Error('Valid amount required');if(!dt)throw new Error('Date is required');var r=await sb.from('customer_payments').insert({customer_id:cust,date:dt,amount:amt,event_id:document.getElementById('mE').value||null,method:document.getElementById('mM').value||null,notes:document.getElementById('mNo').value.trim()||null});if(r.error)throw r.error;}
+  );
+}
+
+// ── LABOR MODALS ──────────────────────────────────────────────────────────────
+function openLabModal(eid){
+  openModal('Add Owner Labor Hours',
+    '<div class="form-group"><label>Event</label><select id="mE">'+evOpts(eid||'')+'</select></div>'+
+    '<div class="form-group"><label>Person</label><select id="mP"><option value="john">John</option><option value="steve">Steve</option></select></div>'+
+    '<div class="g2"><div class="form-group"><label>Hours</label><input type="number" id="mH" step="0.25" placeholder="0.00"></div><div class="form-group"><label>Rate ($/hr)</label><input type="number" id="mR" step="0.01" value="'+OWNER_RATE+'"></div></div>'+
+    '<div class="form-group"><label>Notes</label><textarea id="mNo" rows="2"></textarea></div>',
+    async function(){var eid2=document.getElementById('mE').value,hrs=parseFloat(document.getElementById('mH').value);if(!eid2)throw new Error('Event is required');if(!hrs||hrs<=0)throw new Error('Valid hours required');var r=await sb.from('labor').insert({event_id:eid2,person:document.getElementById('mP').value,hours:hrs,rate:parseFloat(document.getElementById('mR').value)||OWNER_RATE,total_amount:null,paid:false,notes:document.getElementById('mNo').value.trim()||null});if(r.error)throw r.error;}
+  );
+}
+function openHelperLabModal(eid){
+  var helperNames=[...new Set(C.labor.filter(function(l){return l.person!=='john'&&l.person!=='steve';}).map(function(l){return l.person;}))];
+  var helperOpts=helperNames.map(function(n){return'<option value="'+esc(n)+'">'+esc(n)+'</option>';}).join('');
+  openModal('Add Helper Labor',
+    '<div class="form-group"><label>Event</label><select id="mE">'+evOpts(eid||'')+'</select></div>'+
+    '<div class="form-group"><label>Helper Name</label><select id="mPsel" onchange="toggleHelperCustom(this.value)"><option value="">— Select or add new —</option>'+helperOpts+'<option value="__new__">＋ New helper…</option></select><input type="text" id="mPcustom" placeholder="Enter helper name" style="display:none;margin-top:8px"></div>'+
+    '<div class="g2"><div class="form-group"><label>Hours Worked</label><input type="number" id="mH" step="0.25" placeholder="0.00"></div><div class="form-group"><label>Total Amount Owed ($)</label><input type="number" id="mA" step="0.01" placeholder="0.00"></div></div>'+
+    '<div class="form-group"><label>Notes</label><textarea id="mNo" rows="2"></textarea></div>',
+    async function(){var eid2=document.getElementById('mE').value;if(!eid2)throw new Error('Event is required');var sel=document.getElementById('mPsel').value,custom=document.getElementById('mPcustom').value.trim(),person=sel==='__new__'?custom:sel;if(!person)throw new Error('Helper name is required');var amt=parseFloat(document.getElementById('mA').value);if(!amt||amt<=0)throw new Error('Amount is required');var r=await sb.from('labor').insert({event_id:eid2,person:person,hours:parseFloat(document.getElementById('mH').value)||null,total_amount:amt,paid:false,notes:document.getElementById('mNo').value.trim()||null});if(r.error)throw r.error;}
+  );
+}
+function toggleHelperCustom(v){document.getElementById('mPcustom').style.display=v==='__new__'?'block':'none';}
+function openEditLaborModal(id){
+  var l=C.labor.find(function(x){return sid(x.id)===sid(id);});if(!l)return;
+  var isOwner=l.person==='john'||l.person==='steve';
+  var earned=parseFloat(l.total_amount)||((parseFloat(l.hours)||0)*(parseFloat(l.rate)||OWNER_RATE));
+  openModal('Edit Labor — '+l.person.charAt(0).toUpperCase()+l.person.slice(1),
+    '<div class="form-group"><label>Event</label><input type="text" value="'+evName(l.event_id)+'" disabled style="opacity:.5"></div>'+
+    '<div class="g2"><div class="form-group"><label>Hours</label><input type="number" id="mH" step="0.25" value="'+(l.hours||'')+'" placeholder="0.00"></div>'+
+    (isOwner?'<div class="form-group"><label>Rate ($/hr)</label><input type="number" id="mR" step="0.01" value="'+(l.rate||OWNER_RATE)+'" placeholder="'+OWNER_RATE+'"></div>':'<div class="form-group"><label>Total Amount ($)</label><input type="number" id="mA" step="0.01" value="'+(l.total_amount||'')+'" placeholder="0.00"></div>')+'</div>'+
+    '<div class="form-group"><label>Notes</label><textarea id="mNo" rows="2">'+esc(l.notes||'')+'</textarea></div>',
+    async function(){var row={hours:parseFloat(document.getElementById('mH').value)||null};if(isOwner){row.rate=parseFloat(document.getElementById('mR').value)||OWNER_RATE;}else{row.total_amount=parseFloat(document.getElementById('mA').value)||null;}row.notes=document.getElementById('mNo').value.trim()||null;var r=await sb.from('labor').update(row).eq('id',id);if(r.error)throw r.error;}
+  );
+}
+function markHelperPaid(id){
+  openModal('Mark as Paid',
+    '<div class="form-group"><label>Payment Date</label><input type="date" id="mD" value="'+todayStr()+'"></div>'+
+    '<div class="form-group"><label>Notes</label><textarea id="mNo" rows="2" placeholder="e.g. Paid via Venmo"></textarea></div>',
+    async function(){var r=await sb.from('labor').update({paid:true,paid_date:document.getElementById('mD').value,paid_notes:document.getElementById('mNo').value.trim()||null}).eq('id',id);if(r.error)throw r.error;}
+  );
+}
+function markOwnerLaborPaid(id,earned){
+  openModal('Mark Labor as Paid',
+    '<div class="form-group"><label>Payment Date</label><input type="date" id="mD" value="'+new Date().toISOString().split('T')[0]+'"></div>'+
+    '<div class="form-group"><label>Amount Paid ($)</label><input type="number" id="mA" step="0.01" value="'+earned.toFixed(2)+'"></div>'+
+    '<div class="form-group"><label>Notes</label><textarea id="mNo" rows="2" placeholder="e.g. Paid via Venmo"></textarea></div>',
+    async function(){var r=await sb.from('labor').update({paid:true,paid_date:document.getElementById('mD').value,paid_amount:parseFloat(document.getElementById('mA').value)||null,paid_notes:document.getElementById('mNo').value.trim()||null}).eq('id',id);if(r.error)throw r.error;}
+  );
+}
+
+// ── EXPENSE MODAL ─────────────────────────────────────────────────────────────
+function openExpModal(eid,xid){
+  var x=xid?C.expenses.find(function(e){return sid(e.id)===sid(xid);}):null;
+  openModal(xid?'Edit Expense':'Add Expense',
+    '<div class="form-group"><label>Event <span style="color:var(--muted);font-weight:400;text-transform:none">(optional)</span></label><select id="mE">'+evOpts(x&&x.event_id||eid||'')+'</select></div>'+
+    '<div class="g2"><div class="form-group"><label>Person</label><select id="mP"><option value="john"'+(x&&x.person==='john'?' selected':'')+'>John</option><option value="steve"'+(x&&x.person==='steve'?' selected':'')+'>Steve</option></select></div>'+
+    '<div class="form-group"><label>Category</label><select id="mCat">'+['travel','toll','equipment','helper','other'].map(function(c){return'<option value="'+c+'"'+(x&&x.category===c?' selected':'')+'>'+c.charAt(0).toUpperCase()+c.slice(1)+'</option>';}).join('')+'</select></div></div>'+
+    '<div class="form-group"><label>Description</label><input type="text" id="mDesc" value="'+esc(x&&x.description||'')+'" placeholder="e.g. Turnpike toll"></div>'+
+    '<div class="form-group"><label>Amount ($)</label><input type="number" id="mA" step="0.01" value="'+(x&&x.amount||'')+'" placeholder="0.00"></div>'+
+    '<div class="form-group"><label>Notes</label><textarea id="mNo" rows="2">'+esc(x&&x.notes||'')+'</textarea></div>',
+    async function(){
+      var amt=parseFloat(document.getElementById('mA').value);
+      if(!amt||amt<=0)throw new Error('Valid amount required');
+      var eid2=document.getElementById('mE').value||null;
+      var per=document.getElementById('mP').value;
+      var cat=document.getElementById('mCat').value;
+      var desc=document.getElementById('mDesc').value.trim()||null;
+      var nts=document.getElementById('mNo').value.trim()||null;
+      var r;
+      if(xid){
+        r=await sb.from('expenses').update({event_id:eid2,person:per,category:cat,description:desc,amount:amt,notes:nts}).eq('id',xid);
+      } else {
+        r=await sb.from('expenses').insert({event_id:eid2,person:per,category:cat,description:desc,amount:amt,notes:nts,reimbursed:false});
+      }
+      if(r.error)throw r.error;
+    }
+  );
+}
+
+// ── PROFIT SHARE MODAL ────────────────────────────────────────────────────────
+function openPSModal(person){
+  var label=person.charAt(0).toUpperCase()+person.slice(1);
+  openModal('Add Profit Share — '+label,
+    '<div class="g2"><div class="form-group"><label>Date</label><input type="date" id="mD" value="'+new Date().toISOString().split('T')[0]+'"></div><div class="form-group"><label>Amount ($)</label><input type="number" id="mA" step="0.01" placeholder="0.00"></div></div>'+
+    '<div class="form-group"><label>Method</label><select id="mM"><option value="">— Select —</option><option>Cash</option><option>Check</option><option>Venmo</option><option>Zelle</option><option>Bank Transfer</option><option>Other</option></select></div>'+
+    '<div class="form-group"><label>Event <span style="color:var(--muted);font-weight:400;text-transform:none">(optional)</span></label><select id="mE">'+evOpts('')+'</select></div>'+
+    '<div class="form-group"><label>Notes</label><textarea id="mNo" rows="2"></textarea></div>',
+    async function(){var amt=parseFloat(document.getElementById('mA').value),dt=document.getElementById('mD').value;if(!amt||amt<=0)throw new Error('Valid amount required');if(!dt)throw new Error('Date is required');var r=await sb.from('profit_share').insert({person:person,date:dt,amount:amt,method:document.getElementById('mM').value||null,event_id:document.getElementById('mE').value||null,notes:document.getElementById('mNo').value.trim()||null});if(r.error)throw r.error;}
+  );
+}
+
+function openLaborPayModal(person){
+  var label=person.charAt(0).toUpperCase()+person.slice(1);
+  openModal('Add Labor Payment — '+label,
+    '<div class="g2">'+
+      '<div class="form-group"><label>Date</label><input type="date" id="mD" value="'+new Date().toISOString().split('T')[0]+'"></div>'+
+      '<div class="form-group"><label>Amount ($)</label><input type="number" id="mA" step="0.01" placeholder="0.00"></div>'+
+    '</div>'+
+    '<div class="form-group"><label>Method</label><select id="mM"><option value="">— Select —</option><option>Cash</option><option>Check</option><option>Venmo</option><option>Zelle</option><option>Bank Transfer</option><option>Other</option></select></div>'+
+    '<div class="form-group"><label>Notes</label><textarea id="mNo" rows="2" placeholder="e.g. Payment for March events"></textarea></div>',
+    async function(){
+      var amt=parseFloat(document.getElementById('mA').value);
+      var dt=document.getElementById('mD').value;
+      if(!amt||amt<=0)throw new Error('Valid amount required');
+      if(!dt)throw new Error('Date is required');
+      var r=await sb.from('labor_payments').insert({person:person,date:dt,amount:amt,method:document.getElementById('mM').value||null,notes:document.getElementById('mNo').value.trim()||null});
+      if(r.error)throw r.error;
+    }
+  );
+}
+function openEqItemModal(id){
+  var item=id?C.equipItems.find(function(i){return i.id===id;}):null;
+  openModal(id?'Edit Equipment Item':'Add Equipment Item',
+    '<div class="form-group"><label>Item Name</label><input type="text" id="mN" value="'+esc(item&&item.name||'')+'" placeholder="e.g. 10\'x10\' LED Dance Floor"></div>'+
+    '<div class="form-group"><label>Category <span style="color:var(--muted);font-weight:400;text-transform:none">(optional)</span></label><input type="text" id="mCat" value="'+esc(item&&item.category||'')+'" placeholder="e.g. Dance Floor, Stage, Lighting"></div>'+
+    '<div class="form-group"><label>Notes</label><textarea id="mNo">'+esc(item&&item.notes||'')+'</textarea></div>',
+    async function(){var name=document.getElementById('mN').value.trim();if(!name)throw new Error('Name is required');var row={name:name,category:document.getElementById('mCat').value.trim()||null,notes:document.getElementById('mNo').value.trim()||null};var r=id?await sb.from('equipment_items').update(row).eq('id',id):await sb.from('equipment_items').insert(row);if(r.error)throw r.error;}
+  );
+}
+
+// ── EQUIPMENT COMPONENT MODAL ─────────────────────────────────────────────────
+function openEqCompModal(itemId,compId){
+  openEqCardId=itemId;
+  var comp=compId?C.equipComponents.find(function(c){return c.id===compId;}):null;
+  var item=C.equipItems.find(function(i){return i.id===itemId;});
+  openModal((compId?'Edit':'Add')+' Component'+(item?' — '+item.name:''),
+    '<div class="form-group"><label>Component Name</label><input type="text" id="mN" value="'+esc(comp&&comp.name||'')+'" placeholder="e.g. Power Supply"></div>'+
+    '<div class="g2"><div class="form-group"><label>Quantity</label><input type="number" id="mQ" step="0.01" value="'+(comp&&comp.quantity||'')+'" placeholder="e.g. 4"></div>'+
+    '<div class="form-group"><label>Unit</label><input type="text" id="mU" value="'+esc(comp&&comp.unit||'')+'" placeholder="e.g. cases, pcs, ft"></div></div>'+
+    '<div class="form-group"><label>Sort Order</label><input type="number" id="mSort" value="'+(comp&&comp.sort_order||0)+'" placeholder="0"></div>',
+    async function(){var name=document.getElementById('mN').value.trim();if(!name)throw new Error('Component name is required');var row={equipment_item_id:itemId,name:name,quantity:parseFloat(document.getElementById('mQ').value)||null,unit:document.getElementById('mU').value.trim()||null,sort_order:parseInt(document.getElementById('mSort').value)||0};var r=compId?await sb.from('equipment_components').update(row).eq('id',compId):await sb.from('equipment_components').insert(row);if(r.error)throw r.error;}
+  );
+}
+
+// ── ACTIONS ───────────────────────────────────────────────────────────────────
+function delRec(table,id,cb){
+  if(!confirm('Delete this record?'))return;
+  sb.from(table).delete().eq('id',id).then(function(r){if(r.error){showErr(r.error.message);return;}loadAll().then(function(){if(cb)cb();else showTab(currentTab);});});
+}
+function doReimb(xid,eid,prevTab){
+  sb.from('expenses').update({reimbursed:true}).eq('id',xid).then(function(r){if(r.error){showErr(r.error.message);return;}loadAll().then(function(){if(eid)openEvDetail(eid,prevTab||'events');else showTab('expenses');});});
+}
+
+init();
+</script>
+</body>
+</html>
++OWNER_RATE+'/hr')+'</td><td style="color:var(--green)">'+fmt(earned)+'</td><td style="color:var(--muted)">'+esc(l.notes||'')+'</td>'+
+      '<td><div class="acts"><button class="btn btn-sm btn-outline" onclick="openEditLaborModal(\''+sid(l.id)+'\')">Edit</button><button class="btn btn-sm btn-danger" onclick="delRec(\'labor\',\''+sid(l.id)+'\')">Del</button></div></td></tr>';
+    }).join('')||'<tr><td colspan="9" class="empty">No owner labor recorded</td></tr>')+
+    '</tbody></table>'+
+    sh('Helper Labor ('+helperLab.length+')','<button class="btn btn-sm" onclick="openHelperLabModal()">+ Add Helper</button>')+
+    (helperSummary.length?'<div class="stat-grid" style="margin-bottom:16px">'+helperSummary.map(function(h){return'<div class="stat-card"><div class="stat-label">'+esc(h.name)+'</div><div class="stat-value '+(h.unpaid>0?'amber':'green')+'">'+fmt(h.unpaid)+' unpaid</div><div style="font-size:11px;color:var(--muted);margin-top:4px">'+fmt(h.total)+' total</div></div>';}).join('')+'</div>':'')+
+    '<table class="tbl"><thead><tr>'+lth('Date','date')+lth('Event','event')+lth('Venue','venue')+lth('Person','person')+lth('Hours','hours')+'<th>Amount</th><th>Status</th><th>Notes</th><th></th></tr></thead><tbody>'+
+    (sortedHelper.map(function(l){
+      var ev=findEv(l.event_id);
+      return'<tr><td>'+fmtD(ev?ev.date:'')+'</td><td style="font-weight:500">'+evName(l.event_id)+'</td><td style="color:var(--muted)">'+esc(ev&&ev.venue||'—')+'</td><td style="text-transform:capitalize">'+esc(l.person)+'</td><td>'+(l.hours||'—')+'</td><td style="color:var(--green)">'+fmt(l.total_amount)+'</td><td><span class="badge '+(l.paid?'bg':'ba')+'">'+(l.paid?'Paid':'Unpaid')+'</span>'+(l.paid&&l.paid_date?' <span style="font-size:10px;color:var(--muted)">'+fmtD(l.paid_date)+'</span>':'')+'</td><td style="color:var(--muted)">'+esc(l.notes||'')+'</td>'+
+      '<td><div class="acts"><button class="btn btn-sm btn-outline" onclick="openEditLaborModal(\''+sid(l.id)+'\')">Edit</button>'+(!l.paid?'<button class="btn btn-sm btn-outline" onclick="markHelperPaid(\''+sid(l.id)+'\')">✓ Pay</button>':'')+'<button class="btn btn-sm btn-danger" onclick="delRec(\'labor\',\''+sid(l.id)+'\')">Del</button></div></td></tr>';
+    }).join('')||'<tr><td colspan="9" class="empty">No helper labor recorded</td></tr>')+
+    '</tbody></table>';
+}
+function sortLab(col){if(laborSort.col===col){laborSort.dir*=-1;}else{laborSort.col=col;laborSort.dir=-1;}renderLabor();}
+
+// ── OWNER FINANCES ────────────────────────────────────────────────────────────
+function ownerStats(person){
+  var lab=filterLaborByPeriod(C.labor).filter(function(l){return l.person===person;});
+  var exp=filterByPeriod(C.expenses,'created_at').filter(function(x){return x.person===person;});
+  var ps=filterByPeriod(C.profitShare,'date').filter(function(p){return p.person===person;});
+  var lp=filterByPeriod(C.laborPayments,'date').filter(function(p){return p.person===person;});
+  var laborEarned=lab.reduce(function(s,l){return s+(parseFloat(l.total_amount)||((parseFloat(l.hours)||0)*(parseFloat(l.rate)||OWNER_RATE)));},0);
+  var laborPaid=lp.reduce(function(s,p){return s+(parseFloat(p.amount)||0);},0);
+  var expPaid=exp.reduce(function(s,x){return s+(parseFloat(x.amount)||0);},0);
+  var expReimb=exp.filter(function(x){return x.reimbursed;}).reduce(function(s,x){return s+(parseFloat(x.amount)||0);},0);
+  var psTotal=ps.reduce(function(s,p){return s+(parseFloat(p.amount)||0);},0);
+  return{laborEarned:laborEarned,laborPaid:laborPaid,laborOwed:laborEarned-laborPaid,expPaid:expPaid,expReimb:expReimb,expOwed:expPaid-expReimb,psTotal:psTotal};
+}
+function renderOwnerFinances(){
+  var john=ownerStats('john'),steve=ownerStats('steve');
+  function personCard(name,s){
+    var label=name.charAt(0).toUpperCase()+name.slice(1);
+    var ps=filterByPeriod(C.profitShare,'date').filter(function(p){return p.person===name;}).sort(function(a,b){return b.date.localeCompare(a.date);});
+    var lp=filterByPeriod(C.laborPayments,'date').filter(function(p){return p.person===name;}).sort(function(a,b){return b.date.localeCompare(a.date);});
+    var labRows=filterLaborByPeriod(C.labor).filter(function(l){return l.person===name;});
+    return'<div style="margin-bottom:24px">'+
+      '<div class="section-title" style="margin-bottom:12px">'+label+'</div>'+
+      '<div class="stat-grid" style="margin-bottom:16px">'+
+        sc('Labor Earned',fmt(s.laborEarned),'green')+
+        sc('Labor Paid',fmt(s.laborPaid))+
+        sc('Labor Owed',fmt(s.laborOwed),s.laborOwed>0?'amber':'')+
+        sc('Expenses Out',fmt(s.expPaid))+
+        sc('Expenses Reimb.',fmt(s.expReimb))+
+        sc('Exp. Owed',fmt(s.expOwed),s.expOwed>0?'amber':'')+
+        sc('Profit Share',fmt(s.psTotal),'green')+
+        sc('Total Owed',fmt(s.laborOwed+s.expOwed),s.laborOwed+s.expOwed>0?'amber':'')+
+      '</div>'+
+      sh('Labor Payments — '+label,'<button class="btn btn-sm btn-outline" onclick="exportOwnerFinances(\''+name+'\')">⬇ CSV</button><button class="btn btn-sm" onclick="openLaborPayModal(\''+name+'\')">+ Add Labor Payment</button>')+
+      '<table class="tbl"><thead><tr><th>Date</th><th>Amount</th><th>Method</th><th>Notes</th><th></th></tr></thead><tbody>'+
+      (lp.map(function(p){return'<tr>'+
+        '<td>'+fmtD(p.date)+'</td>'+
+        '<td style="color:var(--green)">'+fmt(p.amount)+'</td>'+
+        '<td>'+esc(p.method||'—')+'</td>'+
+        '<td style="color:var(--muted)">'+esc(p.notes||'')+'</td>'+
+        '<td><button class="btn btn-sm btn-danger" onclick="delRec(\'labor_payments\',\''+p.id+'\')">Del</button></td>'+
+      '</tr>';}).join('')||'<tr><td colspan="5" class="empty">No labor payments recorded</td></tr>')+
+      '</tbody></table>'+
+      sh('Profit Share — '+label,'<button class="btn btn-sm" onclick="openPSModal(\''+name+'\')">+ Add Distribution</button>')+
+      '<table class="tbl"><thead><tr><th>Date</th><th>Amount</th><th>Method</th><th>Event</th><th>Notes</th><th></th></tr></thead><tbody>'+
+      (ps.map(function(p){return'<tr><td>'+fmtD(p.date)+'</td><td style="color:var(--green)">'+fmt(p.amount)+'</td><td>'+esc(p.method||'—')+'</td><td style="color:var(--muted)">'+(p.event_id?evName(p.event_id):'—')+'</td><td style="color:var(--muted)">'+esc(p.notes||'')+'</td><td><button class="btn btn-sm btn-danger" onclick="delRec(\'profit_share\',\''+sid(p.id)+'\')">Del</button></td></tr>';}).join('')||'<tr><td colspan="6" class="empty">No profit share distributions yet</td></tr>')+
+      '</tbody></table>'+
+      sh('Labor Detail — '+label)+
+      '<table class="tbl"><thead><tr><th>Event</th><th>Date</th><th>Hours</th><th>Earned</th><th>Notes</th><th></th></tr></thead><tbody>'+
+      (labRows.map(function(l){var ev=findEv(l.event_id);var earned=parseFloat(l.total_amount)||((parseFloat(l.hours)||0)*(parseFloat(l.rate)||OWNER_RATE));
+        return'<tr><td style="font-weight:500">'+evName(l.event_id)+'</td><td>'+(ev?fmtD(ev.date):'—')+'</td><td>'+(l.hours||'—')+'</td><td style="color:var(--green)">'+fmt(earned)+'</td><td style="color:var(--muted)">'+esc(l.notes||'')+'</td>'+
+        '<td><div class="acts"><button class="btn btn-sm btn-outline" onclick="openEditLaborModal(\''+sid(l.id)+'\')">Edit</button></div></td></tr>';}).join('')||'<tr><td colspan="6" class="empty">No labor records</td></tr>')+
       '</tbody></table>'+
     '</div>';
   }
@@ -961,7 +1499,7 @@ function modalSave(){
 }
 document.getElementById('mo').addEventListener('click',function(e){if(e.target===this)closeModal();});
 
-function cuOpts(sel){return'<option value="__new__">＋ Add new customer…</option><option value="">— None —</option>'+C.customers.map(function(c){return'<option value="'+sid(c.id)+'"'+(sid(c.id)===sid(sel)?' selected':'')+'>'+esc(c.name)+'</option>';}).join('');}
+function cuOpts(sel){return'<option value="">— None —</option><option value="__new__">＋ Add new customer…</option>'+C.customers.map(function(c){return'<option value="'+sid(c.id)+'"'+(sid(c.id)===sid(sel)?' selected':'')+'>'+esc(c.name)+'</option>';}).join('');}
 function evOpts(sel){return'<option value="">— None —</option>'+C.events.map(function(e){return'<option value="'+sid(e.id)+'"'+(sid(e.id)===sid(sel)?' selected':'')+'>'+esc(e.name)+' ('+fmtD(e.date)+')</option>';}).join('');}
 function toggleNC(v){document.getElementById('ncbox').style.display=v==='__new__'?'block':'none';}
 function setType(t){selectedType=t;document.querySelectorAll('.type-opt').forEach(function(b){b.classList.toggle('active',b.dataset.type===t);});}
@@ -1148,7 +1686,25 @@ function openPSModal(person){
   );
 }
 
-// ── EQUIPMENT ITEM MODAL ──────────────────────────────────────────────────────
+function openLaborPayModal(person){
+  var label=person.charAt(0).toUpperCase()+person.slice(1);
+  openModal('Add Labor Payment — '+label,
+    '<div class="g2">'+
+      '<div class="form-group"><label>Date</label><input type="date" id="mD" value="'+new Date().toISOString().split('T')[0]+'"></div>'+
+      '<div class="form-group"><label>Amount ($)</label><input type="number" id="mA" step="0.01" placeholder="0.00"></div>'+
+    '</div>'+
+    '<div class="form-group"><label>Method</label><select id="mM"><option value="">— Select —</option><option>Cash</option><option>Check</option><option>Venmo</option><option>Zelle</option><option>Bank Transfer</option><option>Other</option></select></div>'+
+    '<div class="form-group"><label>Notes</label><textarea id="mNo" rows="2" placeholder="e.g. Payment for March events"></textarea></div>',
+    async function(){
+      var amt=parseFloat(document.getElementById('mA').value);
+      var dt=document.getElementById('mD').value;
+      if(!amt||amt<=0)throw new Error('Valid amount required');
+      if(!dt)throw new Error('Date is required');
+      var r=await sb.from('labor_payments').insert({person:person,date:dt,amount:amt,method:document.getElementById('mM').value||null,notes:document.getElementById('mNo').value.trim()||null});
+      if(r.error)throw r.error;
+    }
+  );
+}
 function openEqItemModal(id){
   var item=id?C.equipItems.find(function(i){return i.id===id;}):null;
   openModal(id?'Edit Equipment Item':'Add Equipment Item',
