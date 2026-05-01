@@ -1094,6 +1094,56 @@ function collectEquip(wrapId){
     return{name:name,qty:parseFloat(row.querySelector('.eq-qty').value)||1};
   }).filter(Boolean);
 }
+function evCrewHtml(labor){
+  var rows=labor||[];
+  var out='<div style="font-size:11px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:.8px;margin-bottom:8px">⚒ Crew</div>';
+  if(rows.length){
+    out+='<div style="display:grid;grid-template-columns:1fr 80px 110px 32px;gap:6px;margin-bottom:4px">'+
+      '<div style="font-size:10px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.5px">Name</div>'+
+      '<div style="font-size:10px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.5px">Hours</div>'+
+      '<div style="font-size:10px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.5px">Confirmed</div>'+
+      '<div></div></div>';
+  }
+  out+='<div id="crewWrap">';
+  rows.forEach(function(r){out+=crewRowHtml(r.name||'',r.qty||'',r.confirmed);});
+  out+='</div>'+
+    '<button type="button" class="btn btn-sm btn-outline" style="margin-top:2px;margin-bottom:14px;border-style:dashed" onclick="addCrewRow()">+ Add Person</button>';
+  return out;
+}
+function equipRowHtml(name,qty){
+  return'<div class="equip-row" style="display:grid;grid-template-columns:1fr 80px 32px;gap:6px;margin-bottom:6px;align-items:center">'+
+    '<input class="eq-name" value="'+esc(name)+'" placeholder="Item name">'+
+    '<input type="number" class="eq-qty" value="'+qty+'" min="1">'+
+    '<button type="button" onclick="this.closest(\'.equip-row\').remove()" style="background:var(--accent2);color:#fff;border:none;border-radius:6px;cursor:pointer;width:32px;height:34px;font-size:16px;line-height:1">×</button>'+
+  '</div>';
+}
+function quickAddEquip(sel,wrapId){
+  if(!sel.value)return;
+  document.getElementById(wrapId).insertAdjacentHTML('beforeend',equipRowHtml(sel.value,1));
+  sel.value='';
+}
+function addEquipRow(wrapId){
+  document.getElementById(wrapId).insertAdjacentHTML('beforeend',equipRowHtml('',1));
+}
+function evEquipHtml(wrapId,items,label,emoji){
+  var rows=items||[];
+  var catOpts='<option value="">— select —</option>'+C.equipItems.map(function(x){return'<option value="'+esc(x.name)+'">'+esc(x.name)+'</option>';}).join('');
+  var out='<div style="font-size:11px;font-weight:700;color:var(--green);text-transform:uppercase;letter-spacing:.8px;margin-bottom:8px">'+emoji+' '+label+'</div>';
+  if(rows.length){
+    out+='<div style="display:grid;grid-template-columns:1fr 80px 32px;gap:6px;margin-bottom:4px">'+
+      '<div style="font-size:10px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.5px">Item</div>'+
+      '<div style="font-size:10px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.5px">Qty</div>'+
+      '<div></div></div>';
+  }
+  out+='<div id="'+wrapId+'">';
+  rows.forEach(function(r){out+=equipRowHtml(r.name||'',r.qty||1);});
+  out+='</div>'+
+    '<div style="display:flex;gap:8px;align-items:center;margin-top:4px;flex-wrap:wrap">'+
+    (C.equipItems.length?'<select onchange="quickAddEquip(this,\''+wrapId+'\')" style="flex:1;min-width:140px;font-size:13px">'+catOpts+'</select>':'')+
+    '<button type="button" class="btn btn-sm btn-outline" style="border-style:dashed;white-space:nowrap;font-size:12px" onclick="addEquipRow(\''+wrapId+'\')">+ Custom Item</button>'+
+    '</div>';
+  return out;
+}
 function openEvModal(id,dateStr){
   var ev=id?C.events.find(function(e){return sid(e.id)===sid(id);}):null;
   var d=ev?ev.date:(dateStr||todayStr());
@@ -1370,8 +1420,6 @@ async function delRec(table,id,cb){
   else if(table==='equipment_items'||table==='equipment_components')showTab('equipment');
 }
 
-// ── MISC ──────────────────────────────────────────────────────────────────────
-function showErr(msg){var b=document.getElementById('eb');if(!b)return;b.textContent='⚠ '+msg;b.style.display='block';setTimeout(function(){b.style.display='none';},4000);}
 
 init();
 </script>
