@@ -327,10 +327,9 @@ function statusBadge(s){return'<span class="badge '+(s==='completed'?'bg':s==='c
 // ── PERIOD ────────────────────────────────────────────────────────────────────
 function getPeriodRange(){
   var now=new Date(),yr=now.getFullYear(),ds=now.toISOString().split('T')[0];
-  if(selectedPeriod==='ytd')   return{start:yr+'-01-01',end:ds,label:'Year to Date ('+yr+')'};
-  if(selectedPeriod==='all')   return{start:BUSINESS_START,end:'9999-12-31',label:'All Time'};
+  if(selectedPeriod==='ytd') return{start:yr+'-01-01',end:ds,label:'Year to Date ('+yr+')'};
+  if(selectedPeriod==='all') return{start:BUSINESS_START,end:'9999-12-31',label:'All Time'};
   var y=parseInt(selectedPeriod);
-  if(y===yr) return{start:y+'-01-01',end:ds,label:'Year to Date ('+y+')'};
   return{start:y+'-01-01',end:y+'-12-31',label:''+y};
 }
 function inPeriod(d){var r=getPeriodRange();return d>=r.start&&d<=r.end;}
@@ -338,17 +337,15 @@ function filterByPeriod(arr,f){return arr.filter(function(x){return inPeriod(x[f
 function setPeriod(v){selectedPeriod=v;showTab(currentTab);}
 function periodSelector(){
   var yr=new Date().getFullYear(),opts='';
-  // Show all years from 2025 to current — current year shows as YTD, past years show full year
   for(var y=yr;y>=2025;y--){
-    var lbl=y===yr?y+' (Year to Date)':String(y);
-    opts+='<option value="'+y+'"'+(selectedPeriod==y?' selected':'')+'>'+lbl+'</option>';
+    opts+='<option value="'+y+'"'+(selectedPeriod==y?' selected':'')+'>'+y+'</option>';
   }
   return'<div class="period-bar">'+
     '<span style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.8px">Period:</span>'+
     '<select onchange="setPeriod(this.value)" style="width:auto;padding:6px 10px;font-size:13px">'+
       '<option value="ytd"'+(selectedPeriod==='ytd'?' selected':'')+'>Year to Date</option>'+
       opts+
-      '<option value="all"'+(selectedPeriod==='all'?' selected':'')+'>All Time (2025–today)</option>'+
+      '<option value="all"'+(selectedPeriod==='all'?' selected':'')+'>All Time</option>'+
     '</select>'+
     '<span class="period-label">'+getPeriodRange().label+'</span>'+
   '</div>';
@@ -618,11 +615,7 @@ function toggleEvCard(id){var c=document.getElementById('evc-'+id);if(c)c.classL
 
 // ── EVENTS LIST ───────────────────────────────────────────────────────────────
 function renderEvents(){
-  var today=todayStr();
-  var upcoming=C.events.filter(function(e){return e.date>=today&&(e.status==='upcoming'||e.status==='confirmed'||!e.status);}).sort(function(a,b){return a.date.localeCompare(b.date);});
-  var upcomingIds=upcoming.map(function(e){return sid(e.id);});
-  var past=filterByPeriod(C.events,'date').filter(function(e){return!upcomingIds.includes(sid(e.id));});
-  var filtered=upcoming.concat(past);
+  var filtered=filterByPeriod(C.events,'date');
   var sorted=filtered.slice().sort(function(a,b){
     var av,bv;
     if(evSort.col==='date'){av=a.date||'';bv=b.date||'';}
@@ -638,7 +631,7 @@ function renderEvents(){
   function th(lbl,col){var arrow=evSort.col===col?(evSort.dir===1?' ↑':' ↓'):'';return'<th style="cursor:pointer;user-select:none" onclick="sortEv(\''+col+'\')">'+lbl+arrow+'</th>';}
   document.getElementById('mc').innerHTML=
     periodSelector()+
-    sh('Events ('+past.length+' in period'+(upcoming.length?' + '+upcoming.length+' upcoming':'')+')',exportBtn('exportEvents')+'<button class="btn btn-sm" onclick="openEvModal()">+ Add Event</button>')+
+    sh('Events ('+filtered.length+')',exportBtn('exportEvents')+'<button class="btn btn-sm" onclick="openEvModal()">+ Add Event</button>')+
     '<table class="tbl"><thead><tr>'+th('Event','name')+th('Date','date')+th('Venue','venue')+th('Type','type')+th('Customer','customer')+th('Invoice','invoice')+th('Hours','hours')+th('Profit','profit')+th('Status','status')+'<th></th></tr></thead><tbody>'+
     (sorted.map(function(e){
       var f=evFin(e.id);
