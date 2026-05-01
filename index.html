@@ -519,7 +519,7 @@ function showTab(tab){
 // ── DASHBOARD ─────────────────────────────────────────────────────────────────
 function renderDash(){
   var evts=filterByPeriod(C.events,'date'),pmts=filterByPeriod(C.payments,'date');
-  var lab=filterLaborByPeriod(C.labor),exp=filterByPeriod(C.expenses,'created_at');
+  var lab=filterLaborByPeriod(C.labor),exp=filterByPeriod(C.expenses,'date');
   var ti=evts.reduce(function(s,e){return s+(parseFloat(e.invoice_amount)||0);},0);
   var tp=pmts.reduce(function(s,p){return s+(parseFloat(p.amount)||0);},0);
   var tl=lab.reduce(function(s,l){return s+(parseFloat(l.total_amount)||((parseFloat(l.hours)||0)*(parseFloat(l.rate)||OWNER_RATE)));},0);
@@ -816,7 +816,7 @@ function renderLabor(){
 // ── OWNER FINANCES ────────────────────────────────────────────────────────────
 function ownerStats(person){
   var lab=filterLaborByPeriod(C.labor).filter(function(l){return l.person===person;});
-  var exp=filterByPeriod(C.expenses,'created_at').filter(function(x){return x.person===person;});
+  var exp=filterByPeriod(C.expenses,'date').filter(function(x){return x.person===person;});
   var ps=filterByPeriod(C.profitShare,'date').filter(function(p){return p.person===person;});
   var lp=filterByPeriod(C.laborPayments,'date').filter(function(p){return p.person===person;});
   var laborEarned=lab.reduce(function(s,l){return s+(parseFloat(l.total_amount)||((parseFloat(l.hours)||0)*(parseFloat(l.rate)||OWNER_RATE)));},0);
@@ -873,7 +873,7 @@ function renderOwnerFinances(){
 
 // ── EXPENSES ──────────────────────────────────────────────────────────────────
 function renderExpenses(){
-  var filtered=filterByPeriod(C.expenses,'created_at');
+  var filtered=filterByPeriod(C.expenses,'date');
   var te=filtered.reduce(function(s,x){return s+(parseFloat(x.amount)||0);},0);
   var ur=filtered.filter(function(x){return!x.reimbursed;}).reduce(function(s,x){return s+(parseFloat(x.amount)||0);},0);
   document.getElementById('mc').innerHTML=
