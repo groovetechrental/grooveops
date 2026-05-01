@@ -998,4 +998,11 @@ function printPackingList(){
     comps.forEach(function(c){var compQty=c.quantity?Math.ceil(c.quantity*qty)+' '+(c.unit||''):'';w.document.write('<tr><td class="check">☐</td><td>'+c.name+'</td><td style="color:#999">'+compQty+'</td></tr>');});
     w.document.write('</table>');
   });
-  w.document.write('</body></html>
+  w.document.write('</body></html>');
+  w.document.close();
+}
+
+init();
+</script>
+</body>
+</html>
