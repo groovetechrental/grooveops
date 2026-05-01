@@ -1024,28 +1024,111 @@ function modalSave(){if(_modalSaveFn)_modalSaveFn();}
 function gv(id){var el=document.getElementById(id);return el?el.value.trim():'';}
 
 // ── EVENT MODAL ───────────────────────────────────────────────────────────────
+function evCrewHtml(labor){
+  var rows=labor||[];
+  var out='<div id="crewWrap">';
+  rows.forEach(function(r,i){
+    out+='<div class="form-group" style="display:grid;grid-template-columns:1fr 80px 80px 32px;gap:6px;align-items:end">'+
+      '<div><label style="margin-bottom:3px">Name</label><input class="crew-name" value="'+esc(r.name||'')+'"></div>'+
+      '<div><label style="margin-bottom:3px">Hrs</label><input type="number" class="crew-hrs" value="'+(r.qty||'')+'" step="0.5"></div>'+
+      '<div><label style="margin-bottom:3px">Status</label><select class="crew-conf">'+
+        '<option value="0"'+(r.confirmed?'':' selected')+'>?</option>'+
+        '<option value="1"'+(r.confirmed?' selected':'')+'>✓</option>'+
+      '</select></div>'+
+      '<button type="button" onclick="this.closest(\'.form-group\').remove()" style="background:var(--accent2);color:#fff;border:none;border-radius:6px;cursor:pointer;height:34px;margin-top:18px">✕</button>'+
+    '</div>';
+  });
+  out+='</div>'+
+  '<button type="button" class="btn btn-sm btn-outline" style="margin-bottom:8px" onclick="addCrewRow()">+ Add Person</button>';
+  return out;
+}
+function addCrewRow(){
+  var wrap=document.getElementById('crewWrap');
+  var div=document.createElement('div');
+  div.className='form-group';
+  div.style='display:grid;grid-template-columns:1fr 80px 80px 32px;gap:6px;align-items:end';
+  div.innerHTML='<div><label style="margin-bottom:3px">Name</label><input class="crew-name" value=""></div>'+
+    '<div><label style="margin-bottom:3px">Hrs</label><input type="number" class="crew-hrs" value="" step="0.5"></div>'+
+    '<div><label style="margin-bottom:3px">Status</label><select class="crew-conf"><option value="0" selected>?</option><option value="1">✓</option></select></div>'+
+    '<button type="button" onclick="this.closest(\'.form-group\').remove()" style="background:var(--accent2);color:#fff;border:none;border-radius:6px;cursor:pointer;height:34px;margin-top:18px">✕</button>';
+  wrap.appendChild(div);
+}
+function evEquipHtml(id,items,label){
+  var rows=items||[];
+  var out='<div id="'+id+'">';
+  rows.forEach(function(r){
+    out+='<div class="form-group" style="display:grid;grid-template-columns:1fr 60px 32px;gap:6px;align-items:end">'+
+      '<div><label style="margin-bottom:3px">Item</label><input class="eq-name" value="'+esc(r.name||'')+'"></div>'+
+      '<div><label style="margin-bottom:3px">Qty</label><input type="number" class="eq-qty" value="'+(r.qty||1)+'" min="1"></div>'+
+      '<button type="button" onclick="this.closest(\'.form-group\').remove()" style="background:var(--accent2);color:#fff;border:none;border-radius:6px;cursor:pointer;height:34px;margin-top:18px">✕</button>'+
+    '</div>';
+  });
+  out+='</div>'+
+  '<button type="button" class="btn btn-sm btn-outline" style="margin-bottom:8px" onclick="addEqRow(\''+id+'\')">+ Add '+label+'</button>';
+  return out;
+}
+function addEqRow(wrapId){
+  var wrap=document.getElementById(wrapId);
+  var div=document.createElement('div');
+  div.className='form-group';
+  div.style='display:grid;grid-template-columns:1fr 60px 32px;gap:6px;align-items:end';
+  div.innerHTML='<div><label style="margin-bottom:3px">Item</label><input class="eq-name" value=""></div>'+
+    '<div><label style="margin-bottom:3px">Qty</label><input type="number" class="eq-qty" value="1" min="1"></div>'+
+    '<button type="button" onclick="this.closest(\'.form-group\').remove()" style="background:var(--accent2);color:#fff;border:none;border-radius:6px;cursor:pointer;height:34px;margin-top:18px">✕</button>';
+  wrap.appendChild(div);
+}
+function collectCrew(){
+  return Array.from(document.querySelectorAll('#crewWrap .crew-name')).map(function(el,i){
+    var row=el.closest('.form-group');
+    var name=el.value.trim();
+    if(!name)return null;
+    return{name:name,qty:parseFloat(row.querySelector('.crew-hrs').value)||null,confirmed:row.querySelector('.crew-conf').value==='1'};
+  }).filter(Boolean);
+}
+function collectEquip(wrapId){
+  return Array.from(document.querySelectorAll('#'+wrapId+' .eq-name')).map(function(el){
+    var row=el.closest('.form-group');
+    var name=el.value.trim();
+    if(!name)return null;
+    return{name:name,qty:parseFloat(row.querySelector('.eq-qty').value)||1};
+  }).filter(Boolean);
+}
 function openEvModal(id,dateStr){
   var ev=id?C.events.find(function(e){return sid(e.id)===sid(id);}):null;
   var d=ev?ev.date:(dateStr||todayStr());
   openModal(ev?'Edit Event':'New Event',
     '<div class="form-group"><label>Event Name</label><input id="mEvName" value="'+esc(ev?ev.name:'')+'"></div>'+
-    '<div class="form-group"><label>Date</label><input type="date" id="mEvDate" value="'+d+'"></div>'+
-    '<div class="form-group"><label>Time</label><input id="mEvTime" value="'+esc(ev?ev.time||'':'')+'"></div>'+
+    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">'+
+      '<div class="form-group"><label>Date</label><input type="date" id="mEvDate" value="'+d+'"></div>'+
+      '<div class="form-group"><label>Time</label><input id="mEvTime" value="'+esc(ev?ev.time||'':'')+'"></div>'+
+    '</div>'+
     '<div class="form-group"><label>Venue</label><input id="mEvVenue" value="'+esc(ev?ev.venue||'':'')+'"></div>'+
-    '<div class="form-group"><label>Type</label><select id="mEvType">'+
-      ['wedding','corporate','private','festival','other'].map(function(t){return'<option value="'+t+'"'+(ev&&ev.type===t?' selected':'')+'>'+t.charAt(0).toUpperCase()+t.slice(1)+'</option>';}).join('')+
-    '</select></div>'+
+    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">'+
+      '<div class="form-group"><label>Type</label><select id="mEvType">'+
+        ['wedding','corporate','private','festival','other'].map(function(t){return'<option value="'+t+'"'+(ev&&ev.type===t?' selected':'')+'>'+t.charAt(0).toUpperCase()+t.slice(1)+'</option>';}).join('')+
+      '</select></div>'+
+      '<div class="form-group"><label>Status</label><select id="mEvStatus">'+
+        ['upcoming','confirmed','completed','cancelled'].map(function(s){return'<option value="'+s+'"'+(ev&&ev.status===s?' selected':(!ev&&s==='upcoming'?' selected':''))+'>'+s.charAt(0).toUpperCase()+s.slice(1)+'</option>';}).join('')+
+      '</select></div>'+
+    '</div>'+
     '<div class="form-group"><label>Customer</label><select id="mEvCu">'+cuOpts(ev?ev.customer_id:'')+'</select></div>'+
     '<div class="form-group"><label>Invoice Amount</label><input type="number" id="mEvInv" value="'+(ev&&ev.invoice_amount!=null?ev.invoice_amount:'')+'"></div>'+
-    '<div class="form-group"><label>Notes</label><textarea id="mEvNotes">'+esc(ev?ev.notes||'':'')+'</textarea></div>',
+    '<div class="form-group"><label>Notes</label><textarea id="mEvNotes">'+esc(ev?ev.notes||'':'')+'</textarea></div>'+
+    '<div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin:14px 0 8px">Crew Planning</div>'+
+    evCrewHtml(ev?ev.labor:[])+
+    '<div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin:14px 0 8px">Main Equipment</div>'+
+    evEquipHtml('mainEquipWrap',ev?ev.main_equip:[],'Equipment')+
+    '<div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin:14px 0 8px">Secondary Equipment</div>'+
+    evEquipHtml('secEquipWrap',ev?ev.sec_equip:[],'Equipment'),
     function(){saveEv(id);}
   );
 }
 async function saveEv(id){
-  var name=gv('mEvName'),date=gv('mEvDate'),time=gv('mEvTime'),venue=gv('mEvVenue'),type=gv('mEvType'),cuRaw=gv('mEvCu'),inv=gv('mEvInv'),notes=gv('mEvNotes');
+  var name=gv('mEvName'),date=gv('mEvDate'),time=gv('mEvTime'),venue=gv('mEvVenue'),type=gv('mEvType'),status=gv('mEvStatus'),cuRaw=gv('mEvCu'),inv=gv('mEvInv'),notes=gv('mEvNotes');
   if(!name||!date){showErr('Name and date required.');return;}
   var cuId=cuRaw==='__new__'?await quickAddCu():cuRaw||null;
-  var obj={name:name,date:date,time:time||null,venue:venue||null,type:type,customer_id:cuId,invoice_amount:inv?parseFloat(inv):null,notes:notes||null};
+  var obj={name:name,date:date,time:time||null,venue:venue||null,type:type,status:status,customer_id:cuId,invoice_amount:inv?parseFloat(inv):null,notes:notes||null,
+    labor:collectCrew(),main_equip:collectEquip('mainEquipWrap'),sec_equip:collectEquip('secEquipWrap')};
   var r=id?await sb.from('events').update(obj).eq('id',id):await sb.from('events').insert(obj);
   if(r.error){showErr(r.error.message);return;}
   closeModal();await loadAll();showTab('events');
