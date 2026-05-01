@@ -1041,12 +1041,31 @@ function setEvType(t){
   });
 }
 function crewRowHtml(name,hrs,confirmed){
+  var knownCrew=['John','Steve','JP'];
+  var isCustom=name&&!knownCrew.map(function(n){return n.toLowerCase();}).includes((name||'').toLowerCase());
+  var selHtml='<select class="crew-name-sel" onchange="handleCrewSel(this)" style="'+(isCustom?'display:none':'width:100%')+'">'+
+    '<option value="">\u2014 select \u2014</option>'+
+    knownCrew.map(function(n){return'<option value="'+n+'"'+((!isCustom&&name&&name.toLowerCase()===n.toLowerCase())?' selected':'')+'>'+n+'</option>';}).join('')+
+    '<option value="__custom__">Other / Custom\u2026</option>'+
+    '</select>'+
+    '<input class="crew-name" placeholder="Type name\u2026" value="'+esc(isCustom?name:'')+'" style="'+(isCustom?'width:100%':'display:none')+'">';
   return'<div class="crew-row" style="display:grid;grid-template-columns:1fr 80px 110px 32px;gap:6px;margin-bottom:6px;align-items:center">'+
-    '<input class="crew-name" value="'+esc(name)+'" placeholder="Name">'+
+    '<div>'+selHtml+'</div>'+
     '<input type="number" class="crew-hrs" value="'+hrs+'" step="0.5" placeholder="Hrs">'+
-    '<button type="button" class="crew-conf-btn btn btn-sm" style="background:'+(confirmed?'rgba(76,175,80,.2)':'var(--surface2)')+';color:'+(confirmed?'var(--green)':'var(--muted)')+';border:1px solid '+(confirmed?'rgba(76,175,80,.4)':'var(--border)')+';" onclick="toggleCrewConf(this)">'+(confirmed?'✓ Yes':'? TBD')+'</button>'+
-    '<button type="button" onclick="this.closest(\'.crew-row\').remove()" style="background:var(--accent2);color:#fff;border:none;border-radius:6px;cursor:pointer;width:32px;height:34px;font-size:16px;line-height:1">×</button>'+
+    '<button type="button" class="crew-conf-btn btn btn-sm" style="background:'+(confirmed?'rgba(76,175,80,.2)':'var(--surface2)')+';color:'+(confirmed?'var(--green)':'var(--muted)')+';border:1px solid '+(confirmed?'rgba(76,175,80,.4)':'var(--border)')+';" onclick="toggleCrewConf(this)">'+(confirmed?'\u2713 Yes':'? TBD')+'</button>'+
+    '<button type="button" onclick="this.closest(\'.crew-row\').remove()" style="background:var(--accent2);color:#fff;border:none;border-radius:6px;cursor:pointer;width:32px;height:34px;font-size:16px;line-height:1">\u00d7</button>'+
   '</div>';
+}
+function handleCrewSel(sel){
+  var wrap=sel.parentNode;
+  var input=wrap.querySelector('.crew-name');
+  if(sel.value==='__custom__'){
+    sel.style.display='none';
+    input.style.display='block';
+    input.style.width='100%';
+    input.value='';
+    input.focus();
+  }
 }
 function toggleCrewConf(btn){
   var isConf=btn.textContent.trim().startsWith('✓');
@@ -1056,63 +1075,16 @@ function toggleCrewConf(btn){
   btn.style.borderColor=isConf?'var(--border)':'rgba(76,175,80,.4)';
 }
 function addCrewRow(){
-  document.getElementById('crewWrap').insertAdjacentHTML('beforeend',crewRowHtml('','',false));
-}
-function evCrewHtml(labor){
-  var rows=labor||[];
-  var out='<div style="font-size:11px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:.8px;margin-bottom:8px">👷 Crew</div>';
-  if(rows.length){
-    out+='<div style="display:grid;grid-template-columns:1fr 80px 110px 32px;gap:6px;margin-bottom:4px">'+
-      '<div style="font-size:10px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.5px">Name</div>'+
-      '<div style="font-size:10px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.5px">Hours</div>'+
-      '<div style="font-size:10px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.5px">Confirmed</div>'+
-      '<div></div></div>';
-  }
-  out+='<div id="crewWrap">';
-  rows.forEach(function(r){out+=crewRowHtml(r.name||'',r.qty||'',r.confirmed);});
-  out+='</div>'+
-    '<button type="button" class="btn btn-sm btn-outline" style="margin-top:2px;margin-bottom:14px;border-style:dashed" onclick="addCrewRow()">+ Add Person</button>';
-  return out;
-}
-function equipRowHtml(name,qty){
-  return'<div class="equip-row" style="display:grid;grid-template-columns:1fr 80px 32px;gap:6px;margin-bottom:6px;align-items:center">'+
-    '<input class="eq-name" value="'+esc(name)+'" placeholder="Item name">'+
-    '<input type="number" class="eq-qty" value="'+qty+'" min="1">'+
-    '<button type="button" onclick="this.closest(\'.equip-row\').remove()" style="background:var(--accent2);color:#fff;border:none;border-radius:6px;cursor:pointer;width:32px;height:34px;font-size:16px;line-height:1">×</button>'+
-  '</div>';
-}
-function quickAddEquip(sel,wrapId){
-  if(!sel.value)return;
-  document.getElementById(wrapId).insertAdjacentHTML('beforeend',equipRowHtml(sel.value,1));
-  sel.value='';
-}
-function addEquipRow(wrapId){
-  document.getElementById(wrapId).insertAdjacentHTML('beforeend',equipRowHtml('',1));
-}
-function evEquipHtml(wrapId,items,label,emoji){
-  var rows=items||[];
-  var catOpts='<option value="">— select —</option>'+C.equipItems.map(function(x){return'<option value="'+esc(x.name)+'">'+esc(x.name)+'</option>';}).join('');
-  var out='<div style="font-size:11px;font-weight:700;color:var(--green);text-transform:uppercase;letter-spacing:.8px;margin-bottom:8px">'+emoji+' '+label+'</div>';
-  if(rows.length){
-    out+='<div style="display:grid;grid-template-columns:1fr 80px 32px;gap:6px;margin-bottom:4px">'+
-      '<div style="font-size:10px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.5px">Item</div>'+
-      '<div style="font-size:10px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.5px">Qty</div>'+
-      '<div></div></div>';
-  }
-  out+='<div id="'+wrapId+'">';
-  rows.forEach(function(r){out+=equipRowHtml(r.name||'',r.qty||1);});
-  out+='</div>'+
-    '<div style="display:flex;gap:8px;align-items:center;margin-top:4px;flex-wrap:wrap">'+
-    (C.equipItems.length?'<select onchange="quickAddEquip(this,\''+wrapId+'\')" style="flex:1;min-width:140px;font-size:13px">'+catOpts+'</select>':'')+
-    '<button type="button" class="btn btn-sm btn-outline" style="border-style:dashed;white-space:nowrap;font-size:12px" onclick="addEquipRow(\''+wrapId+'\')">+ Custom Item</button>'+
-    '</div>';
-  return out;
+  document.getElementById("crewWrap").insertAdjacentHTML("beforeend",crewRowHtml("","",false));
 }
 function collectCrew(){
   return Array.from(document.querySelectorAll('#crewWrap .crew-row')).map(function(row){
-    var name=row.querySelector('.crew-name').value.trim();
-    if(!name)return null;
-    return{name:name,qty:parseFloat(row.querySelector('.crew-hrs').value)||null,confirmed:row.querySelector('.crew-conf-btn').textContent.trim().startsWith('✓')};
+    var sel=row.querySelector('.crew-name-sel');
+    var input=row.querySelector('.crew-name');
+    var name=sel&&sel.style.display!=='none'?sel.value:input.value;
+    name=(name||'').trim();
+    if(!name||name==='__custom__')return null;
+    return{name:name,qty:parseFloat(row.querySelector('.crew-hrs').value)||null,confirmed:row.querySelector('.crew-conf-btn').textContent.trim().startsWith('\u2713')};
   }).filter(Boolean);
 }
 function collectEquip(wrapId){
