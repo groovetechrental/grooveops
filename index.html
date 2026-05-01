@@ -618,7 +618,11 @@ function toggleEvCard(id){var c=document.getElementById('evc-'+id);if(c)c.classL
 
 // ── EVENTS LIST ───────────────────────────────────────────────────────────────
 function renderEvents(){
-  var filtered=filterByPeriod(C.events,'date');
+  var today=todayStr();
+  var upcoming=C.events.filter(function(e){return e.date>=today&&(e.status==='upcoming'||e.status==='confirmed'||!e.status);}).sort(function(a,b){return a.date.localeCompare(b.date);});
+  var upcomingIds=upcoming.map(function(e){return sid(e.id);});
+  var past=filterByPeriod(C.events,'date').filter(function(e){return!upcomingIds.includes(sid(e.id));});
+  var filtered=upcoming.concat(past);
   var sorted=filtered.slice().sort(function(a,b){
     var av,bv;
     if(evSort.col==='date'){av=a.date||'';bv=b.date||'';}
@@ -634,7 +638,7 @@ function renderEvents(){
   function th(lbl,col){var arrow=evSort.col===col?(evSort.dir===1?' ↑':' ↓'):'';return'<th style="cursor:pointer;user-select:none" onclick="sortEv(\''+col+'\')">'+lbl+arrow+'</th>';}
   document.getElementById('mc').innerHTML=
     periodSelector()+
-    sh('Events ('+filtered.length+')',exportBtn('exportEvents')+'<button class="btn btn-sm" onclick="openEvModal()">+ Add Event</button>')+
+    sh('Events ('+past.length+' in period'+(upcoming.length?' + '+upcoming.length+' upcoming':'')+')',exportBtn('exportEvents')+'<button class="btn btn-sm" onclick="openEvModal()">+ Add Event</button>')+
     '<table class="tbl"><thead><tr>'+th('Event','name')+th('Date','date')+th('Venue','venue')+th('Type','type')+th('Customer','customer')+th('Invoice','invoice')+th('Hours','hours')+th('Profit','profit')+th('Status','status')+'<th></th></tr></thead><tbody>'+
     (sorted.map(function(e){
       var f=evFin(e.id);
