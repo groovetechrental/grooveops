@@ -288,6 +288,14 @@ function sid(x){return String(x==null?'':x);}
 function fmt(n){return'$'+(parseFloat(n)||0).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g,',');}
 function fmtD(d){return d?new Date(d+'T00:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}):'—';}
 function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+function todayStr(){return new Date().toISOString().split('T')[0];}
+function cuOpts(sel){return'<option value="">— None —</option><option value="__new__">＋ Add new customer…</option>'+C.customers.map(function(c){return'<option value="'+sid(c.id)+'"'+(sid(c.id)===sid(sel)?' selected':'')+'>'+esc(c.name)+'</option>';}).join('');}
+async function doReimb(xid,eid,prevTab){
+  var r=await sb.from('expenses').update({reimbursed:true}).eq('id',xid);
+  if(r.error){showErr(r.error.message);return;}
+  await loadAll();
+  if(eid)openEvDetail(eid,prevTab||'events');else showTab('expenses');
+}
 function findEv(id){return C.events.find(function(e){return sid(e.id)===sid(id);});}
 function findCu(id){return C.customers.find(function(c){return sid(c.id)===sid(id);});}
 function cuName(id){var c=findCu(id);return c?esc(c.name):'—';}
