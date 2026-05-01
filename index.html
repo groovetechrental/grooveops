@@ -1002,6 +1002,285 @@ function printPackingList(){
   w.document.close();
 }
 
+// ── MODAL CORE ────────────────────────────────────────────────────────────────
+var _modalSaveFn=null;
+function openModal(title,bodyHtml,saveFn,saveLabel){
+  document.getElementById('mt').textContent=title;
+  document.getElementById('mb').innerHTML=bodyHtml;
+  document.getElementById('msb').textContent=saveLabel||'Save';
+  _modalSaveFn=saveFn;
+  document.getElementById('mo').classList.add('open');
+}
+function closeModal(){document.getElementById('mo').classList.remove('open');_modalSaveFn=null;}
+function modalSave(){if(_modalSaveFn)_modalSaveFn();}
+function gv(id){var el=document.getElementById(id);return el?el.value.trim():'';}
+
+// ── EVENT MODAL ───────────────────────────────────────────────────────────────
+function openEvModal(id,dateStr){
+  var ev=id?C.events.find(function(e){return sid(e.id)===sid(id);}):null;
+  var d=ev?ev.date:(dateStr||todayStr());
+  openModal(ev?'Edit Event':'New Event',
+    '<div class="form-group"><label>Event Name</label><input id="mEvName" value="'+esc(ev?ev.name:'')+'"></div>'+
+    '<div class="form-group"><label>Date</label><input type="date" id="mEvDate" value="'+d+'"></div>'+
+    '<div class="form-group"><label>Time</label><input id="mEvTime" value="'+esc(ev?ev.time||'':'')+'"></div>'+
+    '<div class="form-group"><label>Venue</label><input id="mEvVenue" value="'+esc(ev?ev.venue||'':'')+'"></div>'+
+    '<div class="form-group"><label>Type</label><select id="mEvType">'+
+      ['wedding','corporate','private','festival','other'].map(function(t){return'<option value="'+t+'"'+(ev&&ev.type===t?' selected':'')+'>'+t.charAt(0).toUpperCase()+t.slice(1)+'</option>';}).join('')+
+    '</select></div>'+
+    '<div class="form-group"><label>Customer</label><select id="mEvCu">'+cuOpts(ev?ev.customer_id:'')+'</select></div>'+
+    '<div class="form-group"><label>Invoice Amount</label><input type="number" id="mEvInv" value="'+(ev&&ev.invoice_amount!=null?ev.invoice_amount:'')+'"></div>'+
+    '<div class="form-group"><label>Notes</label><textarea id="mEvNotes">'+esc(ev?ev.notes||'':'')+'</textarea></div>',
+    function(){saveEv(id);}
+  );
+}
+async function saveEv(id){
+  var name=gv('mEvName'),date=gv('mEvDate'),time=gv('mEvTime'),venue=gv('mEvVenue'),type=gv('mEvType'),cuRaw=gv('mEvCu'),inv=gv('mEvInv'),notes=gv('mEvNotes');
+  if(!name||!date){showErr('Name and date required.');return;}
+  var cuId=cuRaw==='__new__'?await quickAddCu():cuRaw||null;
+  var obj={name:name,date:date,time:time||null,venue:venue||null,type:type,customer_id:cuId,invoice_amount:inv?parseFloat(inv):null,notes:notes||null};
+  var r=id?await sb.from('events').update(obj).eq('id',id):await sb.from('events').insert(obj);
+  if(r.error){showErr(r.error.message);return;}
+  closeModal();await loadAll();showTab('events');
+}
+
+// ── CUSTOMER MODAL ────────────────────────────────────────────────────────────
+function openCuModal(id){
+  var c=id?C.customers.find(function(x){return sid(x.id)===sid(id);}):null;
+  openModal(c?'Edit Customer':'New Customer',
+    '<div class="form-group"><label>Name</label><input id="mCuName" value="'+esc(c?c.name:'')+'"></div>'+
+    '<div class="form-group"><label>Email</label><input type="email" id="mCuEmail" value="'+esc(c?c.email||'':'')+'"></div>'+
+    '<div class="form-group"><label>Phone</label><input id="mCuPhone" value="'+esc(c?c.phone||'':'')+'"></div>'+
+    '<div class="form-group"><label>Notes</label><textarea id="mCuNotes">'+esc(c?c.notes||'':'')+'</textarea></div>',
+    function(){saveCu(id);}
+  );
+}
+async function saveCu(id){
+  var name=gv('mCuName'),email=gv('mCuEmail'),phone=gv('mCuPhone'),notes=gv('mCuNotes');
+  if(!name){showErr('Name required.');return;}
+  var obj={name:name,email:email||null,phone:phone||null,notes:notes||null};
+  var r=id?await sb.from('customers').update(obj).eq('id',id):await sb.from('customers').insert(obj);
+  if(r.error){showErr(r.error.message);return;}
+  closeModal();await loadAll();showTab('customers');
+}
+async function quickAddCu(){
+  var name=prompt('New customer name:');
+  if(!name)return null;
+  var r=await sb.from('customers').insert({name:name.trim()}).select().single();
+  if(r.error){showErr(r.error.message);return null;}
+  C.customers.push(r.data);
+  return r.data.id;
+}
+
+// ── PAYMENT MODAL ─────────────────────────────────────────────────────────────
+function openPayModal(cuId,evId){
+  openModal('Add Payment',
+    '<div class="form-group"><label>Customer</label><select id="mPyCu">'+cuOpts(cuId)+'</select></div>'+
+    '<div class="form-group"><label>Event</label><select id="mPyEv"><option value="">— None —</option>'+C.events.map(function(e){return'<option value="'+sid(e.id)+'"'+(sid(e.id)===sid(evId)?' selected':'')+'>'+esc(e.name)+' ('+fmtD(e.date)+')</option>';}).join('')+'</select></div>'+
+    '<div class="form-group"><label>Amount</label><input type="number" id="mPyAmt"></div>'+
+    '<div class="form-group"><label>Date</label><input type="date" id="mPyDate" value="'+todayStr()+'"></div>'+
+    '<div class="form-group"><label>Method</label><select id="mPyMeth"><option value="">—</option><option>Cash</option><option>Check</option><option>Venmo</option><option>Zelle</option><option>Card</option><option>Other</option></select></div>'+
+    '<div class="form-group"><label>Notes</label><input id="mPyNotes"></div>',
+    savePay
+  );
+}
+async function savePay(){
+  var cu=gv('mPyCu'),ev=gv('mPyEv'),amt=gv('mPyAmt'),date=gv('mPyDate'),method=gv('mPyMeth'),notes=gv('mPyNotes');
+  if(!amt||!date){showErr('Amount and date required.');return;}
+  var obj={customer_id:cu||null,event_id:ev||null,amount:parseFloat(amt),date:date,method:method||null,notes:notes||null};
+  var r=await sb.from('customer_payments').insert(obj);
+  if(r.error){showErr(r.error.message);return;}
+  closeModal();await loadAll();showTab('customers');
+}
+
+// ── OWNER LABOR MODAL ─────────────────────────────────────────────────────────
+function openLabModal(evId){
+  openModal('Add Owner Labor',
+    '<div class="form-group"><label>Person</label><select id="mLbPer"><option value="john">John</option><option value="steve">Steve</option></select></div>'+
+    '<div class="form-group"><label>Event</label><select id="mLbEv"><option value="">— None —</option>'+C.events.map(function(e){return'<option value="'+sid(e.id)+'"'+(sid(e.id)===sid(evId)?' selected':'')+'>'+esc(e.name)+' ('+fmtD(e.date)+')</option>';}).join('')+'</select></div>'+
+    '<div class="form-group"><label>Hours</label><input type="number" step="0.25" id="mLbHrs"></div>'+
+    '<div class="form-group"><label>Rate (leave blank for default $'+OWNER_RATE+'/hr)</label><input type="number" id="mLbRate"></div>'+
+    '<div class="form-group"><label>Notes</label><input id="mLbNotes"></div>',
+    saveLab
+  );
+}
+function openEditLaborModal(id){
+  var l=C.labor.find(function(x){return sid(x.id)===sid(id);});
+  if(!l)return;
+  openModal('Edit Labor',
+    '<div class="form-group"><label>Person</label><select id="mLbPer"><option value="john"'+(l.person==='john'?' selected':'')+'>John</option><option value="steve"'+(l.person==='steve'?' selected':'')+'>Steve</option><option value="'+esc(l.person)+'"'+(l.person!=='john'&&l.person!=='steve'?' selected':'')+'>'+esc(l.person)+'</option></select></div>'+
+    '<div class="form-group"><label>Hours</label><input type="number" step="0.25" id="mLbHrs" value="'+(l.hours||'')+'"></div>'+
+    '<div class="form-group"><label>Rate</label><input type="number" id="mLbRate" value="'+(l.rate||'')+'"></div>'+
+    '<div class="form-group"><label>Total Amount (overrides hrs×rate)</label><input type="number" id="mLbTotal" value="'+(l.total_amount||'')+'"></div>'+
+    '<div class="form-group"><label>Notes</label><input id="mLbNotes" value="'+esc(l.notes||'')+'"></div>',
+    function(){saveLabEdit(id);}
+  );
+}
+async function saveLab(){
+  var per=gv('mLbPer'),ev=gv('mLbEv'),hrs=gv('mLbHrs'),rate=gv('mLbRate'),notes=gv('mLbNotes');
+  if(!per||!hrs){showErr('Person and hours required.');return;}
+  var h=parseFloat(hrs),r2=rate?parseFloat(rate):OWNER_RATE;
+  var obj={person:per,event_id:ev||null,hours:h,rate:r2,total_amount:h*r2,notes:notes||null};
+  var r=await sb.from('labor').insert(obj);
+  if(r.error){showErr(r.error.message);return;}
+  closeModal();await loadAll();renderLabor();
+}
+async function saveLabEdit(id){
+  var per=gv('mLbPer'),hrs=gv('mLbHrs'),rate=gv('mLbRate'),total=gv('mLbTotal'),notes=gv('mLbNotes');
+  var h=parseFloat(hrs)||null,r2=parseFloat(rate)||null,t=total?parseFloat(total):h&&r2?h*r2:null;
+  var r=await sb.from('labor').update({person:per,hours:h,rate:r2,total_amount:t,notes:notes||null}).eq('id',id);
+  if(r.error){showErr(r.error.message);return;}
+  closeModal();await loadAll();renderLabor();
+}
+
+// ── HELPER LABOR MODAL ────────────────────────────────────────────────────────
+function openHelperLabModal(evId){
+  openModal('Add Helper Labor',
+    '<div class="form-group"><label>Person</label><input id="mHlPer" placeholder="helper name"></div>'+
+    '<div class="form-group"><label>Event</label><select id="mHlEv"><option value="">— None —</option>'+C.events.map(function(e){return'<option value="'+sid(e.id)+'"'+(sid(e.id)===sid(evId)?' selected':'')+'>'+esc(e.name)+' ('+fmtD(e.date)+')</option>';}).join('')+'</select></div>'+
+    '<div class="form-group"><label>Hours</label><input type="number" step="0.25" id="mHlHrs"></div>'+
+    '<div class="form-group"><label>Rate ($/hr)</label><input type="number" id="mHlRate"></div>'+
+    '<div class="form-group"><label>Notes</label><input id="mHlNotes"></div>',
+    saveHelperLab
+  );
+}
+async function saveHelperLab(){
+  var per=gv('mHlPer'),ev=gv('mHlEv'),hrs=gv('mHlHrs'),rate=gv('mHlRate'),notes=gv('mHlNotes');
+  if(!per||!hrs){showErr('Person and hours required.');return;}
+  var h=parseFloat(hrs),r2=parseFloat(rate)||0;
+  var obj={person:per.toLowerCase(),event_id:ev||null,hours:h,rate:r2||null,total_amount:h*r2,is_owner:false,paid:false,notes:notes||null};
+  var r=await sb.from('labor').insert(obj);
+  if(r.error){showErr(r.error.message);return;}
+  closeModal();await loadAll();renderLabor();
+}
+async function markHelperPaid(id){
+  var r=await sb.from('labor').update({paid:true,paid_date:todayStr()}).eq('id',id);
+  if(r.error){showErr(r.error.message);return;}
+  await loadAll();renderLabor();
+}
+
+// ── EXPENSE MODAL ─────────────────────────────────────────────────────────────
+function openExpModal(evId,xId){
+  var x=xId?C.expenses.find(function(e){return sid(e.id)===sid(xId);}):null;
+  openModal(x?'Edit Expense':'Add Expense',
+    '<div class="form-group"><label>Event</label><select id="mExEv"><option value="">— None —</option>'+C.events.map(function(e){return'<option value="'+sid(e.id)+'"'+(sid(e.id)===sid(evId)?' selected':'')+'>'+esc(e.name)+' ('+fmtD(e.date)+')</option>';}).join('')+'</select></div>'+
+    '<div class="form-group"><label>Person</label><select id="mExPer"><option value="john">John</option><option value="steve">Steve</option></select></div>'+
+    '<div class="form-group"><label>Category</label><select id="mExCat"><option>supplies</option><option>fuel</option><option>food</option><option>equipment</option><option>venue</option><option>other</option></select></div>'+
+    '<div class="form-group"><label>Description</label><input id="mExDesc" value="'+esc(x?x.description||'':'')+'"></div>'+
+    '<div class="form-group"><label>Amount</label><input type="number" id="mExAmt" value="'+(x?x.amount||'':'')+'"></div>'+
+    '<div class="form-group"><label>Notes</label><input id="mNo" value="'+esc(x?x.notes||'':'')+'"></div>',
+    function(){saveExp(xId);}
+  );
+  if(x){
+    var per=document.getElementById('mExPer');if(per&&x.person)per.value=x.person;
+    var cat=document.getElementById('mExCat');if(cat&&x.category)cat.value=x.category;
+    var ev2=document.getElementById('mExEv');if(ev2&&x.event_id)ev2.value=sid(x.event_id);
+  }
+}
+async function saveExp(xId){
+  var eid2=gv('mExEv'),per=gv('mExPer'),cat=gv('mExCat'),desc=gv('mExDesc'),amt=gv('mExAmt'),nts=gv('mNo');
+  if(!amt){showErr('Amount required.');return;}
+  var obj={event_id:eid2||null,person:per,category:cat,description:desc||null,amount:parseFloat(amt),notes:nts||null};
+  var r=xId?await sb.from('expenses').update(obj).eq('id',xId):await sb.from('expenses').insert({...obj,reimbursed:false});
+  if(r.error){showErr(r.error.message);return;}
+  closeModal();await loadAll();showTab('expenses');
+}
+
+// ── LABOR PAYMENT MODAL ───────────────────────────────────────────────────────
+function openLaborPayModal(person){
+  openModal('Add Labor Payment',
+    '<div class="form-group"><label>Person</label><input id="mLpPer" value="'+esc(person||'')+'" readonly></div>'+
+    '<div class="form-group"><label>Amount</label><input type="number" id="mLpAmt" placeholder="0.00"></div>'+
+    '<div class="form-group"><label>Date</label><input type="date" id="mLpDate" value="'+todayStr()+'"></div>'+
+    '<div class="form-group"><label>Method</label><select id="mLpMeth"><option value="">—</option><option>Cash</option><option>Check</option><option>Venmo</option><option>Zelle</option><option>ACH</option><option>Other</option></select></div>'+
+    '<div class="form-group"><label>Notes</label><input id="mLpNotes"></div>',
+    saveLaborPay
+  );
+}
+async function saveLaborPay(){
+  var per=gv('mLpPer'),amt=gv('mLpAmt'),date=gv('mLpDate'),method=gv('mLpMeth'),notes=gv('mLpNotes');
+  if(!amt||!date){showErr('Amount and date required.');return;}
+  var r=await sb.from('labor_payments').insert({person:per,amount:parseFloat(amt),date:date,method:method||null,notes:notes||null});
+  if(r.error){showErr(r.error.message);return;}
+  closeModal();await loadAll();renderOwnerFinances();
+}
+
+// ── PROFIT SHARE MODAL ────────────────────────────────────────────────────────
+function openPSModal(person){
+  openModal('Add Distribution',
+    '<div class="form-group"><label>Person</label><input id="mPsPer" value="'+esc(person||'')+'" readonly></div>'+
+    '<div class="form-group"><label>Amount</label><input type="number" id="mPsAmt" placeholder="0.00"></div>'+
+    '<div class="form-group"><label>Date</label><input type="date" id="mPsDate" value="'+todayStr()+'"></div>'+
+    '<div class="form-group"><label>Method</label><select id="mPsMeth"><option value="">—</option><option>Cash</option><option>Check</option><option>Venmo</option><option>Zelle</option><option>ACH</option><option>Other</option></select></div>'+
+    '<div class="form-group"><label>Event (optional)</label><select id="mPsEv"><option value="">— None —</option>'+C.events.map(function(e){return'<option value="'+sid(e.id)+'">'+esc(e.name)+' ('+fmtD(e.date)+')</option>';}).join('')+'</select></div>'+
+    '<div class="form-group"><label>Notes</label><input id="mPsNotes"></div>',
+    savePS
+  );
+}
+async function savePS(){
+  var per=gv('mPsPer'),amt=gv('mPsAmt'),date=gv('mPsDate'),method=gv('mPsMeth'),ev=gv('mPsEv'),notes=gv('mPsNotes');
+  if(!amt||!date){showErr('Amount and date required.');return;}
+  var r=await sb.from('profit_share').insert({person:per,amount:parseFloat(amt),date:date,method:method||null,event_id:ev||null,notes:notes||null});
+  if(r.error){showErr(r.error.message);return;}
+  closeModal();await loadAll();renderOwnerFinances();
+}
+
+// ── EQUIPMENT MODALS ──────────────────────────────────────────────────────────
+function openEqItemModal(id){
+  var item=id?C.equipItems.find(function(x){return sid(x.id)===sid(id);}):null;
+  openModal(item?'Edit Equipment Item':'New Equipment Item',
+    '<div class="form-group"><label>Name</label><input id="mEqName" value="'+esc(item?item.name:'')+'"></div>'+
+    '<div class="form-group"><label>Category</label><input id="mEqCat" value="'+esc(item?item.category||'':'')+'"></div>'+
+    '<div class="form-group"><label>Notes</label><textarea id="mEqNotes">'+esc(item?item.notes||'':'')+'</textarea></div>',
+    function(){saveEqItem(id);}
+  );
+}
+async function saveEqItem(id){
+  var name=gv('mEqName'),cat=gv('mEqCat'),notes=gv('mEqNotes');
+  if(!name){showErr('Name required.');return;}
+  var obj={name:name,category:cat||null,notes:notes||null};
+  var r=id?await sb.from('equipment_items').update(obj).eq('id',id):await sb.from('equipment_items').insert(obj);
+  if(r.error){showErr(r.error.message);return;}
+  closeModal();await loadAll();showTab('equipment');
+}
+function openEqCompModal(itemId,compId){
+  var comp=compId?C.equipComponents.find(function(x){return sid(x.id)===sid(compId);}):null;
+  var item=C.equipItems.find(function(x){return sid(x.id)===sid(itemId);});
+  openModal((comp?'Edit':'Add')+' Component'+(item?' — '+item.name:''),
+    '<div class="form-group"><label>Component Name</label><input id="mCpName" value="'+esc(comp?comp.name:'')+'"></div>'+
+    '<div class="form-group"><label>Quantity</label><input type="number" step="0.1" id="mCpQty" value="'+(comp?comp.quantity||'':'')+'"></div>'+
+    '<div class="form-group"><label>Unit (e.g. ft, pcs)</label><input id="mCpUnit" value="'+esc(comp?comp.unit||'':'')+'"></div>'+
+    '<div class="form-group"><label>Sort Order</label><input type="number" id="mCpSort" value="'+(comp?comp.sort_order||'':'')+'"></div>',
+    function(){saveEqComp(itemId,compId);}
+  );
+}
+async function saveEqComp(itemId,compId){
+  var name=gv('mCpName'),qty=gv('mCpQty'),unit=gv('mCpUnit'),sort=gv('mCpSort');
+  if(!name){showErr('Name required.');return;}
+  var obj={equipment_item_id:itemId,name:name,quantity:qty?parseFloat(qty):null,unit:unit||null,sort_order:sort?parseInt(sort):null};
+  var r=compId?await sb.from('equipment_components').update(obj).eq('id',compId):await sb.from('equipment_components').insert(obj);
+  if(r.error){showErr(r.error.message);return;}
+  closeModal();await loadAll();showTab('equipment');
+}
+
+// ── DELETE ────────────────────────────────────────────────────────────────────
+async function delRec(table,id,cb){
+  if(!confirm('Delete this record?'))return;
+  var r=await sb.from(table).delete().eq('id',id);
+  if(r.error){showErr(r.error.message);return;}
+  await loadAll();
+  if(cb)cb();
+  else if(table==='labor')renderLabor();
+  else if(table==='profit_share'||table==='labor_payments')renderOwnerFinances();
+  else if(table==='expenses')renderExpenses();
+  else if(table==='customer_payments')showTab('customers');
+  else if(table==='events')showTab('events');
+  else if(table==='customers')showTab('customers');
+  else if(table==='equipment_items'||table==='equipment_components')showTab('equipment');
+}
+
+// ── MISC ──────────────────────────────────────────────────────────────────────
+function showErr(msg){var b=document.getElementById('eb');if(!b)return;b.textContent='⚠ '+msg;b.style.display='block';setTimeout(function(){b.style.display='none';},4000);}
+
 init();
 </script>
 </body>
