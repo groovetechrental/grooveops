@@ -435,6 +435,7 @@ function buildGCalDesc(ev){
   var main=(ev.main_equip||[]).filter(function(x){return x.name;});
   var sec=(ev.sec_equip||[]).filter(function(x){return x.name;});
   var lines=[];
+  lines.push('Date: '+fmtD(ev.date));
   if(ev.time)lines.push('Time: '+ev.time);
   if(ev.venue)lines.push('Venue: '+ev.venue);
   lines.push('Type: '+(TYPE_LABELS[ev.type]||ev.type||'—'));
@@ -446,7 +447,7 @@ function buildGCalDesc(ev){
   return lines.join('\n');
 }
 function syncToGCal(ev,isEdit){
-  fetch(MAKE_WEBHOOK,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:ev.name,date:ev.date,time:ev.time||'',venue:ev.venue||'',type:ev.type,description:buildGCalDesc(ev),isEdit:!!isEdit})}).catch(function(e){console.warn('GCal sync failed:',e);});
+  fetch(MAKE_WEBHOOK,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:ev.name,date:ev.date,venue:ev.venue||'',type:ev.type,description:buildGCalDesc(ev),isEdit:!!isEdit})}).catch(function(e){console.warn('GCal sync failed:',e);});
 }
 
 // ── CSV EXPORT ────────────────────────────────────────────────────────────────
@@ -1182,6 +1183,7 @@ async function saveEv(id){
     labor:collectCrew(),main_equip:collectEquip('mainEquipWrap'),sec_equip:collectEquip('secEquipWrap')};
   var r=id?await sb.from('events').update(obj).eq('id',id):await sb.from('events').insert(obj);
   if(r.error){showErr(r.error.message);return;}
+  syncToGCal(obj,!!id);
   closeModal();await loadAll();showTab('events');
 }
 
