@@ -1190,7 +1190,7 @@ async function saveExp(xId){
   if(!amt||!date){showErr('Date and amount required.');return;}
   var obj={date:date,event_id:eid2||null,person:per,category:cat,description:desc||null,amount:parseFloat(amt),notes:nts||null};
   var r=xId?await sb.from('expenses').update(obj).eq('id',xId):await sb.from('expenses').insert(Object.assign({},obj,{reimbursed:false}));
-  if(r.error){showErr(r.error.message);return;}
+  if(r.error){console.error('Expense error:',JSON.stringify(r.error));showErr(r.error.message+' — '+JSON.stringify(r.error.details||r.error.hint||''));return;}
   closeModal();await loadAll();showTab('expenses');
 }
 
