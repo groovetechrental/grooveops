@@ -629,9 +629,13 @@ function renderEvents(){
     if(av<bv)return-1*evSort.dir;if(av>bv)return 1*evSort.dir;return 0;
   });
   function th(lbl,col){var arrow=evSort.col===col?(evSort.dir===1?' ↑':' ↓'):'';return'<th style="cursor:pointer;user-select:none" onclick="sortEv(\''+col+'\')">'+lbl+arrow+'</th>';}
+  var today=todayStr();
+  var upcomingCount=filtered.filter(function(e){return e.date>=today&&e.status!=='cancelled'&&e.status!=='completed';}).length;
+  var pastCount=filtered.length-upcomingCount;
+  var countLabel=upcomingCount?pastCount+' in period + '+upcomingCount+' upcoming':String(filtered.length);
   document.getElementById('mc').innerHTML=
     periodSelector()+
-    sh('Events ('+filtered.length+')',exportBtn('exportEvents')+'<button class="btn btn-sm" onclick="openEvModal()">+ Add Event</button>')+
+    sh('Events ('+countLabel+')',exportBtn('exportEvents')+'<button class="btn btn-sm" onclick="openEvModal()">+ Add Event</button>')+
     '<table class="tbl"><thead><tr>'+th('Event','name')+th('Date','date')+th('Venue','venue')+th('Type','type')+th('Customer','customer')+th('Invoice','invoice')+th('Hours','hours')+th('Profit','profit')+th('Status','status')+'<th></th></tr></thead><tbody>'+
     (sorted.map(function(e){
       var f=evFin(e.id);
