@@ -1800,16 +1800,13 @@ async function sendQuote(id){
   if(r.error){showErr(r.error.message);return;}
   if(MAKE_QUOTE_WEBHOOK){
     var items=C.quoteItems.filter(function(x){return x.quote_id===id;});
-    console.log('Firing webhook to',MAKE_QUOTE_WEBHOOK);
-    var payload=JSON.stringify({token:q.token,customer_name:q.customer_name,customer_email:q.customer_email,
-      event_name:q.event_name,event_date:q.event_date,venue:q.venue,total:q.total,
-      quote_url:QUOTE_PAGE_URL+'?id='+q.token,
-      line_items:items.map(function(li){return{label:li.label,qty:li.qty,unit_price:li.unit_price,total:li.total};})
-    });
-    var blob=new Blob([payload],{type:'application/json'});
-    fetch(MAKE_QUOTE_WEBHOOK,{method:'POST',mode:'no-cors',body:blob})
-    .then(function(){console.log('Webhook fired');})
-    .catch(function(e){console.warn('Quote webhook failed:',e);});
+    fetch(MAKE_QUOTE_WEBHOOK,{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({token:q.token,customer_name:q.customer_name,customer_email:q.customer_email,
+        event_name:q.event_name,event_date:q.event_date,venue:q.venue,total:q.total,
+        quote_url:QUOTE_PAGE_URL+'?id='+q.token,
+        line_items:items.map(function(li){return{label:li.label,qty:li.qty,unit_price:li.unit_price,total:li.total};})
+      })
+    }).catch(function(e){console.warn('Quote webhook failed:',e);});
   }
   await loadAll();
   showErr('\u2713 Quote sent'+(MAKE_QUOTE_WEBHOOK?' \u2014 email triggered via Make':''));
