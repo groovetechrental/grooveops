@@ -1419,12 +1419,23 @@ async function saveEqItem(id){
     var path='eq-'+Date.now()+'-'+name.toLowerCase().replace(/[^a-z0-9]/g,'-')+'.'+ext;
     document.getElementById('msb').textContent='Uploading...';
     document.getElementById('msb').disabled=true;
-    var up=await sb.storage.from('equipment-photos').upload(path,file,{upsert:true,contentType:file.type});
+    // Get current session token and pass explicitly
+    var sessionRes=await sb.auth.getSession();
+    var token=sessionRes&&sessionRes.data&&sessionRes.data.session&&sessionRes.data.session.access_token;
+    var formData=new FormData();
+    formData.append('',file,path);
+    var uploadRes=await fetch('https://rbtzcswnounmybumqbwu.supabase.co/storage/v1/object/equipment-photos/'+path,{
+      method:'POST',
+      headers:token?{'Authorization':'Bearer '+token}:{},
+      body:file
+    });
     document.getElementById('msb').textContent='Save';
     document.getElementById('msb').disabled=false;
-    if(up.error){showErr('Photo upload failed: '+up.error.message);return;}
-    var pub=sb.storage.from('equipment-photos').getPublicUrl(path);
-    photoUrl=pub.data.publicUrl;
+    if(!uploadRes.ok){
+      var errText=await uploadRes.text();
+      showErr('Photo upload failed: '+errText);return;
+    }
+    photoUrl='https://rbtzcswnounmybumqbwu.supabase.co/storage/v1/object/public/equipment-photos/'+path;
   }
   var obj={name:name,category:cat||null,description:desc||null,price:price?parseFloat(price):null,photo_url:photoUrl||null,notes:notes||null};
   var r=id?await sb.from('equipment_items').update(obj).eq('id',id):await sb.from('equipment_items').insert(obj);
@@ -1469,7 +1480,7 @@ async function delRec(table,id,cb){
 
 
 // ── QUOTES ────────────────────────────────────────────────────────────────────
-var MAKE_QUOTE_WEBHOOK='kfnyh3nxgr6mbfqiai63a75ixh45uhli@hook.us2.make.com'; // set your Make.com webhook URL here
+var MAKE_QUOTE_WEBHOOK='https://hook.us2.make.com/45ahfu63kofewwwnvxkrpymqffxp52wx';
 var QUOTE_PAGE_URL='https://groovetechrental.com/quote';
 var SUPABASE_ANON_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJidHpjc3dub3VubXlidW1xYnd1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYyOTI3OTgsImV4cCI6MjA5MTg2ODc5OH0.d_CSDndGJcuBve_EtHo8RDcHG8dxQVn22gpUjQ7FGNY';
 var QUOTE_STATUS_BADGE={draft:'ba',sent:'bb',accepted:'bg',declined:'br'};
