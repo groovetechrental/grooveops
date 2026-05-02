@@ -1382,16 +1382,51 @@ function openEqItemModal(id){
     '<div class="form-group"><label>Category</label><input id="mEqCat" value="'+esc(item?item.category||'':'')+'"></div>'+
     '<div class="form-group"><label>Description (shown on quotes)</label><textarea id="mEqDesc">'+esc(item?item.description||'':'')+'</textarea></div>'+
     '<div class="form-group"><label>Price per unit ($)</label><input type="number" id="mEqPrice" value="'+(item&&item.price!=null?item.price:'')+'"></div>'+
-    '<div class="form-group"><label>Photo URL</label><input id="mEqPhoto" value="'+esc(item?item.photo_url||'':'')+'"></div>'+
-    (item&&item.photo_url?'<img src="'+esc(item.photo_url)+'" style="width:100%;max-height:160px;object-fit:cover;border-radius:8px;margin-bottom:12px">':'')+
+    '<div class="form-group"><label>Photo</label>'+
+      '<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">'+
+        '<input id="mEqPhoto" value="'+esc(item?item.photo_url||'':'')+'" placeholder="URL or upload below" style="flex:1;min-width:180px">'+
+        '<label style="cursor:pointer;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:7px 12px;font-size:12px;font-weight:600;white-space:nowrap">'+
+          '&#128247; Upload Photo'+
+          '<input type="file" id="mEqPhotoFile" accept="image/*" style="display:none" onchange="previewEqPhoto(this)">'+
+        '</label>'+
+      '</div>'+
+      '<div id="mEqPhotoPreview" style="margin-top:8px">'+
+        (item&&item.photo_url?'<img src="'+esc(item.photo_url)+'" style="width:100%;max-height:160px;object-fit:cover;border-radius:8px;border:1px solid var(--border)">':'')+
+      '</div>'+
+    '</div>'+
     '<div class="form-group"><label>Notes</label><textarea id="mEqNotes">'+esc(item?item.notes||'':'')+'</textarea></div>',
     function(){saveEqItem(id);}
   );
 }
+function previewEqPhoto(input){
+  var file=input.files[0];
+  if(!file)return;
+  var reader=new FileReader();
+  reader.onload=function(e){
+    document.getElementById('mEqPhotoPreview').innerHTML='<img src="'+e.target.result+'" style="width:100%;max-height:160px;object-fit:cover;border-radius:8px;border:1px solid var(--border)">';
+    document.getElementById('mEqPhoto').value=''; // will be set after upload
+  };
+  reader.readAsDataURL(file);
+}
 async function saveEqItem(id){
-  var name=gv('mEqName'),cat=gv('mEqCat'),desc=gv('mEqDesc'),price=gv('mEqPrice'),photo=gv('mEqPhoto'),notes=gv('mEqNotes');
+  var name=gv('mEqName'),cat=gv('mEqCat'),desc=gv('mEqDesc'),price=gv('mEqPrice'),notes=gv('mEqNotes');
   if(!name){showErr('Name required.');return;}
-  var obj={name:name,category:cat||null,description:desc||null,price:price?parseFloat(price):null,photo_url:photo||null,notes:notes||null};
+  var photoUrl=gv('mEqPhoto');
+  var fileInput=document.getElementById('mEqPhotoFile');
+  if(fileInput&&fileInput.files&&fileInput.files[0]){
+    var file=fileInput.files[0];
+    var ext=file.name.split('.').pop();
+    var path='eq-'+Date.now()+'-'+name.toLowerCase().replace(/[^a-z0-9]/g,'-')+'.'+ext;
+    document.getElementById('msb').textContent='Uploading...';
+    document.getElementById('msb').disabled=true;
+    var up=await sb.storage.from('equipment-photos').upload(path,file,{upsert:true,contentType:file.type});
+    document.getElementById('msb').textContent='Save';
+    document.getElementById('msb').disabled=false;
+    if(up.error){showErr('Photo upload failed: '+up.error.message);return;}
+    var pub=sb.storage.from('equipment-photos').getPublicUrl(path);
+    photoUrl=pub.data.publicUrl;
+  }
+  var obj={name:name,category:cat||null,description:desc||null,price:price?parseFloat(price):null,photo_url:photoUrl||null,notes:notes||null};
   var r=id?await sb.from('equipment_items').update(obj).eq('id',id):await sb.from('equipment_items').insert(obj);
   if(r.error){showErr(r.error.message);return;}
   closeModal();await loadAll();showTab('equipment');
