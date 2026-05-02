@@ -232,6 +232,7 @@ header{background:var(--surface);border-bottom:1px solid var(--border);padding:1
     <div class="nav-tab" onclick="showTab('ownerfinances')">Owner Finances</div>
     <div class="nav-tab" onclick="showTab('expenses')">Expenses</div>
     <div class="nav-tab" onclick="showTab('equipment')">Equipment</div>
+    <div class="nav-tab" onclick="showTab('quotes')">Quotes</div>
   </div>
   <div class="content" id="mc"></div>
 </div>
@@ -281,7 +282,7 @@ var selectedPeriod='ytd';
 var evSort={col:'date',dir:-1};
 var laborSort={col:'date',dir:-1};
 var currentPackEventId=null;
-var C={events:[],customers:[],payments:[],labor:[],expenses:[],profitShare:[],equipItems:[],equipComponents:[],packChecks:[],laborPayments:[]};
+var C={events:[],customers:[],payments:[],labor:[],expenses:[],profitShare:[],equipItems:[],equipComponents:[],packChecks:[],laborPayments:[],quotes:[],quoteItems:[]};
 
 // ── HELPERS ───────────────────────────────────────────────────────────────────
 function sid(x){return String(x==null?'':x);}
@@ -418,14 +419,16 @@ function loadAll(){
     sb.from('equipment_items').select('*').order('name'),
     sb.from('equipment_components').select('*').order('sort_order'),
     sb.from('packing_list_checks').select('*'),
-    sb.from('labor_payments').select('*').order('date',{ascending:false})
+    sb.from('labor_payments').select('*').order('date',{ascending:false}),
+    sb.from('quotes').select('*').order('created_at',{ascending:false}),
+    sb.from('quote_line_items').select('*').order('sort_order')
   ]).then(function(r){
     var errs=r.filter(function(x){return x.error;}).map(function(x){return x.error.message;});
     if(errs.length)console.warn('loadAll partial errors:',errs.join('; '));
     C.events=r[0].data||[];C.customers=r[1].data||[];C.payments=r[2].data||[];
     C.labor=r[3].data||[];C.expenses=r[4].data||[];C.profitShare=r[5].data||[];
     C.equipItems=r[6].data||[];C.equipComponents=r[7].data||[];C.packChecks=r[8].data||[];
-    C.laborPayments=r[9].data||[];
+    C.laborPayments=r[9].data||[];C.quotes=r[10].data||[];C.quoteItems=r[11].data||[];
   });
 }
 
@@ -512,6 +515,7 @@ function showTab(tab){
   else if(tab==='ownerfinances')renderOwnerFinances();
   else if(tab==='expenses')renderExpenses();
   else if(tab==='equipment')renderEquipment();
+  else if(tab==='quotes')renderQuotes();
 }
 
 // ── DASHBOARD ─────────────────────────────────────────────────────────────────
@@ -900,8 +904,9 @@ function renderEquipment(){
         '<div class="eq-card-head" onclick="toggleEqCard(\''+item.id+'\')">'+
           '<div><div class="eq-card-name">'+esc(item.name)+'</div>'+
           (item.category?'<div style="font-size:11px;color:var(--muted)">'+esc(item.category)+'</div>':'')+
-          '<div style="font-size:11px;color:var(--muted);margin-top:2px">'+comps.length+' component'+(comps.length!==1?'s':'')+'</div></div>'+
+          '<div style="font-size:11px;color:var(--muted);margin-top:2px">'+comps.length+' component'+(comps.length!==1?'s':'')+(item.price?' · '+fmt(item.price)+'/unit':'')+'</div></div>'+
           '<div style="display:flex;align-items:center;gap:8px">'+
+          (item.photo_url?'<img src="'+esc(item.photo_url)+'" style="width:36px;height:36px;object-fit:cover;border-radius:6px;border:1px solid var(--border)">':'')+
             '<button class="btn btn-sm btn-outline" onclick="event.stopPropagation();openEqItemModal(\''+item.id+'\')">Edit</button>'+
             '<button class="btn btn-sm btn-danger" onclick="event.stopPropagation();delRec(\'equipment_items\',\''+item.id+'\')">Del</button>'+
             '<span class="expand-arrow">▼</span>'+
@@ -1375,14 +1380,18 @@ function openEqItemModal(id){
   openModal(item?'Edit Equipment Item':'New Equipment Item',
     '<div class="form-group"><label>Name</label><input id="mEqName" value="'+esc(item?item.name:'')+'"></div>'+
     '<div class="form-group"><label>Category</label><input id="mEqCat" value="'+esc(item?item.category||'':'')+'"></div>'+
+    '<div class="form-group"><label>Description (shown on quotes)</label><textarea id="mEqDesc">'+esc(item?item.description||'':'')+'</textarea></div>'+
+    '<div class="form-group"><label>Price per unit ($)</label><input type="number" id="mEqPrice" value="'+(item&&item.price!=null?item.price:'')+'"></div>'+
+    '<div class="form-group"><label>Photo URL</label><input id="mEqPhoto" value="'+esc(item?item.photo_url||'':'')+'"></div>'+
+    (item&&item.photo_url?'<img src="'+esc(item.photo_url)+'" style="width:100%;max-height:160px;object-fit:cover;border-radius:8px;margin-bottom:12px">':'')+
     '<div class="form-group"><label>Notes</label><textarea id="mEqNotes">'+esc(item?item.notes||'':'')+'</textarea></div>',
     function(){saveEqItem(id);}
   );
 }
 async function saveEqItem(id){
-  var name=gv('mEqName'),cat=gv('mEqCat'),notes=gv('mEqNotes');
+  var name=gv('mEqName'),cat=gv('mEqCat'),desc=gv('mEqDesc'),price=gv('mEqPrice'),photo=gv('mEqPhoto'),notes=gv('mEqNotes');
   if(!name){showErr('Name required.');return;}
-  var obj={name:name,category:cat||null,notes:notes||null};
+  var obj={name:name,category:cat||null,description:desc||null,price:price?parseFloat(price):null,photo_url:photo||null,notes:notes||null};
   var r=id?await sb.from('equipment_items').update(obj).eq('id',id):await sb.from('equipment_items').insert(obj);
   if(r.error){showErr(r.error.message);return;}
   closeModal();await loadAll();showTab('equipment');
@@ -1421,6 +1430,373 @@ async function delRec(table,id,cb){
   else if(table==='events')showTab('events');
   else if(table==='customers')showTab('customers');
   else if(table==='equipment_items'||table==='equipment_components')showTab('equipment');
+}
+
+
+// ── QUOTES ────────────────────────────────────────────────────────────────────
+var MAKE_QUOTE_WEBHOOK=''; // set your Make.com webhook URL here
+var QUOTE_PAGE_URL='https://groovetechrental.com/quote';
+var SUPABASE_ANON_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJidHpjc3dub3VubXlidW1xYnd1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYyOTI3OTgsImV4cCI6MjA5MTg2ODc5OH0.d_CSDndGJcuBve_EtHo8RDcHG8dxQVn22gpUjQ7FGNY';
+var QUOTE_STATUS_BADGE={draft:'ba',sent:'bb',accepted:'bg',declined:'br'};
+var QUOTE_STATUS_LABEL={draft:'Draft',sent:'Sent',accepted:'Accepted',declined:'Declined'};
+
+function quoteBadge(s){return'<span class="badge '+(QUOTE_STATUS_BADGE[s]||'ba')+'">'+(QUOTE_STATUS_LABEL[s]||s)+'</span>';}
+
+function renderQuotes(){
+  var qs=C.quotes.slice().sort(function(a,b){return(b.created_at||'').localeCompare(a.created_at||'');});
+  var counts={draft:0,sent:0,accepted:0};
+  qs.forEach(function(q){if(counts[q.status]!=null)counts[q.status]++;});
+  document.getElementById('mc').innerHTML=
+    '<div class="g3" style="margin-bottom:16px">'+sc('Draft',counts.draft)+sc('Sent',counts.sent)+sc('Accepted',counts.accepted,'green')+'</div>'+
+    sh('Quotes ('+qs.length+')','<button class="btn btn-sm" onclick="openQuoteModal()">+ New Quote</button>')+
+    '<table class="tbl"><thead><tr><th>Created</th><th>Customer</th><th>Event</th><th>Event Date</th><th>Total</th><th>Status</th><th></th></tr></thead><tbody>'+
+    (qs.map(function(q){
+      var qid=q.id;
+      return'<tr style="cursor:pointer" onclick="openQuoteDetail(\''+qid+'\')">'+
+        '<td>'+fmtD(q.created_at?q.created_at.split('T')[0]:'')+'</td>'+
+        '<td style="font-weight:500">'+esc(q.customer_name||'\u2014')+'</td>'+
+        '<td>'+esc(q.event_name||'\u2014')+'</td>'+
+        '<td>'+fmtD(q.event_date)+'</td>'+
+        '<td style="color:var(--green)">'+fmt(q.total)+'</td>'+
+        '<td>'+quoteBadge(q.status)+'</td>'+
+        '<td onclick="event.stopPropagation()"><div class="acts">'+
+          '<button class="btn btn-sm btn-outline" onclick="openQuoteModal(\''+qid+'\')">Edit</button>'+
+          (q.status==='draft'?'<button class="btn btn-sm" onclick="sendQuote(\''+qid+'\')">Send</button>':'')+
+          '<button class="btn btn-sm btn-outline" onclick="openQuotePreview(\''+qid+'\')">Preview</button>'+
+          '<button class="btn btn-sm btn-danger" onclick="delRec(\'quotes\',\''+qid+'\',function(){renderQuotes();})">Del</button>'+
+        '</div></td></tr>';
+    }).join('')||'<tr><td colspan="7" class="empty">No quotes yet</td></tr>')+
+    '</tbody></table>';
+}
+
+function openQuoteDetail(id){
+  var q=C.quotes.find(function(x){return x.id===id;});
+  if(!q)return;
+  var items=C.quoteItems.filter(function(x){return x.quote_id===id;}).sort(function(a,b){return(a.sort_order||0)-(b.sort_order||0);});
+  document.getElementById('mc').innerHTML=
+    '<div class="back" onclick="renderQuotes()">\u2190 Back to Quotes</div>'+
+    '<div style="display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:16px">'+
+      '<div><div style="font-family:\'Bebas Neue\',sans-serif;font-size:28px;letter-spacing:2px">'+esc(q.event_name||'Quote')+'</div>'+
+      '<div style="color:var(--muted);font-size:13px">'+esc(q.customer_name)+(q.customer_email?' \u00b7 '+esc(q.customer_email):'')+'</div></div>'+
+      '<div style="display:flex;gap:8px;align-items:center">'+quoteBadge(q.status)+
+        '<button class="btn btn-sm btn-outline" onclick="openQuoteModal(\''+id+'\')">Edit</button>'+
+        '<button class="btn btn-sm btn-outline" onclick="openQuotePreview(\''+id+'\')">Preview</button>'+
+        (q.status==='draft'?'<button class="btn btn-sm" onclick="sendQuote(\''+id+'\')">Send</button>':'')+
+      '</div></div>'+
+    '<div class="g2" style="margin-bottom:16px">'+
+      '<div class="dp"><div class="dp-title">Customer</div>'+
+        qdr('Name',q.customer_name||'\u2014')+qdr('Email',q.customer_email||'\u2014')+qdr('Phone',q.customer_phone||'\u2014')+
+      '</div>'+
+      '<div class="dp"><div class="dp-title">Event</div>'+
+        qdr('Event',q.event_name||'\u2014')+qdr('Venue',q.venue||'\u2014')+qdr('Date',fmtD(q.event_date))+qdr('Time',q.event_time||'\u2014')+
+      '</div>'+
+    '</div>'+
+    sh('Line Items','<button class="btn btn-sm" onclick="openQuoteItemModal(\''+id+'\')">+ Add Item</button>')+
+    '<table class="tbl"><thead><tr><th>Type</th><th>Item</th><th>Description</th><th>Qty</th><th>Unit Price</th><th>Total</th><th></th></tr></thead><tbody>'+
+    (items.map(function(li){
+      return'<tr>'+
+        '<td><span class="badge bb" style="text-transform:capitalize">'+esc(li.type||'')+'</span></td>'+
+        '<td style="font-weight:500">'+(li.photo_url?'<img src="'+esc(li.photo_url)+'" style="width:32px;height:32px;object-fit:cover;border-radius:4px;vertical-align:middle;margin-right:6px">':'')+esc(li.label)+'</td>'+
+        '<td style="color:var(--muted);font-size:12px">'+esc(li.description||'')+'</td>'+
+        '<td>'+li.qty+'</td><td>'+fmt(li.unit_price)+'</td>'+
+        '<td style="color:var(--green)">'+fmt(li.total)+'</td>'+
+        '<td><div class="acts">'+
+          '<button class="btn btn-sm btn-outline" onclick="openQuoteItemModal(\''+id+'\',\''+li.id+'\')">Edit</button>'+
+          '<button class="btn btn-sm btn-danger" onclick="delRec(\'quote_line_items\',\''+li.id+'\',function(){loadAll().then(function(){openQuoteDetail(\''+id+'\');});})">Del</button>'+
+        '</div></td></tr>';
+    }).join('')||'<tr><td colspan="7" class="empty">No line items yet</td></tr>')+
+    '</tbody></table>'+
+    '<div class="dp" style="max-width:320px;margin-left:auto">'+
+      qdr('Subtotal',fmt(q.subtotal))+
+      (q.tax_rate?qdr('Tax ('+(q.tax_rate*100).toFixed(1)+'%)',fmt(q.tax_amount)):'')+
+      '<div class="dr" style="font-size:16px;font-weight:700;border-top:2px solid var(--border);padding-top:10px;margin-top:4px"><span>Total</span><span style="color:var(--green)">'+fmt(q.total)+'</span></div>'+
+      (q.deposit_amount?qdr('Deposit Required',fmt(q.deposit_amount)+(q.deposit_due_date?' by '+fmtD(q.deposit_due_date):'')):'') +
+    '</div>'+
+    (q.signed_name?'<div class="dp" style="border-color:var(--green);margin-top:16px"><div class="dp-title" style="color:var(--green)">\u2713 Signed</div>'+
+      qdr('Signed by',q.signed_name)+qdr('At',q.signed_at?new Date(q.signed_at).toLocaleString():'')+
+    '</div>':'')+
+    (q.notes?'<div class="dp" style="margin-top:16px"><div class="dp-title">Notes</div><div style="font-size:13px">'+esc(q.notes)+'</div></div>':'')+
+    (q.valid_until?'<div style="font-size:12px;color:var(--muted);margin-top:10px">Valid until: '+fmtD(q.valid_until)+'</div>':'');
+}
+
+function qdr(l,v){return'<div class="dr"><span class="l">'+esc(l)+'</span><span class="v">'+v+'</span></div>';}
+
+function openQuoteModal(id){
+  var q=id?C.quotes.find(function(x){return x.id===id;}):null;
+  openModal(q?'Edit Quote':'New Quote',
+    '<div style="font-size:11px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:.8px;margin-bottom:10px">Customer</div>'+
+    '<div class="g2">'+
+      '<div class="form-group"><label>Name</label><input id="qCuName" value="'+esc(q?q.customer_name||'':'')+'"></div>'+
+      '<div class="form-group"><label>Email</label><input type="email" id="qCuEmail" value="'+esc(q?q.customer_email||'':'')+'"></div>'+
+    '</div>'+
+    '<div class="form-group"><label>Phone</label><input id="qCuPhone" value="'+esc(q?q.customer_phone||'':'')+'"></div>'+
+    '<div style="font-size:11px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:.8px;margin:14px 0 10px">Event</div>'+
+    '<div class="form-group"><label>Event Name</label><input id="qEvName" value="'+esc(q?q.event_name||'':'')+'"></div>'+
+    '<div class="form-group"><label>Venue</label><input id="qEvVenue" value="'+esc(q?q.venue||'':'')+'"></div>'+
+    '<div class="g2">'+
+      '<div class="form-group"><label>Date</label><input type="date" id="qEvDate" value="'+(q?q.event_date||'':'')+'"></div>'+
+      '<div class="form-group"><label>Time</label><input id="qEvTime" value="'+esc(q?q.event_time||'':'')+'"></div>'+
+    '</div>'+
+    '<div style="font-size:11px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:.8px;margin:14px 0 10px">Pricing</div>'+
+    '<div class="g2">'+
+      '<div class="form-group"><label>Tax Rate (%)</label><input type="number" id="qTax" step="0.1" value="'+(q&&q.tax_rate?q.tax_rate*100:'')+'"></div>'+
+      '<div class="form-group"><label>Deposit Amount ($)</label><input type="number" id="qDeposit" value="'+(q?q.deposit_amount||'':'')+'"></div>'+
+    '</div>'+
+    '<div class="g2">'+
+      '<div class="form-group"><label>Deposit Due Date</label><input type="date" id="qDepDate" value="'+(q?q.deposit_due_date||'':'')+'"></div>'+
+      '<div class="form-group"><label>Valid Until</label><input type="date" id="qValid" value="'+(q?q.valid_until||'':'')+'"></div>'+
+    '</div>'+
+    '<div class="form-group"><label>Notes (shown on quote)</label><textarea id="qNotes">'+esc(q?q.notes||'':'')+'</textarea></div>'+
+    '<div class="form-group"><label>Internal Notes</label><textarea id="qIntNotes">'+esc(q?q.internal_notes||'':'')+'</textarea></div>',
+    function(){saveQuote(id);}
+  );
+}
+
+async function saveQuote(id){
+  var name=gv('qCuName'),email=gv('qCuEmail'),phone=gv('qCuPhone');
+  var evName2=gv('qEvName'),venue=gv('qEvVenue'),evDate=gv('qEvDate'),evTime=gv('qEvTime');
+  var tax=gv('qTax'),deposit=gv('qDeposit'),depDate=gv('qDepDate'),valid=gv('qValid'),notes=gv('qNotes'),intNotes=gv('qIntNotes');
+  if(!name){showErr('Customer name required.');return;}
+  var taxRate=tax?parseFloat(tax)/100:0;
+  var existItems=id?C.quoteItems.filter(function(x){return x.quote_id===id;}):[];
+  var subtotal=existItems.reduce(function(s,x){return s+(parseFloat(x.total)||0);},0);
+  var taxAmt=subtotal*taxRate;
+  var obj={customer_name:name,customer_email:email||null,customer_phone:phone||null,
+    event_name:evName2||null,venue:venue||null,event_date:evDate||null,event_time:evTime||null,
+    tax_rate:taxRate,deposit_amount:deposit?parseFloat(deposit):null,deposit_due_date:depDate||null,
+    valid_until:valid||null,notes:notes||null,internal_notes:intNotes||null,
+    subtotal:subtotal,tax_amount:taxAmt,total:subtotal+taxAmt,updated_at:new Date().toISOString()};
+  var r=id?await sb.from('quotes').update(obj).eq('id',id):await sb.from('quotes').insert(Object.assign({},obj,{status:'draft'}));
+  if(r.error){showErr(r.error.message);return;}
+  closeModal();await loadAll();renderQuotes();
+}
+
+function openQuoteItemModal(quoteId,itemId){
+  var li=itemId?C.quoteItems.find(function(x){return x.id===itemId;}):null;
+  var catOpts='<option value="">\u2014 select from catalog \u2014</option>'+
+    C.equipItems.map(function(x){return'<option value="'+x.id+'">'+esc(x.name)+(x.price?' ($'+parseFloat(x.price).toFixed(2)+')':'')+'</option>';}).join('');
+  openModal(li?'Edit Line Item':'Add Line Item',
+    '<div class="form-group"><label>Type</label><select id="qLiType" onchange="handleQliType(this)">'+
+      ['equipment','labor','travel','other'].map(function(t){return'<option value="'+t+'"'+(li&&li.type===t?' selected':'')+'>'+t.charAt(0).toUpperCase()+t.slice(1)+'</option>';}).join('')+
+    '</select></div>'+
+    '<div id="qLiCatWrap" class="form-group" style="'+(li&&li.type!=='equipment'?'display:none':'')+'"><label>Quick Add from Catalog</label><select id="qLiCatalog" onchange="fillFromCatalog(this)"><'+catOpts+'</select></div>'+
+    '<div class="form-group"><label>Label</label><input id="qLiLabel" value="'+esc(li?li.label:'')+'"></div>'+
+    '<div class="form-group"><label>Description</label><input id="qLiDesc" value="'+esc(li?li.description||'':'')+'"></div>'+
+    '<div id="qLiPhotoWrap" class="form-group" style="'+(li&&li.type!=='equipment'?'display:none':'')+'"><label>Photo URL</label><input id="qLiPhoto" value="'+esc(li?li.photo_url||'':'')+'"></div>'+
+    '<div class="g2">'+
+      '<div class="form-group"><label>Qty</label><input type="number" id="qLiQty" value="'+(li?li.qty:1)+'" step="0.5" min="0.5" oninput="updateQliTotal()"></div>'+
+      '<div class="form-group"><label>Unit Price ($)</label><input type="number" id="qLiPrice" value="'+(li?li.unit_price:0)+'" oninput="updateQliTotal()"></div>'+
+    '</div>'+
+    '<div class="form-group"><label>Line Total ($)</label><input type="number" id="qLiTotal" value="'+(li?li.total:0)+'"></div>',
+    function(){saveQuoteItem(quoteId,itemId);}
+  );
+}
+
+function handleQliType(sel){
+  var isEq=sel.value==='equipment';
+  var w=document.getElementById('qLiCatWrap');if(w)w.style.display=isEq?'':'none';
+  var p=document.getElementById('qLiPhotoWrap');if(p)p.style.display=isEq?'':'none';
+}
+
+function fillFromCatalog(sel){
+  if(!sel.value)return;
+  var item=C.equipItems.find(function(x){return x.id===sel.value;});
+  if(!item)return;
+  document.getElementById('qLiLabel').value=item.name;
+  document.getElementById('qLiDesc').value=item.description||'';
+  document.getElementById('qLiPhoto').value=item.photo_url||'';
+  document.getElementById('qLiPrice').value=item.price||0;
+  updateQliTotal();
+}
+
+function updateQliTotal(){
+  var qty=parseFloat(document.getElementById('qLiQty').value)||0;
+  var price=parseFloat(document.getElementById('qLiPrice').value)||0;
+  document.getElementById('qLiTotal').value=(qty*price).toFixed(2);
+}
+
+async function saveQuoteItem(quoteId,itemId){
+  var type=gv('qLiType'),label=gv('qLiLabel'),desc=gv('qLiDesc'),photo=gv('qLiPhoto');
+  var qty=parseFloat(gv('qLiQty'))||1,price=parseFloat(gv('qLiPrice'))||0,total=parseFloat(gv('qLiTotal'))||qty*price;
+  if(!label){showErr('Label required.');return;}
+  var sortOrder=C.quoteItems.filter(function(x){return x.quote_id===quoteId;}).length;
+  var obj={quote_id:quoteId,type:type,label:label,description:desc||null,photo_url:photo||null,
+    qty:qty,unit_price:price,total:total,sort_order:itemId?undefined:sortOrder};
+  if(itemId)delete obj.sort_order;
+  var r=itemId?await sb.from('quote_line_items').update(obj).eq('id',itemId):await sb.from('quote_line_items').insert(obj);
+  if(r.error){showErr(r.error.message);return;}
+  await loadAll();
+  var q2=C.quotes.find(function(x){return x.id===quoteId;});
+  if(q2){
+    var allItems=C.quoteItems.filter(function(x){return x.quote_id===quoteId;});
+    var sub=allItems.reduce(function(s,x){return s+(parseFloat(x.total)||0);},0);
+    var ta=sub*(q2.tax_rate||0);
+    await sb.from('quotes').update({subtotal:sub,tax_amount:ta,total:sub+ta,updated_at:new Date().toISOString()}).eq('id',quoteId);
+  }
+  closeModal();await loadAll();openQuoteDetail(quoteId);
+}
+
+async function sendQuote(id){
+  var q=C.quotes.find(function(x){return x.id===id;});
+  if(!q)return;
+  if(!q.customer_email){showErr('Customer email required to send quote.');return;}
+  if(!confirm('Mark as sent to '+q.customer_email+'?'))return;
+  var r=await sb.from('quotes').update({status:'sent',updated_at:new Date().toISOString()}).eq('id',id);
+  if(r.error){showErr(r.error.message);return;}
+  if(MAKE_QUOTE_WEBHOOK){
+    var items=C.quoteItems.filter(function(x){return x.quote_id===id;});
+    fetch(MAKE_QUOTE_WEBHOOK,{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({token:q.token,customer_name:q.customer_name,customer_email:q.customer_email,
+        event_name:q.event_name,event_date:q.event_date,venue:q.venue,total:q.total,
+        quote_url:QUOTE_PAGE_URL+'?id='+q.token,
+        line_items:items.map(function(li){return{label:li.label,qty:li.qty,unit_price:li.unit_price,total:li.total};})
+      })
+    }).catch(function(e){console.warn('Quote webhook failed:',e);});
+  }
+  await loadAll();
+  showErr('\u2713 Quote sent'+(MAKE_QUOTE_WEBHOOK?' \u2014 email triggered via Make':''));
+  renderQuotes();
+}
+
+function openQuotePreview(id){
+  var q=C.quotes.find(function(x){return x.id===id;});
+  if(!q)return;
+  var items=C.quoteItems.filter(function(x){return x.quote_id===id;}).sort(function(a,b){return(a.sort_order||0)-(b.sort_order||0);});
+  var w=window.open('','_blank');
+  w.document.write(buildQuoteHTML(q,items));
+  w.document.close();
+}
+
+function buildQuoteHTML(q,items){
+  var eqItems=items.filter(function(x){return x.type==='equipment';});
+  var svcItems=items.filter(function(x){return x.type!=='equipment';});
+  var SURL='https://rbtzcswnounmybumqbwu.supabase.co';
+  var SKEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJidHpjc3dub3VubXlidW1xYnd1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYyOTI3OTgsImV4cCI6MjA5MTg2ODc5OH0.d_CSDndGJcuBve_EtHo8RDcHG8dxQVn22gpUjQ7FGNY';
+  var isSent=q.status==='sent'||q.status==='accepted';
+  return'<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">'+
+  '<title>Quote \u2014 '+esc(q.event_name||q.customer_name)+'</title>'+
+  '<style>*{box-sizing:border-box;margin:0;padding:0;}'+
+  'body{font-family:"Helvetica Neue",Arial,sans-serif;background:#f4f4f8;color:#1a1a2e;padding:20px;}'+
+  '.page{max-width:760px;margin:0 auto;background:#fff;border-radius:16px;overflow:hidden;box-shadow:0 4px 32px rgba(0,0,0,.12);}'+
+  '.hdr{background:#1a1a2e;padding:28px 32px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:16px;}'+
+  '.hdr img{height:52px;}'+
+  '.hdr-r{text-align:right;font-size:13px;color:rgba(255,255,255,.6);}'+
+  '.hdr-r .qt{font-size:20px;font-weight:700;color:#b39ddb;margin-bottom:4px;}'+
+  '.body{padding:28px 32px;}'+
+  '.stitle{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#999;margin-bottom:10px;padding-bottom:6px;border-bottom:1px solid #eee;}'+
+  '.two{display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:24px;}'+
+  '@media(max-width:520px){.two{grid-template-columns:1fr;}}'+
+  '.ib p{font-size:13px;color:#555;margin-bottom:3px;line-height:1.5;}strong{color:#1a1a2e;}'+
+  '.eq-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(185px,1fr));gap:14px;margin-bottom:24px;}'+
+  '.eqc{border:1px solid #eee;border-radius:10px;overflow:hidden;}'+
+  '.eqc img{width:100%;height:130px;object-fit:cover;display:block;}'+
+  '.eqc-b{padding:10px 12px;}'+
+  '.eqc-n{font-weight:600;font-size:14px;margin-bottom:3px;}'+
+  '.eqc-d{font-size:12px;color:#aaa;margin-bottom:5px;}'+
+  '.eqc-p{font-size:12px;color:#555;}'+
+  'table{width:100%;border-collapse:collapse;margin-bottom:24px;font-size:13px;}'+
+  'th{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#aaa;padding:9px 10px;text-align:left;border-bottom:2px solid #eee;}'+
+  'td{padding:9px 10px;border-bottom:1px solid #f2f2f2;}tr:last-child td{border-bottom:none;}'+
+  '.tots{max-width:260px;margin-left:auto;margin-bottom:24px;}'+
+  '.tr{display:flex;justify-content:space-between;padding:7px 0;font-size:14px;border-bottom:1px solid #f2f2f2;}'+
+  '.grand{font-size:17px;font-weight:700;border-bottom:none;border-top:2px solid #1a1a2e;padding-top:10px;margin-top:4px;}'+
+  '.dep{color:#6c3fc8;font-weight:600;}'+
+  '.nbox{background:#f9f9fc;border-radius:8px;padding:14px;margin-bottom:24px;font-size:13px;color:#555;line-height:1.6;}'+
+  '.sbox{background:#f0f7ff;border:1px solid #c5dff8;border-radius:12px;padding:24px;margin-bottom:8px;}'+
+  '.sbox h3{font-size:17px;font-weight:700;margin-bottom:6px;}.sbox p{font-size:13px;color:#666;margin-bottom:16px;line-height:1.5;}'+
+  'input[type=text]{width:100%;padding:12px 14px;border:2px solid #ddd;border-radius:8px;font-size:16px;font-family:inherit;margin-bottom:12px;outline:none;transition:border-color .2s;}'+
+  'input[type=text]:focus{border-color:#6c3fc8;}'+
+  '.sbtn{background:#6c3fc8;color:#fff;border:none;border-radius:8px;padding:14px;font-size:15px;font-weight:700;cursor:pointer;width:100%;transition:background .15s;}'+
+  '.sbtn:hover{background:#5a32a8;}.sbtn:disabled{background:#aaa;cursor:not-allowed;}'+
+  '.signed{background:#e8f5e9;border:1px solid #a5d6a7;border-radius:10px;padding:20px;text-align:center;color:#2e7d32;font-weight:600;font-size:15px;}'+
+  '.foot{background:#f5f5f7;padding:16px 32px;text-align:center;font-size:12px;color:#aaa;}'+
+  '@media print{body{background:#fff;padding:0;}.sbox{display:none;}.page{box-shadow:none;border-radius:0;}}'+
+  '</style></head><body>'+
+  '<div class="page">'+
+    '<div class="hdr">'+
+      '<img src="https://groovetechrental.com/wp-content/uploads/2024/09/gtfulllogo-edited-2959047573-e1725910986602.png" alt="Groove Tech Rental">'+
+      '<div class="hdr-r">'+
+        '<div class="qt">Event Quote</div>'+
+        '<div>groovetechrental.com</div>'+
+        '<div>'+new Date().toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'})+'</div>'+
+        (q.valid_until?'<div>Valid until: '+fmtD(q.valid_until)+'</div>':'')+
+      '</div>'+
+    '</div>'+
+    '<div class="body">'+
+      '<div class="two">'+
+        '<div><div class="stitle">Customer</div><div class="ib">'+
+          '<p><strong>'+esc(q.customer_name)+'</strong></p>'+
+          (q.customer_email?'<p>'+esc(q.customer_email)+'</p>':'')+
+          (q.customer_phone?'<p>'+esc(q.customer_phone)+'</p>':'')+
+        '</div></div>'+
+        '<div><div class="stitle">Event Details</div><div class="ib">'+
+          (q.event_name?'<p><strong>'+esc(q.event_name)+'</strong></p>':'')+
+          (q.venue?'<p>&#128205; '+esc(q.venue)+'</p>':'')+
+          (q.event_date?'<p>&#128197; '+fmtD(q.event_date)+'</p>':'')+
+          (q.event_time?'<p>&#128336; '+esc(q.event_time)+'</p>':'')+
+        '</div></div>'+
+      '</div>'+
+      (eqItems.length?
+        '<div class="stitle">Equipment</div>'+
+        '<div class="eq-grid">'+
+        eqItems.map(function(li){
+          return'<div class="eqc">'+
+            (li.photo_url?'<img src="'+esc(li.photo_url)+'" alt="'+esc(li.label)+'">':
+              '<div style="height:130px;background:#f0f0f5;display:flex;align-items:center;justify-content:center;font-size:32px">&#127916;</div>')+
+            '<div class="eqc-b">'+
+              '<div class="eqc-n">'+esc(li.label)+'</div>'+
+              (li.description?'<div class="eqc-d">'+esc(li.description)+'</div>':'')+
+              '<div class="eqc-p">Qty: '+li.qty+' &nbsp;&middot;&nbsp; '+fmt(li.unit_price)+' each</div>'+
+            '</div></div>';
+        }).join('')+'</div>':'')+ 
+      (svcItems.length?
+        '<div class="stitle">Services</div>'+
+        '<table><thead><tr><th>Service</th><th>Description</th><th>Qty</th><th>Unit Price</th><th>Total</th></tr></thead><tbody>'+
+        svcItems.map(function(li){
+          return'<tr><td><strong>'+esc(li.label)+'</strong><br><small style="color:#aaa;text-transform:capitalize">'+esc(li.type)+'</small></td>'+
+            '<td style="color:#888">'+esc(li.description||'')+'</td>'+
+            '<td>'+li.qty+'</td><td>'+fmt(li.unit_price)+'</td><td><strong>'+fmt(li.total)+'</strong></td></tr>';
+        }).join('')+'</tbody></table>':'')+
+      '<div class="tots">'+
+        '<div class="tr"><span>Subtotal</span><span>'+fmt(q.subtotal)+'</span></div>'+
+        (q.tax_rate?'<div class="tr"><span>Tax ('+(q.tax_rate*100).toFixed(1)+'%)</span><span>'+fmt(q.tax_amount)+'</span></div>':'')+
+        '<div class="tr grand"><span>Total</span><span>'+fmt(q.total)+'</span></div>'+
+        (q.deposit_amount?'<div class="tr dep"><span>Deposit Required</span><span>'+fmt(q.deposit_amount)+'</span></div>':'')+
+      '</div>'+
+      (q.notes?'<div class="stitle">Notes</div><div class="nbox">'+esc(q.notes).replace(/\n/g,'<br>')+'</div>':'')+
+      '<div class="sbox" id="signWrap">'+
+        (q.signed_name?
+          '<div class="signed">&#10003; Accepted &amp; signed by '+esc(q.signed_name)+' on '+new Date(q.signed_at).toLocaleString()+'</div>':
+          (isSent?
+            '<h3>Accept This Quote</h3>'+
+            '<p>By signing below you agree to the terms of this quote.'+(q.deposit_amount?' A deposit of '+fmt(q.deposit_amount)+' is required to secure your date.':'')+'</p>'+
+            '<input type="text" id="sigName" placeholder="Type your full name to sign" autocomplete="name">'+
+            '<button class="sbtn" id="sigBtn" onclick="doSign()">&#9997; Sign &amp; Accept</button>':
+            '<p style="text-align:center;color:#aaa;font-size:13px">Quote preview &mdash; signing available once sent to customer</p>'
+          )
+        )+
+      '</div>'+
+    '</div>'+
+    '<div class="foot">Groove Tech Rental &nbsp;&middot;&nbsp; groovetechrental.com &nbsp;&middot;&nbsp; Thank you for your business!</div>'+
+  '</div>'+
+  '<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></scr'+'ipt>'+
+  '<script>'+
+  'var _sb=null;'+
+  'function fmt(n){return"$"+(parseFloat(n)||0).toFixed(2).replace(/\\B(?=(\\d{3})+(?!\\d))/g,",");}'+
+  'function doSign(){'+
+    'var name=(document.getElementById("sigName").value||"").trim();'+
+    'if(!name){alert("Please type your full name.");return;}'+
+    'if(!confirm("Sign as \\""+name+"\\"? This confirms your agreement to the quote terms."))return;'+
+    'var btn=document.getElementById("sigBtn");btn.disabled=true;btn.textContent="Signing\u2026";'+
+    'if(!_sb)_sb=supabase.createClient("'+SURL+'","'+SKEY+'");'+
+    '_sb.from("quotes").update({signed_name:name,signed_at:new Date().toISOString(),status:"accepted"}).eq("token","'+q.token+'")'+
+    '.then(function(r){'+
+      'if(r.error){alert("Error: "+r.error.message);btn.disabled=false;btn.textContent="Sign & Accept";return;}'+
+      'document.getElementById("signWrap").innerHTML="<div class=\\"signed\\">&#10003; Signed by "+name+". Thank you! We\'ll be in touch shortly.</div>";'+
+    '});'+
+  '}'+
+  '</scr'+'ipt>'+
+  '</body></html>';
 }
 
 
