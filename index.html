@@ -1521,8 +1521,106 @@ function openQuoteDetail(id){
 
 function qdr(l,v){return'<div class="dr"><span class="l">'+esc(l)+'</span><span class="v">'+v+'</span></div>';}
 
+function qLineItemsHtml(existing){
+  var rows=existing||[];
+  var catOpts='<option value="">\u2014 from catalog \u2014</option>'+
+    C.equipItems.map(function(x){return'<option value="__eq__'+x.id+'__'+esc(x.name)+'__'+(x.price||0)+'__'+(x.photo_url||'')+'__'+(x.description||'')+'">'+esc(x.name)+(x.price?' \u2014 $'+parseFloat(x.price).toFixed(2):'')+'</option>';}).join('');
+  var out='<div id="qLiWrap">';
+  rows.forEach(function(li,i){out+=qLiRowHtml(li,i);});
+  out+='</div>'+
+    '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:6px">'+
+    (C.equipItems.length?'<select onchange="qAddFromCatalog(this)" style="flex:1;min-width:160px;font-size:13px"><'+catOpts+'</select>':'')+
+    '<button type="button" class="btn btn-sm btn-outline" style="border-style:dashed;white-space:nowrap" onclick="qAddRow(\'equipment\')">+ Equipment</button>'+
+    '<button type="button" class="btn btn-sm btn-outline" style="border-style:dashed;white-space:nowrap" onclick="qAddRow(\'labor\')">+ Labor</button>'+
+    '<button type="button" class="btn btn-sm btn-outline" style="border-style:dashed;white-space:nowrap" onclick="qAddRow(\'travel\')">+ Travel</button>'+
+    '</div>'+
+    '<div style="display:flex;justify-content:space-between;align-items:center;margin-top:12px;padding-top:10px;border-top:1px solid var(--border)">'+
+    '<span style="font-size:12px;color:var(--muted)">Subtotal</span>'+
+    '<span style="font-weight:700;color:var(--green)" id="qSubtotalDisplay">$0.00</span>'+
+    '</div>';
+  return out;
+}
+function qLiRowHtml(li,i){
+  var typeBadgeColors={equipment:'color:var(--green)',labor:'color:var(--accent)',travel:'color:var(--blue)',other:'color:var(--muted)'};
+  return'<div class="qli-row" style="background:var(--surface2);border-radius:8px;padding:10px;margin-bottom:8px">'+
+    '<div style="display:flex;gap:6px;align-items:center;margin-bottom:8px">'+
+      '<select class="qli-type" onchange="qCalcRow(this.closest(\'.qli-row\'))" style="width:100px;font-size:12px;padding:4px 6px">'+
+        ['equipment','labor','travel','other'].map(function(t){return'<option value="'+t+'"'+(li.type===t?' selected':'')+'>'+t.charAt(0).toUpperCase()+t.slice(1)+'</option>';}).join('')+
+      '</select>'+
+      '<input class="qli-label" placeholder="Item name" value="'+esc(li.label||'')+'" style="flex:1;font-size:13px">'+
+      '<button type="button" onclick="this.closest(\'.qli-row\').remove();qUpdateSubtotal()" style="background:var(--accent2);color:#fff;border:none;border-radius:6px;width:28px;height:28px;cursor:pointer;font-size:15px;line-height:1">\u00d7</button>'+
+    '</div>'+
+    '<div style="display:grid;grid-template-columns:60px 100px 100px;gap:6px;align-items:center">'+
+      '<div><div style="font-size:10px;color:var(--muted);margin-bottom:2px">QTY</div>'+
+        '<input type="number" class="qli-qty" value="'+(li.qty||1)+'" min="0.5" step="0.5" style="font-size:13px;padding:4px 6px" oninput="qCalcRow(this.closest(\'.qli-row\'))"></div>'+
+      '<div><div style="font-size:10px;color:var(--muted);margin-bottom:2px">UNIT PRICE</div>'+
+        '<input type="number" class="qli-price" value="'+(li.unit_price||0)+'" min="0" step="0.01" style="font-size:13px;padding:4px 6px" oninput="qCalcRow(this.closest(\'.qli-row\'))"></div>'+
+      '<div><div style="font-size:10px;color:var(--muted);margin-bottom:2px">TOTAL</div>'+
+        '<div class="qli-total" style="font-size:14px;font-weight:700;color:var(--green);padding:4px 0">'+fmt(li.total||0)+'</div>'+
+        '<input type="hidden" class="qli-total-val" value="'+(li.total||0)+'">'+
+      '</div>'+
+    '</div>'+
+    (li.id?'<input type="hidden" class="qli-id" value="'+li.id+'">':'')+
+    (li.photo_url?'<input type="hidden" class="qli-photo" value="'+esc(li.photo_url)+'">':'')+
+    (li.description?'<input type="hidden" class="qli-desc" value="'+esc(li.description)+'">':'')+
+  '</div>';
+}
+function qCalcRow(row){
+  var qty=parseFloat(row.querySelector('.qli-qty').value)||0;
+  var price=parseFloat(row.querySelector('.qli-price').value)||0;
+  var total=(qty*price).toFixed(2);
+  row.querySelector('.qli-total').textContent=fmt(total);
+  row.querySelector('.qli-total-val').value=total;
+  qUpdateSubtotal();
+}
+function qUpdateSubtotal(){
+  var total=0;
+  document.querySelectorAll('#qLiWrap .qli-total-val').forEach(function(el){total+=parseFloat(el.value)||0;});
+  var el=document.getElementById('qSubtotalDisplay');
+  if(el)el.textContent=fmt(total);
+}
+function qAddRow(type){
+  var wrap=document.getElementById('qLiWrap');
+  if(!wrap)return;
+  var div=document.createElement('div');
+  div.innerHTML=qLiRowHtml({type:type,label:'',qty:1,unit_price:0,total:0},wrap.children.length);
+  wrap.appendChild(div.firstChild);
+}
+function qAddFromCatalog(sel){
+  if(!sel.value)return;
+  var parts=sel.value.split('__');
+  // parts: ['', 'eq', id, name, price, photo, desc]
+  var name=parts[3]||'',price=parseFloat(parts[4])||0,photo=parts[5]||'',desc=parts[6]||'';
+  var wrap=document.getElementById('qLiWrap');
+  if(!wrap)return;
+  var div=document.createElement('div');
+  div.innerHTML=qLiRowHtml({type:'equipment',label:name,qty:1,unit_price:price,total:price,photo_url:photo,description:desc},wrap.children.length);
+  wrap.appendChild(div.firstChild);
+  sel.value='';
+  qUpdateSubtotal();
+}
+function collectQLineItems(){
+  return Array.from(document.querySelectorAll('#qLiWrap .qli-row')).map(function(row){
+    var label=(row.querySelector('.qli-label').value||'').trim();
+    if(!label)return null;
+    var idEl=row.querySelector('.qli-id');
+    var photoEl=row.querySelector('.qli-photo');
+    var descEl=row.querySelector('.qli-desc');
+    return{
+      id:idEl?idEl.value:null,
+      type:row.querySelector('.qli-type').value,
+      label:label,
+      qty:parseFloat(row.querySelector('.qli-qty').value)||1,
+      unit_price:parseFloat(row.querySelector('.qli-price').value)||0,
+      total:parseFloat(row.querySelector('.qli-total-val').value)||0,
+      photo_url:photoEl?photoEl.value:null,
+      description:descEl?descEl.value:null
+    };
+  }).filter(Boolean);
+}
 function openQuoteModal(id){
   var q=id?C.quotes.find(function(x){return x.id===id;}):null;
+  var existItems=id?C.quoteItems.filter(function(x){return x.quote_id===id;}).sort(function(a,b){return(a.sort_order||0)-(b.sort_order||0);}):[];
   openModal(q?'Edit Quote':'New Quote',
     '<div style="font-size:11px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:.8px;margin-bottom:10px">Customer</div>'+
     '<div class="g2">'+
@@ -1537,6 +1635,8 @@ function openQuoteModal(id){
       '<div class="form-group"><label>Date</label><input type="date" id="qEvDate" value="'+(q?q.event_date||'':'')+'"></div>'+
       '<div class="form-group"><label>Time</label><input id="qEvTime" value="'+esc(q?q.event_time||'':'')+'"></div>'+
     '</div>'+
+    '<div style="font-size:11px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:.8px;margin:14px 0 10px">Equipment &amp; Services</div>'+
+    qLineItemsHtml(existItems)+
     '<div style="font-size:11px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:.8px;margin:14px 0 10px">Pricing</div>'+
     '<div class="g2">'+
       '<div class="form-group"><label>Tax Rate (%)</label><input type="number" id="qTax" step="0.1" value="'+(q&&q.tax_rate?q.tax_rate*100:'')+'"></div>'+
@@ -1550,6 +1650,7 @@ function openQuoteModal(id){
     '<div class="form-group"><label>Internal Notes</label><textarea id="qIntNotes">'+esc(q?q.internal_notes||'':'')+'</textarea></div>',
     function(){saveQuote(id);}
   );
+  setTimeout(qUpdateSubtotal,0);
 }
 
 async function saveQuote(id){
@@ -1557,9 +1658,9 @@ async function saveQuote(id){
   var evName2=gv('qEvName'),venue=gv('qEvVenue'),evDate=gv('qEvDate'),evTime=gv('qEvTime');
   var tax=gv('qTax'),deposit=gv('qDeposit'),depDate=gv('qDepDate'),valid=gv('qValid'),notes=gv('qNotes'),intNotes=gv('qIntNotes');
   if(!name){showErr('Customer name required.');return;}
+  var lineItems=collectQLineItems();
   var taxRate=tax?parseFloat(tax)/100:0;
-  var existItems=id?C.quoteItems.filter(function(x){return x.quote_id===id;}):[];
-  var subtotal=existItems.reduce(function(s,x){return s+(parseFloat(x.total)||0);},0);
+  var subtotal=lineItems.reduce(function(s,x){return s+(parseFloat(x.total)||0);},0);
   var taxAmt=subtotal*taxRate;
   var obj={customer_name:name,customer_email:email||null,customer_phone:phone||null,
     event_name:evName2||null,venue:venue||null,event_date:evDate||null,event_time:evTime||null,
@@ -1568,6 +1669,14 @@ async function saveQuote(id){
     subtotal:subtotal,tax_amount:taxAmt,total:subtotal+taxAmt,updated_at:new Date().toISOString()};
   var r=id?await sb.from('quotes').update(obj).eq('id',id):await sb.from('quotes').insert(Object.assign({},obj,{status:'draft'}));
   if(r.error){showErr(r.error.message);return;}
+  var qId=id||(r.data&&r.data[0]&&r.data[0].id);
+  if(!qId){var fresh=await sb.from('quotes').select('id').eq('customer_name',name).order('created_at',{ascending:false}).limit(1);qId=fresh.data&&fresh.data[0]&&fresh.data[0].id;}
+  if(qId&&lineItems.length){
+    if(id)await sb.from('quote_line_items').delete().eq('quote_id',qId);
+    var liObjs=lineItems.map(function(li,i){return{quote_id:qId,type:li.type,label:li.label,description:li.description||null,photo_url:li.photo_url||null,qty:li.qty,unit_price:li.unit_price,total:li.total,sort_order:i};});
+    var lr=await sb.from('quote_line_items').insert(liObjs);
+    if(lr.error)console.warn('Line items error:',lr.error.message);
+  }
   closeModal();await loadAll();renderQuotes();
 }
 
