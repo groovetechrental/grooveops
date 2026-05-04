@@ -1,130 +1,1974 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Event Quote — Groove Tech Rental</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GrooveOps</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
 <style>
-@font-face{font-family:'Rift';src:url('https://groovetechrental.com/wp-content/themes/your-theme/fonts/rift-medium.woff2') format('woff2');font-weight:500;}
+:root{--bg:#0e0e12;--surface:#17171f;--surface2:#1e1e2a;--border:#2a2a3a;--accent:#9c6fe4;--accent2:#e05c5c;--green:#4caf50;--blue:#4fc3f7;--text:#e8e8f0;--muted:#6b6b80;--radius:12px;--gt:#f5a623;--looch:#e05c5c;--neon:#b39ddb;--other:#6b6b80;}
 *{box-sizing:border-box;margin:0;padding:0;}
-body{font-family:'DM Sans','Helvetica Neue',Arial,sans-serif;background:#f4f4f8;color:#1a1a2e;padding:20px;}
-.page{max-width:760px;margin:0 auto;background:#fff;border-radius:16px;overflow:hidden;box-shadow:0 4px 32px rgba(0,0,0,.12);}
-.hdr{background:#692fb4;padding:24px 32px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:16px;}
-.hdr img{height:56px;}
-.hdr-r{text-align:right;font-size:13px;color:rgba(255,255,255,.75);}
-.hdr-r .qt{font-family:'Bebas Neue','Rift',sans-serif;font-size:26px;font-weight:500;color:#ccf76f;letter-spacing:2px;margin-bottom:4px;}
-.hdr-r .hdr-phone{color:rgba(255,255,255,.9);font-weight:600;}
-.body{padding:28px 32px;}
-.stitle{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#999;margin-bottom:10px;padding-bottom:6px;border-bottom:1px solid #eee;}
-.two{display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:24px;}
-@media(max-width:520px){.two{grid-template-columns:1fr;}.hdr{flex-direction:column;}.hdr-r{text-align:left;}}
-.ib p{font-size:13px;color:#555;margin-bottom:3px;line-height:1.5;}
-.ib strong{color:#1a1a2e;}
-.eq-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(185px,1fr));gap:14px;margin-bottom:24px;}
-.eqc{border:1px solid #eee;border-radius:10px;overflow:hidden;}
-.eqc img{width:100%;height:130px;object-fit:cover;display:block;}
-.eqc-placeholder{height:130px;background:#f0f0f5;display:flex;align-items:center;justify-content:center;font-size:32px;}
-.eqc-b{padding:10px 12px;}
-.eqc-n{font-weight:600;font-size:14px;margin-bottom:3px;}
-.eqc-d{font-size:12px;color:#aaa;margin-bottom:5px;}
-.eqc-p{font-size:12px;color:#555;}
-table{width:100%;border-collapse:collapse;margin-bottom:24px;font-size:13px;}
-th{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#aaa;padding:9px 10px;text-align:left;border-bottom:2px solid #eee;}
-td{padding:9px 10px;border-bottom:1px solid #f2f2f2;vertical-align:top;}
-tr:last-child td{border-bottom:none;}
-.tots{max-width:260px;margin-left:auto;margin-bottom:24px;}
-.tr{display:flex;justify-content:space-between;padding:7px 0;font-size:14px;border-bottom:1px solid #f2f2f2;}
-.grand{font-size:17px;font-weight:700;border-bottom:none;border-top:2px solid #1a1a2e;padding-top:10px;margin-top:4px;}
-.dep{color:#692fb4;font-weight:600;border-bottom:none;}
-.nbox{background:#f9f9fc;border-radius:8px;padding:14px;margin-bottom:24px;font-size:13px;color:#555;line-height:1.6;}
-.sbox{background:#f5f0fc;border:1px solid #d4b8f0;border-radius:12px;padding:24px;margin-bottom:8px;}
-.sbox h3{font-size:17px;font-weight:700;margin-bottom:6px;color:#1a1a2e;}
-.sbox p{font-size:13px;color:#666;margin-bottom:16px;line-height:1.5;}
-input[type=text]{width:100%;padding:12px 14px;border:2px solid #ddd;border-radius:8px;font-size:16px;font-family:inherit;margin-bottom:12px;outline:none;transition:border-color .2s;}
-input[type=text]:focus{border-color:#692fb4;}
-.sbtn{background:#692fb4;color:#fff;border:none;border-radius:8px;padding:14px;font-size:15px;font-weight:700;cursor:pointer;width:100%;transition:background .15s;letter-spacing:.3px;}
-.sbtn:hover{background:#5a2799;}
-.sbtn:disabled{background:#aaa;cursor:not-allowed;}
-.signed{background:#e8f5e9;border:1px solid #a5d6a7;border-radius:10px;padding:20px;text-align:center;color:#2e7d32;font-weight:600;font-size:15px;}
-.declined{background:#fce4ec;border:1px solid #ef9a9a;border-radius:10px;padding:20px;text-align:center;color:#c62828;font-weight:600;font-size:15px;}
-.loader{text-align:center;padding:60px;color:#999;font-size:15px;}
-.err{text-align:center;padding:60px;color:#c62828;font-size:15px;}
-.foot{background:#692fb4;padding:16px 32px;text-align:center;font-size:12px;color:rgba(255,255,255,.7);}
-.foot a{color:#ccf76f;text-decoration:none;}
-.badge{display:inline-block;font-size:10px;font-weight:700;border-radius:20px;padding:3px 10px;margin-left:8px;}
-.badge-sent{background:rgba(204,247,111,.2);color:#ccf76f;border:1px solid rgba(204,247,111,.4);}
-.badge-accepted{background:rgba(76,175,80,.15);color:#2e7d32;border:1px solid rgba(76,175,80,.3);}
-@media print{body{background:#fff;padding:0;}.sbox{display:none;}.page{box-shadow:none;border-radius:0;}.foot{display:none;}}
+body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min-height:100vh;}
+#loginScreen{display:flex;align-items:center;justify-content:center;min-height:100vh;padding:16px;}
+.login-box{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:32px 24px;width:100%;max-width:360px;}
+.login-logo{font-family:'Bebas Neue',sans-serif;font-size:28px;letter-spacing:3px;color:var(--accent);margin-bottom:4px;}
+.login-logo span{color:var(--text);}
+.login-sub{font-size:13px;color:var(--muted);margin-bottom:24px;}
+.login-err{background:rgba(224,92,92,.12);border:1px solid rgba(224,92,92,.35);border-radius:8px;padding:10px 12px;font-size:13px;color:var(--accent2);margin-bottom:14px;display:none;}
+.login-err.show{display:block;}
+#app{display:none;}
+.form-group{margin-bottom:13px;}
+label{display:block;font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:5px;}
+input,textarea,select{width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:14px;padding:9px 12px;outline:none;transition:border-color .15s;-webkit-appearance:none;appearance:none;}
+input:focus,textarea:focus,select:focus{border-color:var(--accent);}
+textarea{resize:vertical;min-height:56px;}
+select option{background:var(--surface2);color:var(--text);}
+.btn{background:var(--accent);color:#fff;border:none;border-radius:8px;padding:9px 16px;font-family:'DM Sans',sans-serif;font-weight:600;font-size:14px;cursor:pointer;transition:opacity .15s;white-space:nowrap;}
+.btn:hover{opacity:.85;}
+.btn:disabled{opacity:.4;cursor:not-allowed;}
+.btn-full{width:100%;}
+.btn-outline{background:transparent;color:var(--text);border:1px solid var(--border);}
+.btn-outline:hover{border-color:var(--accent);color:var(--accent);opacity:1;}
+.btn-sm{padding:6px 12px;font-size:12px;}
+.btn-danger{background:var(--accent2);color:#fff;}
+.sp{display:inline-block;width:14px;height:14px;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite;vertical-align:middle;margin-right:6px;}
+@keyframes spin{to{transform:rotate(360deg);}}
+.loading-overlay{position:fixed;inset:0;background:var(--bg);z-index:500;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;transition:opacity .4s;}
+.loading-overlay.hidden{opacity:0;pointer-events:none;}
+.loading-logo{font-family:'Bebas Neue',sans-serif;font-size:32px;letter-spacing:3px;color:var(--accent);}
+.loading-logo span{color:var(--text);}
+.spinner{width:28px;height:28px;border:3px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .8s linear infinite;}
+header{background:var(--surface);border-bottom:1px solid var(--border);padding:12px 16px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;}
+.logo{font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:2px;color:var(--accent);}
+.logo span{color:var(--text);}
+.header-right{display:flex;align-items:center;gap:8px;}
+.user-chip{font-size:11px;color:var(--muted);background:var(--surface2);border:1px solid var(--border);border-radius:20px;padding:4px 10px;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.btn-hdr{background:var(--accent);color:#fff;border:none;border-radius:8px;padding:7px 12px;font-family:'DM Sans',sans-serif;font-weight:600;font-size:13px;cursor:pointer;transition:opacity .15s;}
+.btn-hdr:hover{opacity:.85;}
+.btn-hdr.outline{background:transparent;color:var(--muted);border:1px solid var(--border);}
+.btn-hdr.outline:hover{border-color:var(--accent2);color:var(--accent2);opacity:1;}
+.nav-tabs{display:flex;gap:2px;padding:10px 16px 0;border-bottom:1px solid var(--border);background:var(--surface);overflow-x:auto;}
+.nav-tab{padding:8px 14px;font-size:13px;font-weight:600;color:var(--muted);cursor:pointer;border-bottom:2px solid transparent;transition:all .15s;white-space:nowrap;}
+.nav-tab:hover{color:var(--text);}
+.nav-tab.active{color:var(--accent);border-bottom-color:var(--accent);}
+.content{padding:16px;max-width:960px;margin:0 auto;}
+.stat-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin-bottom:20px;}
+.stat-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:14px 16px;}
+.stat-label{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;margin-bottom:6px;}
+.stat-value{font-size:22px;font-weight:600;color:var(--text);}
+.stat-value.green{color:var(--green);}
+.stat-value.amber{color:var(--accent);}
+.stat-value.red{color:var(--accent2);}
+.section-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;}
+.section-title{font-family:'Bebas Neue',sans-serif;font-size:18px;letter-spacing:1.5px;color:var(--accent);}
+.tbl{width:100%;border-collapse:collapse;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;margin-bottom:20px;}
+.tbl th{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:var(--muted);padding:10px 14px;text-align:left;border-bottom:1px solid var(--border);background:var(--surface2);}
+.tbl td{padding:10px 14px;font-size:13px;border-bottom:1px solid var(--border);vertical-align:middle;}
+.tbl tr:last-child td{border-bottom:none;}
+.tbl tr:hover td{background:var(--surface2);}
+.acts{display:flex;gap:6px;flex-wrap:wrap;}
+.badge{display:inline-block;font-size:10px;font-weight:700;border-radius:20px;padding:2px 8px;}
+.bg{background:rgba(76,175,80,.15);color:var(--green);border:1px solid rgba(76,175,80,.3);}
+.ba{background:rgba(156,111,228,.15);color:var(--accent);border:1px solid rgba(156,111,228,.3);}
+.br{background:rgba(224,92,92,.12);color:var(--accent2);border:1px solid rgba(224,92,92,.3);}
+.bb{background:rgba(79,195,247,.12);color:var(--blue);border:1px solid rgba(79,195,247,.3);}
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:200;overflow-y:auto;padding:16px;}
+.modal-overlay.open{display:block;}
+.modal{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:20px;width:100%;max-width:560px;margin:20px auto 60px;}
+.modal-title{font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:1.5px;margin-bottom:16px;color:var(--accent);}
+.modal-actions{display:flex;gap:10px;margin-top:18px;}
+.modal-actions .btn{flex:1;padding:12px;}
+.empty{text-align:center;padding:24px;color:var(--muted);}
+.err-banner{background:rgba(224,92,92,.1);border:1px solid rgba(224,92,92,.3);color:var(--accent2);font-size:12px;padding:8px 16px;display:none;align-items:center;gap:8px;justify-content:space-between;}
+.err-banner.show{display:flex;}
+.err-banner button{background:none;border:none;color:var(--accent2);cursor:pointer;font-size:16px;}
+.dp{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px;margin-bottom:16px;}
+.dp-title{font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;margin-bottom:12px;}
+.dr{display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border);font-size:13px;}
+.dr:last-child{border-bottom:none;}
+.dr .l{color:var(--muted);}
+.dr .v{font-weight:500;text-align:right;}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;}
+.back{display:flex;align-items:center;gap:6px;font-size:13px;color:var(--muted);cursor:pointer;margin-bottom:16px;transition:color .15s;}
+.back:hover{color:var(--accent);}
+.new-cust{display:none;margin-top:10px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:12px;}
+.new-cust-title{font-size:11px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:1px;margin-bottom:10px;}
+/* CALENDAR */
+.cal-nav{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;}
+.cal-month{font-family:'Bebas Neue',sans-serif;font-size:24px;letter-spacing:2px;}
+.cal-nav-btns{display:flex;gap:6px;align-items:center;}
+.nav-btn{background:var(--surface2);border:1px solid var(--border);color:var(--text);border-radius:8px;width:32px;height:32px;font-size:15px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background .15s;}
+.nav-btn:hover{background:var(--border);}
+.cal-legend{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:10px;}
+.leg-item{display:flex;align-items:center;gap:5px;font-size:10px;color:var(--muted);}
+.leg-dot{width:9px;height:9px;border-radius:2px;}
+.day-headers{display:grid;grid-template-columns:repeat(7,1fr);margin-bottom:3px;}
+.day-hdr{text-align:center;font-size:10px;font-weight:600;color:var(--muted);padding:3px 0;text-transform:uppercase;letter-spacing:.5px;}
+.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:3px;}
+.cal-cell{background:var(--surface);border:1px solid var(--border);border-radius:7px;min-height:80px;padding:5px 4px;cursor:pointer;transition:border-color .15s;overflow:hidden;}
+.cal-cell:hover{border-color:var(--accent);}
+.cal-cell.other-month{opacity:.35;}
+.cal-cell.today{border-color:var(--accent);}
+.cal-cell.today .date-num{color:var(--accent);font-weight:700;}
+.cal-cell.holiday-cell{background:#1a1a14;}
+.date-num{font-size:11px;font-weight:500;margin-bottom:2px;}
+.hol-lbl{font-size:7px;color:var(--accent);font-weight:600;opacity:.75;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:2px;letter-spacing:.3px;}
+.ev-chip{font-size:8px;border-radius:3px;padding:1px 3px;margin-bottom:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%;font-weight:600;display:block;color:#000;line-height:1.4;}
+.ev-chip.gt{background:var(--gt);}
+.ev-chip.looch{background:var(--looch);}
+.ev-chip.neon{background:var(--neon);}
+.ev-chip.other{background:var(--other);color:var(--text);}
+.crew-hint{font-size:7px;color:var(--blue);opacity:.85;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:1px;line-height:1.3;}
+.more-ind{font-size:7px;color:var(--muted);}
+.ev-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);margin-bottom:10px;border-left:4px solid var(--gt);overflow:hidden;}
+.ev-card.looch-type{border-left-color:var(--looch);}
+.ev-card.neon-type{border-left-color:var(--neon);}
+.ev-card.other-type{border-left-color:var(--other);}
+.ev-card-sum{display:flex;align-items:flex-start;justify-content:space-between;padding:11px 13px;cursor:pointer;gap:10px;}
+.ev-card-sum:hover{background:var(--surface2);}
+.ev-card-left{flex:1;min-width:0;}
+.ev-card-name{font-weight:600;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.ev-card-meta{font-size:11px;color:var(--muted);margin-top:2px;}
+.ev-card-crew{margin-top:6px;display:flex;flex-wrap:wrap;gap:4px;}
+.crew-pill{font-size:10px;border-radius:20px;padding:2px 8px;font-weight:600;display:inline-flex;align-items:center;gap:4px;}
+.crew-pill.conf{background:rgba(76,175,80,.15);color:var(--green);border:1px solid rgba(76,175,80,.35);}
+.crew-pill.unconf{background:rgba(224,92,92,.1);color:var(--accent2);border:1px solid rgba(224,92,92,.3);}
+.pill-dot{width:5px;height:5px;border-radius:50%;background:currentColor;flex-shrink:0;}
+.expand-arrow{color:var(--muted);font-size:11px;transition:transform .2s;margin-top:2px;flex-shrink:0;}
+.ev-card.expanded .expand-arrow{transform:rotate(180deg);}
+.ev-card-detail{display:none;border-top:1px solid var(--border);padding:14px;}
+.ev-card.expanded .ev-card-detail{display:block;}
+.type-sel{display:flex;gap:5px;flex-wrap:wrap;}
+.type-opt{flex:1;min-width:60px;padding:7px 4px;border-radius:8px;border:2px solid var(--border);background:transparent;color:var(--muted);font-family:'DM Sans',sans-serif;font-size:11px;font-weight:700;cursor:pointer;transition:all .15s;text-align:center;}
+.type-opt.active.gt{border-color:var(--gt);color:var(--gt);background:rgba(245,166,35,.1);}
+.type-opt.active.looch{border-color:var(--looch);color:var(--looch);background:rgba(224,92,92,.1);}
+.type-opt.active.neon{border-color:var(--neon);color:var(--neon);background:rgba(179,157,219,.1);}
+.type-opt.active.other{border-color:var(--muted);color:var(--text);background:rgba(107,107,128,.15);}
+.labor-col-hdr{display:grid;gap:5px;grid-template-columns:1fr 60px 72px 32px;margin-bottom:4px;padding:0 2px;}
+.labor-col-hdr span{font-size:10px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.5px;}
+.labor-row{display:grid;gap:5px;align-items:center;grid-template-columns:1fr 60px 72px 32px;margin-bottom:5px;}
+.labor-row select,.labor-row input[type=text]{font-size:13px;padding:7px 9px;}
+.conf-toggle{border-radius:6px;border:1px solid var(--border);background:transparent;font-family:'DM Sans',sans-serif;font-size:11px;font-weight:700;cursor:pointer;padding:0 6px;height:34px;transition:all .15s;white-space:nowrap;}
+.conf-toggle.off{color:var(--muted);}
+.conf-toggle.on{color:var(--green);border-color:rgba(76,175,80,.5);background:rgba(76,175,80,.1);}
+.equip-col-hdr{display:grid;gap:5px;grid-template-columns:1fr 72px 32px;margin-bottom:4px;padding:0 2px;}
+.equip-col-hdr span{font-size:10px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.5px;}
+.equip-row{display:grid;gap:5px;align-items:center;grid-template-columns:1fr 72px 32px;margin-bottom:5px;}
+.row-remove{background:transparent;border:1px solid var(--border);color:var(--muted);border-radius:6px;width:32px;height:34px;cursor:pointer;font-size:18px;display:flex;align-items:center;justify-content:center;transition:all .15s;flex-shrink:0;}
+.row-remove:hover{border-color:var(--accent2);color:var(--accent2);}
+.add-row-btn{background:transparent;border:1px dashed var(--border);color:var(--muted);border-radius:8px;padding:7px 12px;width:100%;cursor:pointer;font-family:'DM Sans',sans-serif;font-size:12px;font-weight:600;transition:all .15s;text-align:left;margin-bottom:8px;}
+.add-row-btn:hover{border-color:var(--accent);color:var(--accent);}
+.crew-chip-dp{font-size:12px;padding:3px 10px;border-radius:20px;display:inline-block;margin:3px;}
+/* PERIOD SELECTOR */
+.period-bar{display:flex;align-items:center;gap:8px;margin-bottom:16px;flex-wrap:wrap;}
+.period-bar select{width:auto;padding:6px 10px;font-size:13px;}
+.period-label{font-size:12px;color:var(--muted);}
+/* PACKING LIST */
+.pack-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:300;overflow-y:auto;padding:16px;}
+.pack-overlay.open{display:block;}
+.pack-modal{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:20px;width:100%;max-width:640px;margin:20px auto 60px;}
+.pack-section{margin-bottom:20px;}
+.pack-section-title{font-family:'Bebas Neue',sans-serif;font-size:16px;letter-spacing:1.2px;color:var(--blue);margin-bottom:10px;padding-bottom:6px;border-bottom:1px solid var(--border);}
+.pack-item{display:flex;align-items:center;gap:12px;padding:10px 12px;border-radius:8px;cursor:pointer;transition:background .15s;margin-bottom:4px;}
+.pack-item:hover{background:var(--surface2);}
+.pack-item.checked{opacity:.5;}
+.pack-item.checked .pack-name{text-decoration:line-through;}
+.pack-check{width:20px;height:20px;border-radius:5px;border:2px solid var(--border);flex-shrink:0;display:flex;align-items:center;justify-content:center;transition:all .15s;}
+.pack-item.checked .pack-check{background:var(--green);border-color:var(--green);color:#fff;}
+.pack-name{font-size:14px;font-weight:500;flex:1;}
+.pack-qty{font-size:12px;color:var(--muted);flex-shrink:0;}
+.pack-progress{background:var(--surface2);border-radius:8px;padding:12px 16px;margin-bottom:16px;display:flex;align-items:center;gap:12px;}
+.pack-bar-wrap{flex:1;background:var(--border);border-radius:4px;height:8px;overflow:hidden;}
+.pack-bar{height:8px;background:var(--green);border-radius:4px;transition:width .3s;}
+.pack-pct{font-size:13px;font-weight:600;color:var(--green);flex-shrink:0;}
+/* EQUIPMENT CATALOG */
+.eq-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);margin-bottom:12px;overflow:hidden;}
+.eq-card-head{display:flex;align-items:center;justify-content:space-between;padding:12px 14px;cursor:pointer;}
+.eq-card-head:hover{background:var(--surface2);}
+.eq-card-name{font-weight:600;font-size:14px;}
+.eq-card-body{display:none;border-top:1px solid var(--border);padding:12px 14px;}
+.eq-card.open .eq-card-body{display:block;}
+.eq-card.open .expand-arrow{transform:rotate(180deg);}
+.comp-row{display:grid;grid-template-columns:1fr 80px 80px auto;gap:8px;align-items:center;margin-bottom:6px;}
+.comp-row input{font-size:13px;padding:6px 10px;}
 </style>
 </head>
 <body>
 
-<div class="page" id="page">
-  <div class="loader" id="loader">Loading your quote…</div>
+<div class="loading-overlay" id="lo">
+  <div class="loading-logo">Groove<span>Ops</span></div>
+  <div class="spinner"></div>
+</div>
+
+<div id="loginScreen">
+  <div class="login-box">
+    <div class="login-logo">Groove<span>Ops</span></div>
+    <div class="login-sub">Owner access only</div>
+    <div class="login-err" id="lerr"></div>
+    <div class="form-group"><label>Email</label><input type="email" id="lEmail" placeholder="you@example.com" autocomplete="email"></div>
+    <div class="form-group"><label>Password</label><input type="password" id="lPass" placeholder="••••••••" autocomplete="current-password"></div>
+    <button class="btn btn-full" id="loginBtn" onclick="doLogin()">Sign In</button>
+  </div>
+</div>
+
+<div id="app">
+  <div class="err-banner" id="eb"><span id="em"></span><button onclick="document.getElementById('eb').classList.remove('show')">×</button></div>
+  <header>
+    <div class="logo">Groove<span>Ops</span></div>
+    <div class="header-right">
+      <div class="user-chip" id="uc"></div>
+      <button class="btn-hdr outline" onclick="doLogout()">⏻</button>
+    </div>
+  </header>
+  <div class="nav-tabs">
+    <div class="nav-tab active" onclick="showTab('dashboard')">Dashboard</div>
+    <div class="nav-tab" onclick="showTab('calendar')">Calendar</div>
+    <div class="nav-tab" onclick="showTab('events')">Events</div>
+    <div class="nav-tab" onclick="showTab('customers')">Customers</div>
+    <div class="nav-tab" onclick="showTab('payments')">Payments</div>
+    <div class="nav-tab" onclick="showTab('labor')">Labor</div>
+    <div class="nav-tab" onclick="showTab('ownerfinances')">Owner Finances</div>
+    <div class="nav-tab" onclick="showTab('expenses')">Expenses</div>
+    <div class="nav-tab" onclick="showTab('equipment')">Equipment</div>
+    <div class="nav-tab" onclick="showTab('quotes')">Quotes</div>
+  </div>
+  <div class="content" id="mc"></div>
+</div>
+
+<!-- MAIN MODAL -->
+<div class="modal-overlay" id="mo">
+  <div class="modal">
+    <div class="modal-title" id="mt"></div>
+    <div id="mb"></div>
+    <div class="modal-actions">
+      <button class="btn btn-outline" onclick="closeModal()">Cancel</button>
+      <button class="btn" id="msb" onclick="modalSave()">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- PACKING LIST OVERLAY -->
+<div class="pack-overlay" id="packOverlay">
+  <div class="pack-modal">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+      <div class="modal-title" id="packTitle" style="margin-bottom:0"></div>
+      <button class="btn btn-sm btn-outline" onclick="closePackingList()">✕ Close</button>
+    </div>
+    <div id="packProgress"></div>
+    <div id="packBody"></div>
+    <div style="margin-top:16px;display:flex;gap:8px">
+      <button class="btn btn-sm btn-outline" onclick="resetPackingList()">↺ Reset All</button>
+      <button class="btn btn-sm btn-outline" onclick="printPackingList()">🖨 Print</button>
+    </div>
+  </div>
 </div>
 
 <script>
-var SUPABASE_URL='https://rbtzcswnounmybumqbwu.supabase.co';
-var SUPABASE_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJidHpjc3dub3VubXlidW1xYnd1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYyOTI3OTgsImV4cCI6MjA5MTg2ODc5OH0.d_CSDndGJcuBve_EtHo8RDcHG8dxQVn22gpUjQ7FGNY';
-var sb=supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
-var quoteToken=null;
-var quoteId=null;
+// ── CONSTANTS ─────────────────────────────────────────────────────────────────
+var MAKE_WEBHOOK='https://hook.us2.make.com/4khond9t4dm0sccbk88tsqr73du3kq5f';
+var OWNER_RATE=40;
+var BUSINESS_START='2025-01-01';
+var MONTHS=['January','February','March','April','May','June','July','August','September','October','November','December'];
+var TYPE_LABELS={gt:'GT',looch:'Looch',neon:'Neon Nights',other:'Other'};
+var today=new Date();
 
+// ── STATE ─────────────────────────────────────────────────────────────────────
+var sb,currentTab='dashboard',saveFn=null,selectedType='gt';
+var viewYear=today.getFullYear(),viewMonth=today.getMonth(),calOffset=0;
+var savedLabor=['John Magnus','Steve Pfeffer','JP'];
+var selectedPeriod='ytd';
+var evSort={col:'date',dir:-1};
+var laborSort={col:'date',dir:-1};
+var cuSort={col:'name',dir:1};
+var expSort={col:'date',dir:-1};
+var paySort={col:'date',dir:-1};
+var quoteSort={col:'created_at',dir:-1};
+var currentPackEventId=null;
+var C={events:[],customers:[],payments:[],labor:[],expenses:[],profitShare:[],equipItems:[],equipComponents:[],packChecks:[],laborPayments:[],quotes:[],quoteItems:[]};
+
+// ── HELPERS ───────────────────────────────────────────────────────────────────
+function sid(x){return String(x==null?'':x);}
 function fmt(n){return'$'+(parseFloat(n)||0).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g,',');}
-function fmtD(d){return d?new Date(d+'T00:00:00').toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'}):'—';}
+function fmtD(d){return d?new Date(d+'T00:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}):'—';}
 function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+function todayStr(){return new Date().toISOString().split('T')[0];}
+function cuOpts(sel){return'<option value="">— None —</option><option value="__new__">＋ Add new customer…</option>'+C.customers.map(function(c){return'<option value="'+sid(c.id)+'"'+(sid(c.id)===sid(sel)?' selected':'')+'>'+esc(c.name)+'</option>';}).join('');}
+async function doReimb(xid,eid,prevTab){
+  var r=await sb.from('expenses').update({reimbursed:true}).eq('id',xid);
+  if(r.error){showErr(r.error.message);return;}
+  await loadAll();
+  if(eid)openEvDetail(eid,prevTab||'events');else showTab('expenses');
+}
+function findEv(id){return C.events.find(function(e){return sid(e.id)===sid(id);});}
+function findCu(id){return C.customers.find(function(c){return sid(c.id)===sid(id);});}
+function cuName(id){var c=findCu(id);return c?esc(c.name):'—';}
+function evName(id){var e=findEv(id);return e?esc(e.name):'—';}
+function sc(lbl,val,cls){return'<div class="stat-card"><div class="stat-label">'+lbl+'</div><div class="stat-value'+(cls?' '+cls:'')+'">'+val+'</div></div>';}
+function sh(title,right){return'<div class="section-header"><div class="section-title">'+title+'</div>'+(right?'<div style="display:flex;gap:8px;align-items:center">'+right+'</div>':'')+'</div>';}
+function exportBtn(fn){return'<button class="btn btn-sm btn-outline" onclick="'+fn+'()">⬇ CSV</button>';}
 
-function getToken(){
-  var params=new URLSearchParams(window.location.search);
-  return params.get('id');
+function cuBal(cid){
+  var inv=C.events.filter(function(e){return sid(e.customer_id)===sid(cid);}).reduce(function(s,e){return s+(parseFloat(e.invoice_amount)||0);},0);
+  var paid=C.payments.filter(function(p){return sid(p.customer_id)===sid(cid);}).reduce(function(s,p){return s+(parseFloat(p.amount)||0);},0);
+  return{inv:inv,paid:paid,bal:inv-paid};
+}
+function evFin(eid){
+  var e=findEv(eid);
+  var rev=parseFloat(e&&e.invoice_amount||0)||0;
+  var lab=C.labor.filter(function(l){return sid(l.event_id)===sid(eid);}).reduce(function(s,l){
+    var isOwner=l.person==='john'||l.person==='steve';
+    var rate=isOwner?(parseFloat(l.rate)||OWNER_RATE):0;
+    return s+(parseFloat(l.total_amount)||((parseFloat(l.hours)||0)*rate));
+  },0);
+  var exp=C.expenses.filter(function(x){return sid(x.event_id)===sid(eid);}).reduce(function(s,x){return s+(parseFloat(x.amount)||0);},0);
+  return{rev:rev,lab:lab,exp:exp,profit:rev-lab-exp};
+}
+function showErr(m){document.getElementById('em').textContent='⚠ '+m;document.getElementById('eb').classList.add('show');}
+function hideLoader(){var o=document.getElementById('lo');o.classList.add('hidden');setTimeout(function(){o.style.display='none';},400);}
+function statusBadge(s){return'<span class="badge '+(s==='completed'?'bg':s==='cancelled'?'br':'ba')+'">'+(s||'upcoming')+'</span>';}
+
+// ── PERIOD ────────────────────────────────────────────────────────────────────
+function getPeriodRange(){
+  var now=new Date(),yr=now.getFullYear(),ds=now.toISOString().split('T')[0];
+  if(selectedPeriod==='ytd') return{start:yr+'-01-01',end:ds,label:'Year to Date ('+yr+')'};
+  if(selectedPeriod==='all') return{start:BUSINESS_START,end:'9999-12-31',label:'All Time'};
+  var y=parseInt(selectedPeriod);
+  return{start:y+'-01-01',end:y+'-12-31',label:''+y};
+}
+function inPeriod(d){var r=getPeriodRange();return d>=r.start&&d<=r.end;}
+function filterByPeriod(arr,f){return arr.filter(function(x){return inPeriod(x[f]||'');});}
+function setPeriod(v){selectedPeriod=v;showTab(currentTab);}
+function periodSelector(){
+  var yr=new Date().getFullYear(),opts='';
+  for(var y=yr;y>=2025;y--){
+    opts+='<option value="'+y+'"'+(selectedPeriod==y?' selected':'')+'>'+y+'</option>';
+  }
+  return'<div class="period-bar">'+
+    '<span style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.8px">Period:</span>'+
+    '<select onchange="setPeriod(this.value)" style="width:auto;padding:6px 10px;font-size:13px">'+
+      '<option value="ytd"'+(selectedPeriod==='ytd'?' selected':'')+'>Year to Date</option>'+
+      opts+
+      '<option value="all"'+(selectedPeriod==='all'?' selected':'')+'>All Time</option>'+
+    '</select>'+
+    '<span class="period-label">'+getPeriodRange().label+'</span>'+
+  '</div>';
 }
 
-async function loadQuote(){
-  var token=getToken();
-  if(!token){
-    showError('No quote ID found in this link. Please check the link in your email.');
+// Filter labor by the event date rather than created_at (created_at has timezone offset that breaks date string comparison)
+function filterLaborByPeriod(laborArr){
+  return laborArr.filter(function(l){
+    var e=findEv(l.event_id);
+    var d=e?e.date:(l.created_at?l.created_at.split('T')[0]:'');
+    return inPeriod(d);
+  });
+}
+var _initAttempts=0;
+function init(){
+  _initAttempts++;
+  if(_initAttempts>100){
+    hideLoader();
+    document.getElementById('loginScreen').style.display='flex';
+    document.getElementById('app').style.display='none';
+    document.getElementById('lerr').textContent='⚠ Could not load Supabase library. Check your internet connection and reload.';
+    document.getElementById('lerr').classList.add('show');
     return;
   }
-  quoteToken=token;
+  if(typeof supabase==='undefined'||!supabase.createClient){setTimeout(init,100);return;}
+  sb=supabase.createClient(
+    'https://rbtzcswnounmybumqbwu.supabase.co',
+    'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJidHpjc3dub3VubXlidW1xYnd1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYyOTI3OTgsImV4cCI6MjA5MTg2ODc5OH0.d_CSDndGJcuBve_EtHo8RDcHG8dxQVn22gpUjQ7FGNY',
+    {auth:{storageKey:'grooveops-auth'}}
+  );
+  sb.auth.onAuthStateChange(function(event,session){
+    if(session){
+      document.getElementById('loginScreen').style.display='none';
+      document.getElementById('app').style.display='block';
+      document.getElementById('uc').textContent=session.user.email;
+      setTimeout(hideLoader,8000);
+      loadAll().then(function(){hideLoader();showTab('dashboard');}).catch(function(err){hideLoader();showErr('Failed to load data: '+(err.message||String(err)));showTab('dashboard');});
+    } else {
+      document.getElementById('loginScreen').style.display='flex';
+      document.getElementById('app').style.display='none';
+      hideLoader();
+    }
+  });
+}
 
-  var qRes=await sb.from('quotes').select('*').eq('token',token).single();
-  if(qRes.error||!qRes.data){
-    showError('Quote not found. The link may be expired or invalid.');
-    return;
+// ── AUTH ──────────────────────────────────────────────────────────────────────
+function doLogin(){
+  var email=document.getElementById('lEmail').value.trim(),pass=document.getElementById('lPass').value;
+  var btn=document.getElementById('loginBtn');
+  if(!email||!pass){showLErr('Please enter email and password.');return;}
+  document.getElementById('lerr').classList.remove('show');
+  btn.disabled=true;btn.innerHTML='<span class="sp"></span>Signing in…';
+  sb.auth.signInWithPassword({email:email,password:pass}).then(function(r){
+    if(r.error){showLErr('Incorrect email or password.');btn.disabled=false;btn.textContent='Sign In';}
+  });
+}
+function doLogout(){sb.auth.signOut();}
+function showLErr(m){var el=document.getElementById('lerr');el.textContent='⚠ '+m;el.classList.add('show');}
+document.getElementById('lPass').addEventListener('keydown',function(e){if(e.key==='Enter')doLogin();});
+
+// ── DATA ──────────────────────────────────────────────────────────────────────
+function loadAll(){
+  return Promise.all([
+    sb.from('events').select('*').order('date',{ascending:false}),
+    sb.from('customers').select('*').order('name'),
+    sb.from('customer_payments').select('*').order('date',{ascending:false}),
+    sb.from('labor').select('*').order('created_at',{ascending:false}),
+    sb.from('expenses').select('*').order('created_at',{ascending:false}),
+    sb.from('profit_share').select('*').order('date',{ascending:false}),
+    sb.from('equipment_items').select('*').order('name'),
+    sb.from('equipment_components').select('*').order('sort_order'),
+    sb.from('packing_list_checks').select('*'),
+    sb.from('labor_payments').select('*').order('date',{ascending:false}),
+    sb.from('quotes').select('*').order('created_at',{ascending:false}),
+    sb.from('quote_line_items').select('*').order('sort_order')
+  ]).then(function(r){
+    var errs=r.filter(function(x){return x.error;}).map(function(x){return x.error.message;});
+    if(errs.length)console.warn('loadAll partial errors:',errs.join('; '));
+    C.events=r[0].data||[];C.customers=r[1].data||[];C.payments=r[2].data||[];
+    C.labor=r[3].data||[];C.expenses=r[4].data||[];C.profitShare=r[5].data||[];
+    C.equipItems=r[6].data||[];C.equipComponents=r[7].data||[];C.packChecks=r[8].data||[];
+    C.laborPayments=r[9].data||[];C.quotes=r[10].data||[];C.quoteItems=r[11].data||[];
+  });
+}
+
+// ── MAKE WEBHOOK ──────────────────────────────────────────────────────────────
+function buildGCalDesc(ev){
+  var crew=(ev.labor||[]).filter(function(x){return x.name;});
+  var main=(ev.main_equip||[]).filter(function(x){return x.name;});
+  var sec=(ev.sec_equip||[]).filter(function(x){return x.name;});
+  var lines=[];
+  lines.push('Date: '+fmtD(ev.date));
+  if(ev.time)lines.push('Time: '+ev.time);
+  if(ev.venue)lines.push('Venue: '+ev.venue);
+  lines.push('Type: '+(TYPE_LABELS[ev.type]||ev.type||'—'));
+  if(crew.length){lines.push('');lines.push('Crew:');crew.forEach(function(p){lines.push('  '+(p.confirmed?'✓':'?')+' '+p.name+(p.qty?' ('+p.qty+' hrs)':''));});}
+  if(main.length){lines.push('');lines.push('Main Equipment:');main.forEach(function(i){lines.push('  '+i.name+(i.qty?' x'+i.qty:''));});}
+  if(sec.length){lines.push('');lines.push('Secondary Equipment:');sec.forEach(function(i){lines.push('  '+i.name+(i.qty?' x'+i.qty:''));});}
+  if(ev.notes){lines.push('');lines.push('Notes: '+ev.notes);}
+  if(ev.invoice_amount)lines.push('Invoice: $'+parseFloat(ev.invoice_amount).toFixed(2));
+  return lines.join('\n');
+}
+function syncToGCal(ev,isEdit){
+  fetch(MAKE_WEBHOOK,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:ev.name,date:ev.date,venue:ev.venue||'',type:ev.type,description:buildGCalDesc(ev),isEdit:!!isEdit})}).catch(function(e){console.warn('GCal sync failed:',e);});
+}
+
+// ── CSV EXPORT ────────────────────────────────────────────────────────────────
+function toCSV(headers,rows){
+  var lines=[headers.map(function(h){return'"'+h+'"';}).join(',')];
+  rows.forEach(function(row){lines.push(row.map(function(c){return'"'+String(c==null?'':c).replace(/"/g,'""')+'"';}).join(','));});
+  return lines.join('\r\n');
+}
+function downloadCSV(filename,csv){
+  var blob=new Blob([csv],{type:'text/csv;charset=utf-8;'});
+  var url=URL.createObjectURL(blob);
+  var a=document.createElement('a');a.href=url;a.download=filename;a.click();URL.revokeObjectURL(url);
+}
+function cleanName(s){return String(s||'').replace(/&amp;/g,'&').replace(/&lt;/g,'<').replace(/&gt;/g,'>');}
+function exportEvents(){
+  var filtered=filterByPeriod(C.events,'date');
+  downloadCSV('events-'+getPeriodRange().label.replace(/\s/g,'-')+'.csv',toCSV(
+    ['Event','Date','Venue','Type','Customer','Invoice','Hours','Labor Cost','Expenses','Profit','Status'],
+    filtered.map(function(e){var f=evFin(e.id);var hrs=C.labor.filter(function(l){return sid(l.event_id)===sid(e.id);}).reduce(function(s,l){return s+(parseFloat(l.hours)||0);},0);
+      return[e.name,e.date,e.venue||'',TYPE_LABELS[e.type]||e.type||'',cleanName(cuName(e.customer_id)),e.invoice_amount||'',hrs||'',f.lab.toFixed(2),f.exp.toFixed(2),f.profit.toFixed(2),e.status||'upcoming'];})
+  ));
+}
+function exportPayments(){
+  downloadCSV('payments-'+getPeriodRange().label.replace(/\s/g,'-')+'.csv',toCSV(
+    ['Date','Customer','Amount','Method','Event','Notes'],
+    filterByPeriod(C.payments,'date').map(function(p){return[p.date,cleanName(cuName(p.customer_id)),p.amount||'',p.method||'',p.event_id?cleanName(evName(p.event_id)):'',p.notes||''];})
+  ));
+}
+function exportLabor(){
+  downloadCSV('labor-'+getPeriodRange().label.replace(/\s/g,'-')+'.csv',toCSV(
+    ['Event','Venue','Person','Hours','Rate','Total Earned','Paid','Paid Date','Notes'],
+    filterLaborByPeriod(C.labor).map(function(l){var ev=findEv(l.event_id);var earned=parseFloat(l.total_amount)||((parseFloat(l.hours)||0)*(parseFloat(l.rate)||OWNER_RATE));
+      return[ev?ev.name:'',ev?ev.venue||'':'',l.person,l.hours||'',l.rate||'',earned.toFixed(2),l.paid?'Yes':'No',l.paid_date||'',l.notes||''];})
+  ));
+}
+function exportExpenses(){
+  downloadCSV('expenses-'+getPeriodRange().label.replace(/\s/g,'-')+'.csv',toCSV(
+    ['Date','Event','Person','Category','Description','Amount','Reimbursed','Notes'],
+    filterByPeriod(C.expenses,'date').map(function(x){return[x.date||'',x.event_id?cleanName(evName(x.event_id)):'',x.person||'',x.category||'',x.description||'',x.amount||'',x.reimbursed?'Yes':'No',x.notes||''];})
+  ));
+}
+function exportOwnerFinances(person){
+  var lab=filterByPeriod(C.labor,'created_at').filter(function(l){return l.person===person;});
+  var ps=filterByPeriod(C.profitShare,'date').filter(function(p){return p.person===person;});
+  var rows=[];
+  lab.forEach(function(l){var ev=findEv(l.event_id);var earned=parseFloat(l.total_amount)||((parseFloat(l.hours)||0)*(parseFloat(l.rate)||OWNER_RATE));
+    rows.push(['Labor',ev?ev.date:'',ev?ev.name:'',ev?ev.venue||'':'',l.hours||'',earned.toFixed(2),l.paid?'Yes':'No',l.paid_date||'',l.notes||'']);});
+  ps.forEach(function(p){rows.push(['Profit Share',p.date,p.event_id?cleanName(evName(p.event_id)):'','','',p.amount||'','Yes',p.date,p.notes||'']);});
+  downloadCSV(person+'-finances-'+getPeriodRange().label.replace(/\s/g,'-')+'.csv',toCSV(['Type','Date','Event','Venue','Hours','Amount','Paid','Paid Date','Notes'],rows));
+}
+
+// ── NAV ───────────────────────────────────────────────────────────────────────
+function showTab(tab){
+  currentTab=tab;
+  document.querySelectorAll('.nav-tab').forEach(function(t){t.classList.toggle('active',t.textContent.toLowerCase().replace(/\s/g,'')===tab.replace(/\s/g,''));});
+  if(tab==='dashboard')renderDash();
+  else if(tab==='calendar')renderCalendar();
+  else if(tab==='events')renderEvents();
+  else if(tab==='customers')renderCustomers();
+  else if(tab==='payments')renderPayments();
+  else if(tab==='labor')renderLabor();
+  else if(tab==='ownerfinances')renderOwnerFinances();
+  else if(tab==='expenses')renderExpenses();
+  else if(tab==='equipment')renderEquipment();
+  else if(tab==='quotes')renderQuotes();
+}
+
+// ── DASHBOARD ─────────────────────────────────────────────────────────────────
+function renderDash(){
+  var evts=filterByPeriod(C.events,'date'),pmts=filterByPeriod(C.payments,'date');
+  var lab=filterLaborByPeriod(C.labor),exp=filterByPeriod(C.expenses,'date');
+  var ti=evts.reduce(function(s,e){return s+(parseFloat(e.invoice_amount)||0);},0);
+  var tp=pmts.reduce(function(s,p){return s+(parseFloat(p.amount)||0);},0);
+  var tl=lab.reduce(function(s,l){return s+(parseFloat(l.total_amount)||((parseFloat(l.hours)||0)*(parseFloat(l.rate)||OWNER_RATE)));},0);
+  var te=exp.reduce(function(s,x){return s+(parseFloat(x.amount)||0);},0);
+  var gp=tp-tl-te;
+  var up=C.events.filter(function(e){return!e.status||e.status==='upcoming';}).length;
+  var ub=C.customers.filter(function(c){return cuBal(c.id).bal>0;}).length;
+  document.getElementById('mc').innerHTML=
+    periodSelector()+
+    '<div class="stat-grid">'+
+    sc('Total Invoiced',fmt(ti))+sc('Total Collected',fmt(tp),'green')+
+    sc('Outstanding',fmt(ti-tp),ti-tp>0?'amber':'')+sc('Gross Profit',fmt(gp),gp>=0?'green':'red')+
+    sc('Upcoming Events',''+up,'amber')+sc('Customers w/ Balance',''+ub,ub>0?'amber':'')+
+    '</div>'+
+    sh('Recent Events',exportBtn('exportEvents')+'<button class="btn btn-sm btn-outline" onclick="showTab(\'events\')">View All</button>')+
+    '<table class="tbl"><thead><tr><th>Event</th><th>Date</th><th>Customer</th><th>Invoice</th><th>Status</th></tr></thead><tbody>'+
+    (evts.slice(0,6).map(function(e){return'<tr style="cursor:pointer" onclick="openEvDetail(\''+sid(e.id)+'\',\'dashboard\')"><td style="font-weight:500">'+esc(e.name)+'</td><td>'+fmtD(e.date)+'</td><td>'+cuName(e.customer_id)+'</td><td>'+(e.invoice_amount?fmt(e.invoice_amount):'<span style="color:var(--muted)">—</span>')+'</td><td>'+statusBadge(e.status)+'</td></tr>';}).join('')||'<tr><td colspan="5" class="empty">No events in this period</td></tr>')+
+    '</tbody></table>'+
+    sh('Customer Balances','<button class="btn btn-sm btn-outline" onclick="showTab(\'customers\')">View All</button>')+
+    '<table class="tbl"><thead><tr><th>Customer</th><th>Invoiced</th><th>Paid</th><th>Balance</th></tr></thead><tbody>'+
+    (C.customers.filter(function(c){return cuBal(c.id).bal>0;}).map(function(c){var b=cuBal(c.id);return'<tr><td style="font-weight:500">'+esc(c.name)+'</td><td>'+fmt(b.inv)+'</td><td style="color:var(--green)">'+fmt(b.paid)+'</td><td><span class="badge ba">'+fmt(b.bal)+'</span></td></tr>';}).join('')||'<tr><td colspan="4" class="empty">No outstanding balances</td></tr>')+
+    '</tbody></table>';
+}
+
+// ── CALENDAR ──────────────────────────────────────────────────────────────────
+function getHolidays(year){
+  var h={};
+  function add(m,d,n){h[year+'-'+String(m).padStart(2,'0')+'-'+String(d).padStart(2,'0')]=n;}
+  add(1,1,"New Year's Day");add(6,19,"Juneteenth");add(7,4,"Independence Day");add(11,11,"Veterans Day");add(12,25,"Christmas");add(12,31,"New Year's Eve");add(2,14,"Valentine's Day");add(10,31,"Halloween");add(3,17,"St. Patrick's Day");
+  function nth(mo,dow,n){var d=1,c=0;while(true){if(new Date(year,mo-1,d).getDay()===dow){c++;if(c===n)return[mo,d];}d++;}}
+  function last(mo,dow){var l=new Date(year,mo,0).getDate();for(var d=l;d>=1;d--){if(new Date(year,mo-1,d).getDay()===dow)return[mo,d];}}
+  var t;t=nth(1,1,3);add(t[0],t[1],"MLK Day");t=nth(2,1,3);add(t[0],t[1],"Presidents Day");t=last(5,1);add(t[0],t[1],"Memorial Day");t=nth(9,1,1);add(t[0],t[1],"Labor Day");t=nth(10,1,2);add(t[0],t[1],"Columbus Day");t=nth(11,4,4);add(t[0],t[1],"Thanksgiving");t=nth(5,0,2);add(t[0],t[1],"Mother's Day");t=nth(6,0,3);add(t[0],t[1],"Father's Day");
+  return h;
+}
+function renderCalendar(){
+  var hols=Object.assign({},getHolidays(viewYear-1),getHolidays(viewYear),getHolidays(viewYear+1));
+  var startDate=new Date(today.getFullYear(),today.getMonth(),today.getDate());
+  startDate.setDate(startDate.getDate()+(calOffset*28));
+  var endDate=new Date(startDate);endDate.setDate(endDate.getDate()+27);
+  var todayDate=new Date(today.getFullYear(),today.getMonth(),today.getDate());
+  var gridStart=new Date(startDate);gridStart.setDate(gridStart.getDate()-gridStart.getDay());
+  var cells='';
+  for(var i=0;i<28;i++){
+    var cd=new Date(gridStart);cd.setDate(gridStart.getDate()+i);
+    var yr=cd.getFullYear(),mo=cd.getMonth(),day=cd.getDate();
+    var ds=yr+'-'+String(mo+1).padStart(2,'0')+'-'+String(day).padStart(2,'0');
+    var isPast=cd<todayDate,isTod=yr===today.getFullYear()&&mo===today.getMonth()&&day===today.getDate();
+    var isInRange=cd>=startDate&&cd<=endDate;
+    var hol=hols[ds]||null;
+    var dayEvs=isInRange?C.events.filter(function(e){return e.date===ds;}):[];
+    var cls='cal-cell'+(isPast?' other-month':'')+(isTod?' today':'')+(hol&&isInRange?' holiday-cell':'');
+    var inner='<div class="date-num">'+String(mo+1).padStart(2,'0')+'/'+day+'</div>';
+    if(hol&&isInRange)inner+='<div class="hol-lbl">'+hol+'</div>';
+    if(isInRange){dayEvs.slice(0,2).forEach(function(e){inner+='<span class="ev-chip '+(e.type||'other')+'">'+esc(e.name)+'</span>';var crew=(e.labor||[]).filter(function(x){return x.name;});if(crew.length)inner+='<div class="crew-hint">'+esc(crew.map(function(x){return(x.confirmed?'✓':'?')+x.name.split(' ')[0];}).join(' '))+'</div>';});if(dayEvs.length>2)inner+='<div class="more-ind">+'+(dayEvs.length-2)+' more</div>';}
+    cells+='<div class="'+cls+'" onclick="openEvModal(null,\''+ds+'\')">'+inner+'</div>';
   }
-  var q=qRes.data;
-  quoteId=q.id;
+  var upcoming=C.events.filter(function(e){var d=new Date(e.date+'T00:00:00');return d>=startDate&&d<=endDate;}).sort(function(a,b){return a.date.localeCompare(b.date);});
+  var startLabel=startDate.toLocaleDateString('en-US',{month:'short',day:'numeric'});
+  var endLabel=endDate.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});
+  document.getElementById('mc').innerHTML=
+    '<div class="cal-nav"><div class="cal-month" style="font-size:18px">'+startLabel+' – '+endLabel+'</div>'+
+    '<div class="cal-nav-btns"><button class="nav-btn" onclick="calNav(-1)">‹</button>'+(calOffset!==0?'<button class="nav-btn" onclick="calNav(0)" style="font-size:11px;width:auto;padding:0 8px">Today</button>':'')+'<button class="nav-btn" onclick="calNav(1)">›</button><button class="btn btn-sm" onclick="openEvModal()">+ Event</button></div></div>'+
+    '<div class="cal-legend"><div class="leg-item"><div class="leg-dot" style="background:var(--gt)"></div>GT</div><div class="leg-item"><div class="leg-dot" style="background:var(--looch)"></div>Looch</div><div class="leg-item"><div class="leg-dot" style="background:var(--neon)"></div>Neon Nights</div><div class="leg-item"><div class="leg-dot" style="background:var(--other)"></div>Other</div></div>'+
+    '<div class="day-headers"><div class="day-hdr">Sun</div><div class="day-hdr">Mon</div><div class="day-hdr">Tue</div><div class="day-hdr">Wed</div><div class="day-hdr">Thu</div><div class="day-hdr">Fri</div><div class="day-hdr">Sat</div></div>'+
+    '<div class="cal-grid">'+cells+'</div>'+
+    '<div style="margin-top:20px">'+sh('Upcoming — '+upcoming.length+' Event'+(upcoming.length!==1?'s':''))+'</div>'+
+    upcoming.map(function(e){
+      var crew=(e.labor||[]).filter(function(x){return x.name;});
+      var main=(e.main_equip||[]).filter(function(x){return x.name;});
+      var tc=e.type||'other';
+      var crewPills=crew.map(function(x){return'<span class="crew-pill '+(x.confirmed?'conf':'unconf')+'"><span class="pill-dot"></span>'+esc(x.name)+(x.confirmed?' ✓':'')+'</span>';}).join('');
+      var equipPrev=main.slice(0,3).map(function(x){return esc(x.name);}).join(', ')+(main.length>3?'…':'');
+      return'<div class="ev-card '+tc+'-type" id="evc-'+sid(e.id)+'">'+
+        '<div class="ev-card-sum" onclick="toggleEvCard(\''+sid(e.id)+'\')">'+
+          '<div class="ev-card-left"><div class="ev-card-name">'+esc(e.name)+'</div>'+
+          '<div class="ev-card-meta">'+fmtD(e.date)+(e.time?' · '+esc(e.time):'')+(e.venue?' · '+esc(e.venue):'')+' · '+(TYPE_LABELS[tc]||tc)+'</div>'+
+          (equipPrev?'<div style="font-size:10px;color:var(--green);margin-top:3px">⚙ '+equipPrev+'</div>':'')+
+          (crew.length?'<div class="ev-card-crew">'+crewPills+'</div>':'')+'</div>'+
+          '<div style="display:flex;align-items:flex-start;gap:7px;flex-shrink:0">'+
+          (crew.length?'<span class="badge bb">👷 '+crew.length+'</span>':'')+
+          (main.length?'<span class="badge bg">🎛️ '+main.length+'</span>':'')+
+          '<span class="expand-arrow">▼</span></div></div>'+
+        '<div class="ev-card-detail">'+
+          (e.invoice_amount?'<div style="margin-bottom:10px"><span style="font-size:12px;color:var(--muted)">Invoice: </span><span style="font-weight:600;color:var(--green)">'+fmt(e.invoice_amount)+'</span></div>':'')+
+          (e.notes?'<div style="font-size:12px;color:var(--muted);margin-bottom:10px;background:var(--surface2);padding:8px 10px;border-radius:6px">📝 '+esc(e.notes)+'</div>':'')+
+          '<div style="display:flex;gap:8px;flex-wrap:wrap">'+
+            '<button class="btn btn-sm btn-outline" onclick="openEvModal(\''+sid(e.id)+'\')">✏️ Edit</button>'+
+            '<button class="btn btn-sm btn-outline" onclick="openEvDetail(\''+sid(e.id)+'\',\'calendar\')">📊 Financials</button>'+
+            (hasPackingList(e)?'<button class="btn btn-sm" onclick="openPackingList(\''+sid(e.id)+'\')" style="background:var(--blue);color:#000">📦 Packing List</button>':'')+
+            '<button class="btn btn-sm btn-danger" onclick="delRec(\'events\',\''+sid(e.id)+'\')">🗑 Delete</button>'+
+          '</div></div></div>';
+    }).join('')||'<div class="empty">No upcoming events in this window.</div>';
+}
+function calNav(dir){if(dir===0){calOffset=0;}else{calOffset=calOffset+dir;}renderCalendar();}
+function toggleEvCard(id){var c=document.getElementById('evc-'+id);if(c)c.classList.toggle('expanded');}
 
-  var liRes=await sb.from('quote_line_items').select('*').eq('quote_id',q.id).order('sort_order');
-  var items=liRes.data||[];
+// ── EVENTS LIST ───────────────────────────────────────────────────────────────
+function renderEvents(){
+  var filtered=filterByPeriod(C.events,'date');
+  var sorted=filtered.slice().sort(function(a,b){
+    var av,bv;
+    if(evSort.col==='date'){av=a.date||'';bv=b.date||'';}
+    else if(evSort.col==='name'){av=(a.name||'').toLowerCase();bv=(b.name||'').toLowerCase();}
+    else if(evSort.col==='venue'){av=(a.venue||'').toLowerCase();bv=(b.venue||'').toLowerCase();}
+    else if(evSort.col==='customer'){av=cuName(a.customer_id).toLowerCase();bv=cuName(b.customer_id).toLowerCase();}
+    else if(evSort.col==='invoice'){av=parseFloat(a.invoice_amount)||0;bv=parseFloat(b.invoice_amount)||0;}
+    else if(evSort.col==='hours'){av=C.labor.filter(function(l){return sid(l.event_id)===sid(a.id);}).reduce(function(s,l){return s+(parseFloat(l.hours)||0);},0);bv=C.labor.filter(function(l){return sid(l.event_id)===sid(b.id);}).reduce(function(s,l){return s+(parseFloat(l.hours)||0);},0);}
+    else if(evSort.col==='profit'){av=evFin(a.id).profit;bv=evFin(b.id).profit;}
+    else if(evSort.col==='status'){av=a.status||'';bv=b.status||'';}
+    if(av<bv)return-1*evSort.dir;if(av>bv)return 1*evSort.dir;return 0;
+  });
+  function th(lbl,col){var arrow=evSort.col===col?(evSort.dir===1?' ↑':' ↓'):'';return'<th style="cursor:pointer;user-select:none" onclick="sortEv(\''+col+'\')">'+lbl+arrow+'</th>';}
+  var today=todayStr();
+  var upcomingCount=filtered.filter(function(e){return e.date>=today&&e.status!=='cancelled'&&e.status!=='completed';}).length;
+  var pastCount=filtered.length-upcomingCount;
+  var countLabel=upcomingCount?pastCount+' in period + '+upcomingCount+' upcoming':String(filtered.length);
+  document.getElementById('mc').innerHTML=
+    periodSelector()+
+    sh('Events ('+countLabel+')',exportBtn('exportEvents')+'<button class="btn btn-sm" onclick="openEvModal()">+ Add Event</button>')+
+    '<table class="tbl"><thead><tr>'+th('Event','name')+th('Date','date')+th('Venue','venue')+th('Type','type')+th('Customer','customer')+th('Invoice','invoice')+th('Hours','hours')+th('Profit','profit')+'<th></th></tr></thead><tbody>'+
+    (sorted.map(function(e){
+      var f=evFin(e.id);
+      var lh=C.labor.filter(function(l){return sid(l.event_id)===sid(e.id);}).reduce(function(s,l){return s+(parseFloat(l.hours)||0);},0);
+      var ch=(e.labor||[]).filter(function(x){return x.name&&x.qty;}).reduce(function(s,x){return s+(parseFloat(x.qty)||0);},0);
+      var totalHours=lh||ch;
+      return'<tr style="cursor:pointer" onclick="openEvDetail(\''+sid(e.id)+'\',\'events\')">'+
+        '<td style="font-weight:500">'+esc(e.name)+'</td><td>'+fmtD(e.date)+'</td>'+
+        '<td style="color:var(--muted)">'+esc(e.venue||'—')+'</td>'+
+        '<td><span class="badge '+(e.type==='gt'?'ba':e.type==='looch'?'br':e.type==='neon'?'bb':'')+'">'+( TYPE_LABELS[e.type||'other']||e.type||'—')+'</span></td>'+
+        '<td>'+cuName(e.customer_id)+'</td>'+
+        '<td>'+(e.invoice_amount?fmt(e.invoice_amount):'<span style="color:var(--muted)">—</span>')+'</td>'+
+        '<td>'+(totalHours>0?totalHours+'h':'<span style="color:var(--muted)">—</span>')+'</td>'+
+        '<td style="color:'+(f.profit>=0?'var(--green)':'var(--accent2)')+'">'+fmt(f.profit)+'</td>'+
+        '<td onclick="event.stopPropagation()"><div class="acts">'+
+          '<button class="btn btn-sm btn-outline" onclick="openEvModal(\''+sid(e.id)+'\')">Edit</button>'+
+          (hasPackingList(e)?'<button class="btn btn-sm" onclick="openPackingList(\''+sid(e.id)+'\')" style="background:var(--blue);color:#000;font-size:11px">📦</button>':'')+
+          '<button class="btn btn-sm btn-danger" onclick="delRec(\'events\',\''+sid(e.id)+'\')">Del</button>'+
+        '</div></td></tr>';
+    }).join('')||'<tr><td colspan="9" class="empty">No events in this period</td></tr>')+
+    '</tbody></table>';
+}
+function sortEv(col){if(evSort.col===col){evSort.dir*=-1;}else{evSort.col=col;evSort.dir=1;}renderEvents();}
 
-  renderQuote(q,items);
+// ── EVENT DETAIL ──────────────────────────────────────────────────────────────
+function openEvDetail(id,returnTab){
+  var e=findEv(id);if(!e)return;
+  var prevTab=returnTab||currentTab;
+  var f=evFin(id);
+  var eL=C.labor.filter(function(l){return sid(l.event_id)===sid(id);});
+  var eE=C.expenses.filter(function(x){return sid(x.event_id)===sid(id);});
+  var eP=C.payments.filter(function(p){return sid(p.event_id)===sid(id);});
+  var calCrew=(e.labor||[]).filter(function(x){return x.name;});
+  var calMain=(e.main_equip||[]).filter(function(x){return x.name;});
+  var calSec=(e.sec_equip||[]).filter(function(x){return x.name;});
+  var calPanel='';
+  if(calCrew.length||calMain.length||calSec.length){
+    calPanel='<div class="dp"><div class="dp-title">Crew &amp; Equipment</div>';
+    if(calCrew.length){calPanel+='<div style="font-size:11px;font-weight:700;color:var(--blue);text-transform:uppercase;letter-spacing:.8px;margin-bottom:8px">Crew</div><div style="margin-bottom:12px">';calCrew.forEach(function(x){calPanel+='<span class="crew-chip-dp" style="border:1px solid '+(x.confirmed?'rgba(76,175,80,.4)':'rgba(224,92,92,.4)')+';color:'+(x.confirmed?'var(--green)':'var(--accent2)')+';background:'+(x.confirmed?'rgba(76,175,80,.1)':'rgba(224,92,92,.08)')+'">'+esc(x.name)+(x.qty?' · '+esc(x.qty)+' hrs':'')+(x.confirmed?' ✓':' ?')+'</span>';});calPanel+='</div>';}
+    if(calMain.length){calPanel+='<div style="font-size:11px;font-weight:700;color:var(--green);text-transform:uppercase;letter-spacing:.8px;margin-bottom:8px">Main Equipment</div><div style="margin-bottom:12px">';calMain.forEach(function(x){calPanel+='<span class="badge bg" style="margin:3px">'+esc(x.name)+(x.qty?' x'+esc(x.qty):'')+'</span>';});calPanel+='</div>';}
+    if(calSec.length){calPanel+='<div style="font-size:11px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:.8px;margin-bottom:8px">Secondary Equipment</div><div>';calSec.forEach(function(x){calPanel+='<span class="badge ba" style="margin:3px">'+esc(x.name)+(x.qty?' x'+esc(x.qty):'')+'</span>';});calPanel+='</div>';}
+    calPanel+='</div>';
+  }
+  document.getElementById('mc').innerHTML=
+    '<div class="back" onclick="showTab(\''+prevTab+'\')">← Back to '+prevTab.charAt(0).toUpperCase()+prevTab.slice(1)+'</div>'+
+    '<div class="section-header"><div class="section-title">'+esc(e.name)+'</div>'+
+      '<div style="display:flex;gap:8px">'+
+        '<button class="btn btn-sm btn-outline" onclick="openEvModal(\''+sid(e.id)+'\')">Edit Event</button>'+
+        (hasPackingList(e)?'<button class="btn btn-sm" onclick="openPackingList(\''+sid(e.id)+'\')" style="background:var(--blue);color:#000">📦 Packing List</button>':'')+
+      '</div></div>'+
+    '<div class="g2" style="margin-bottom:16px">'+
+      '<div class="dp"><div class="dp-title">Event Info</div>'+
+        '<div class="dr"><span class="l">Date</span><span class="v">'+fmtD(e.date)+'</span></div>'+
+        '<div class="dr"><span class="l">Time</span><span class="v">'+esc(e.time||'—')+'</span></div>'+
+        '<div class="dr"><span class="l">Venue</span><span class="v">'+esc(e.venue||'—')+'</span></div>'+
+        '<div class="dr"><span class="l">Type</span><span class="v">'+(TYPE_LABELS[e.type||'other']||e.type||'—')+'</span></div>'+
+        '<div class="dr"><span class="l">Customer</span><span class="v">'+cuName(e.customer_id)+'</span></div>'+
+        '<div class="dr"><span class="l">Status</span><span class="v">'+statusBadge(e.status)+'</span></div>'+
+        (e.notes?'<div class="dr"><span class="l">Notes</span><span class="v" style="max-width:200px;word-break:break-word">'+esc(e.notes)+'</span></div>':'')+
+      '</div>'+
+      '<div class="dp"><div class="dp-title">Financials</div>'+
+        '<div class="dr"><span class="l">Invoice</span><span class="v">'+fmt(f.rev)+'</span></div>'+
+        '<div class="dr"><span class="l">Labor Cost</span><span class="v" style="color:var(--accent2)">'+fmt(f.lab)+'</span></div>'+
+        '<div class="dr"><span class="l">Expenses</span><span class="v" style="color:var(--accent2)">'+fmt(f.exp)+'</span></div>'+
+        '<div class="dr"><span class="l">Gross Profit</span><span class="v" style="color:'+(f.profit>=0?'var(--green)':'var(--accent2)')+'">'+fmt(f.profit)+'</span></div>'+
+        '<div class="dr"><span class="l">Margin</span><span class="v">'+(f.rev>0?((f.profit/f.rev)*100).toFixed(1)+'%':'—')+'</span></div>'+
+      '</div>'+
+    '</div>'+
+    calPanel+
+    sh('Labor Hours','<div style="display:flex;gap:8px"><button class="btn btn-sm" onclick="openLabModal(\''+sid(e.id)+'\')">+ Owner Hours</button><button class="btn btn-sm btn-outline" onclick="openHelperLabModal(\''+sid(e.id)+'\')">+ Helper</button></div>')+
+    '<table class="tbl"><thead><tr><th>Person</th><th>Hours</th><th>Rate/Amount</th><th>Earned</th><th>Status</th><th></th></tr></thead><tbody>'+
+    (eL.map(function(l){var isOwner=l.person==='john'||l.person==='steve';var earned=parseFloat(l.total_amount)||((parseFloat(l.hours)||0)*(parseFloat(l.rate)||OWNER_RATE));
+      return'<tr><td style="text-transform:capitalize;font-weight:500">'+esc(l.person)+'</td><td>'+(l.hours||'—')+'</td><td>'+(isOwner?(l.rate?fmt(l.rate)+'/hr':'$'+OWNER_RATE+'/hr'):(l.total_amount?fmt(l.total_amount)+' flat':'—'))+'</td><td style="color:var(--green)">'+fmt(earned)+'</td><td>'+(isOwner?'<span class="badge bb">Owner</span>':'<span class="badge '+(l.paid?'bg':'ba')+'">'+(l.paid?'Paid':'Unpaid')+'</span>')+'</td>'+
+      '<td><div class="acts">'+(!isOwner&&!l.paid?'<button class="btn btn-sm btn-outline" onclick="markHelperPaid(\''+sid(l.id)+'\')">✓ Pay</button>':'')+'<button class="btn btn-sm btn-outline" onclick="openEditLaborModal(\''+sid(l.id)+'\')">Edit</button><button class="btn btn-sm btn-danger" onclick="delRec(\'labor\',\''+sid(l.id)+'\',function(){openEvDetail(\''+sid(id)+'\',\''+prevTab+'\');})">Del</button></div></td></tr>';
+    }).join('')||'<tr><td colspan="6" class="empty">No labor recorded</td></tr>')+
+    '</tbody></table>'+
+    sh('Expenses','<button class="btn btn-sm" onclick="openExpModal(\''+sid(e.id)+'\')">+ Add Expense</button>')+
+    '<table class="tbl"><thead><tr><th>Person</th><th>Category</th><th>Description</th><th>Amount</th><th>Reimbursed</th><th></th></tr></thead><tbody>'+
+    (eE.map(function(x){return'<tr><td>'+fmtD(x.date)+'</td><td style="text-transform:capitalize">'+esc(x.person||'—')+'</td><td><span class="badge bb">'+esc(x.category||'other')+'</span></td><td>'+esc(x.description||'—')+'</td><td>'+fmt(x.amount)+'</td><td><span class="badge '+(x.reimbursed?'bg':'ba')+'">'+(x.reimbursed?'Yes':'No')+'</span></td><td><div class="acts">'+(x.reimbursed?'':'<button class="btn btn-sm btn-outline" onclick="doReimb(\''+sid(x.id)+'\',\''+sid(id)+'\',\''+prevTab+'\')">✓</button>')+'<button class="btn btn-sm btn-outline" onclick="openExpModal(null,\''+sid(x.id)+'\')">Edit</button><button class="btn btn-sm btn-danger" onclick="delRec(\'expenses\',\''+sid(x.id)+'\',function(){openEvDetail(\''+sid(id)+'\',\''+prevTab+'\');})">Del</button></div></td></tr>';}).join('')||'<tr><td colspan="7" class="empty">No expenses</td></tr>')+
+    '</tbody></table>'+
+    sh('Payments','<button class="btn btn-sm" onclick="openPayModal(null,\''+sid(e.id)+'\')">+ Record Payment</button>')+
+    '<table class="tbl"><thead><tr><th>Date</th><th>Amount</th><th>Method</th><th>Notes</th><th></th></tr></thead><tbody>'+
+    (eP.map(function(p){return'<tr><td>'+fmtD(p.date)+'</td><td style="color:var(--green)">'+fmt(p.amount)+'</td><td>'+esc(p.method||'—')+'</td><td style="color:var(--muted)">'+esc(p.notes||'')+'</td><td><button class="btn btn-sm btn-danger" onclick="delRec(\'customer_payments\',\''+sid(p.id)+'\',function(){openEvDetail(\''+sid(id)+'\',\''+prevTab+'\');})">Del</button></td></tr>';}).join('')||'<tr><td colspan="5" class="empty">No payments</td></tr>')+
+    '</tbody></table>';
 }
 
-function showError(msg){
-  document.getElementById('page').innerHTML='<div class="err">'+esc(msg)+'</div>';
+// ── CUSTOMERS ─────────────────────────────────────────────────────────────────
+function renderCustomers(){
+  function ths(lbl,col){var arrow=cuSort.col===col?(cuSort.dir===1?' ↑':' ↓'):'';return'<th style="cursor:pointer;user-select:none" onclick="sortCu(\''+col+'\')">'+lbl+arrow+'</th>';}
+  var sorted=C.customers.slice().sort(function(a,b){
+    var av,bv;
+    if(cuSort.col==='name'){av=(a.name||'').toLowerCase();bv=(b.name||'').toLowerCase();}
+    else if(cuSort.col==='email'){av=(a.email||'').toLowerCase();bv=(b.email||'').toLowerCase();}
+    else if(cuSort.col==='invoiced'){av=cuBal(a.id).inv;bv=cuBal(b.id).inv;}
+    else if(cuSort.col==='paid'){av=cuBal(a.id).paid;bv=cuBal(b.id).paid;}
+    else if(cuSort.col==='balance'){av=cuBal(a.id).bal;bv=cuBal(b.id).bal;}
+    if(av<bv)return-1*cuSort.dir;if(av>bv)return 1*cuSort.dir;return 0;
+  });
+  document.getElementById('mc').innerHTML=
+    sh('Customers ('+C.customers.length+')','<button class="btn btn-sm" onclick="openCuModal()">+ Add Customer</button>')+
+    '<table class="tbl"><thead><tr>'+ths('Name','name')+ths('Email','email')+'<th>Phone</th>'+ths('Invoiced','invoiced')+ths('Paid','paid')+ths('Balance','balance')+'<th></th></tr></thead><tbody>'+
+    (sorted.map(function(c){var b=cuBal(c.id);return'<tr style="cursor:pointer" onclick="openCuDetail(\''+sid(c.id)+'\')"><td style="font-weight:500">'+esc(c.name)+'</td><td style="color:var(--muted)">'+esc(c.email||'—')+'</td><td style="color:var(--muted)">'+esc(c.phone||'—')+'</td><td>'+fmt(b.inv)+'</td><td style="color:var(--green)">'+fmt(b.paid)+'</td><td><span class="badge '+(b.bal>0?'ba':b.bal<0?'bb':'bg')+'">'+fmt(b.bal)+'</span></td><td onclick="event.stopPropagation()"><div class="acts"><button class="btn btn-sm btn-outline" onclick="openCuModal(\''+sid(c.id)+'\')">Edit</button><button class="btn btn-sm btn-danger" onclick="delRec(\'customers\',\''+sid(c.id)+'\')">Del</button></div></td></tr>';}).join('')||'<tr><td colspan="7" class="empty">No customers</td></tr>')+
+    '</tbody></table>';
+}
+function sortCu(col){if(cuSort.col===col){cuSort.dir*=-1;}else{cuSort.col=col;cuSort.dir=1;}renderCustomers();}
+function openCuDetail(id){
+  var c=findCu(id);if(!c)return;
+  var b=cuBal(id);
+  var cEv=C.events.filter(function(e){return sid(e.customer_id)===sid(id);});
+  var cPa=C.payments.filter(function(p){return sid(p.customer_id)===sid(id);});
+  document.getElementById('mc').innerHTML=
+    '<div class="back" onclick="renderCustomers()">← Back to Customers</div>'+
+    '<div class="section-header"><div class="section-title">'+esc(c.name)+'</div><button class="btn btn-sm btn-outline" onclick="openCuModal(\''+sid(c.id)+'\')">Edit</button></div>'+
+    '<div class="g2" style="margin-bottom:16px">'+
+      '<div class="dp"><div class="dp-title">Contact</div><div class="dr"><span class="l">Email</span><span class="v">'+esc(c.email||'—')+'</span></div><div class="dr"><span class="l">Phone</span><span class="v">'+esc(c.phone||'—')+'</span></div><div class="dr"><span class="l">Notes</span><span class="v">'+esc(c.notes||'—')+'</span></div></div>'+
+      '<div class="dp"><div class="dp-title">Account Balance</div><div class="dr"><span class="l">Total Invoiced</span><span class="v">'+fmt(b.inv)+'</span></div><div class="dr"><span class="l">Total Paid</span><span class="v" style="color:var(--green)">'+fmt(b.paid)+'</span></div><div class="dr"><span class="l">Balance Owing</span><span class="v"><span class="badge '+(b.bal>0?'ba':'bg')+'">'+fmt(b.bal)+'</span></span></div></div>'+
+    '</div>'+
+    sh('Events','<button class="btn btn-sm" onclick="openPayModal(\''+sid(c.id)+'\')">+ Record Payment</button>')+
+    '<table class="tbl"><thead><tr><th>Event</th><th>Date</th><th>Invoice</th><th>Status</th></tr></thead><tbody>'+
+    (cEv.map(function(e){return'<tr style="cursor:pointer" onclick="openEvDetail(\''+sid(e.id)+'\',\'customers\')"><td style="font-weight:500">'+esc(e.name)+'</td><td>'+fmtD(e.date)+'</td><td>'+(e.invoice_amount?fmt(e.invoice_amount):'—')+'</td><td>'+statusBadge(e.status)+'</td></tr>';}).join('')||'<tr><td colspan="4" class="empty">No events</td></tr>')+
+    '</tbody></table>'+
+    sh('Payment History')+
+    '<table class="tbl"><thead><tr><th>Date</th><th>Amount</th><th>Method</th><th>Event</th><th>Notes</th></tr></thead><tbody>'+
+    (cPa.map(function(p){return'<tr><td>'+fmtD(p.date)+'</td><td style="color:var(--green)">'+fmt(p.amount)+'</td><td>'+esc(p.method||'—')+'</td><td>'+(p.event_id?evName(p.event_id):'—')+'</td><td style="color:var(--muted)">'+esc(p.notes||'')+'</td></tr>';}).join('')||'<tr><td colspan="5" class="empty">No payments</td></tr>')+
+    '</tbody></table>';
 }
 
-function renderQuote(q,items){
+// ── PAYMENTS ──────────────────────────────────────────────────────────────────
+function renderPayments(){
+  function ths(lbl,col){var arrow=paySort.col===col?(paySort.dir===1?' ↑':' ↓'):'';return'<th style="cursor:pointer;user-select:none" onclick="sortPay(\''+col+'\')">'+lbl+arrow+'</th>';}
+  var filtered=filterByPeriod(C.payments,'date');
+  var sorted=filtered.slice().sort(function(a,b){
+    var av,bv;
+    if(paySort.col==='date'){av=a.date||'';bv=b.date||'';}
+    else if(paySort.col==='customer'){av=cuName(a.customer_id).toLowerCase();bv=cuName(b.customer_id).toLowerCase();}
+    else if(paySort.col==='amount'){av=parseFloat(a.amount)||0;bv=parseFloat(b.amount)||0;}
+    else if(paySort.col==='method'){av=(a.method||'').toLowerCase();bv=(b.method||'').toLowerCase();}
+    if(av<bv)return-1*paySort.dir;if(av>bv)return 1*paySort.dir;return 0;
+  });
+  document.getElementById('mc').innerHTML=
+    periodSelector()+
+    sh('Payments ('+filtered.length+')',exportBtn('exportPayments')+'<button class="btn btn-sm" onclick="openPayModal()">+ Record Payment</button>')+
+    '<table class="tbl"><thead><tr>'+ths('Date','date')+ths('Customer','customer')+ths('Amount','amount')+ths('Method','method')+'<th>Event</th><th>Notes</th><th></th></tr></thead><tbody>'+
+    (sorted.map(function(p){return'<tr><td>'+fmtD(p.date)+'</td><td style="font-weight:500">'+cuName(p.customer_id)+'</td><td style="color:var(--green)">'+fmt(p.amount)+'</td><td>'+esc(p.method||'—')+'</td><td style="color:var(--muted)">'+(p.event_id?evName(p.event_id):'—')+'</td><td style="color:var(--muted)">'+esc(p.notes||'')+'</td><td><button class="btn btn-sm btn-danger" onclick="delRec(\'customer_payments\',\''+sid(p.id)+'\')">Del</button></td></tr>';}).join('')||'<tr><td colspan="7" class="empty">No payments in this period</td></tr>')+
+    '</tbody></table>';
+}
+function sortPay(col){if(paySort.col===col){paySort.dir*=-1;}else{paySort.col=col;paySort.dir=1;}renderPayments();}
+
+// ── LABOR ─────────────────────────────────────────────────────────────────────
+function renderLabor(){
+  var allLabor=filterLaborByPeriod(C.labor);
+  var owners=['john','steve'];
+  var ownerLab=allLabor.filter(function(l){return owners.includes(l.person);});
+  var helperLab=allLabor.filter(function(l){return!owners.includes(l.person);});
+  function getLabDate(l){var e=findEv(l.event_id);return e?e.date:'';}
+  function sortLab(arr){
+    return arr.slice().sort(function(a,b){
+      var av,bv;
+      if(laborSort.col==='date'){av=getLabDate(a);bv=getLabDate(b);}
+      else if(laborSort.col==='event'){av=evName(a.event_id).toLowerCase();bv=evName(b.event_id).toLowerCase();}
+      else if(laborSort.col==='venue'){var ea=findEv(a.event_id),eb=findEv(b.event_id);av=(ea&&ea.venue||'').toLowerCase();bv=(eb&&eb.venue||'').toLowerCase();}
+      else if(laborSort.col==='person'){av=(a.person||'').toLowerCase();bv=(b.person||'').toLowerCase();}
+      else if(laborSort.col==='hours'){av=parseFloat(a.hours)||0;bv=parseFloat(b.hours)||0;}
+      else if(laborSort.col==='earned'){av=parseFloat(a.total_amount)||((parseFloat(a.hours)||0)*(parseFloat(a.rate)||OWNER_RATE));bv=parseFloat(b.total_amount)||((parseFloat(b.hours)||0)*(parseFloat(b.rate)||OWNER_RATE));}
+      if(av<bv)return-1*laborSort.dir;if(av>bv)return 1*laborSort.dir;return 0;
+    });
+  }
+  function lth(lbl,col){var arrow=laborSort.col===col?(laborSort.dir===1?' ↑':' ↓'):'';return'<th style="cursor:pointer;user-select:none" onclick="sortLab(\''+col+'\')">'+lbl+arrow+'</th>';}
+  var jt=ownerLab.filter(function(l){return l.person==='john';}).reduce(function(s,l){return s+(parseFloat(l.total_amount)||((parseFloat(l.hours)||0)*(parseFloat(l.rate)||OWNER_RATE)));},0);
+  var st=ownerLab.filter(function(l){return l.person==='steve';}).reduce(function(s,l){return s+(parseFloat(l.total_amount)||((parseFloat(l.hours)||0)*(parseFloat(l.rate)||OWNER_RATE)));},0);
+  var helperNames=[...new Set(helperLab.map(function(l){return l.person;}))];
+  var helperSummary=helperNames.map(function(name){var rows=helperLab.filter(function(l){return l.person===name;});var total=rows.reduce(function(s,l){return s+(parseFloat(l.total_amount)||0);},0);var unpaid=rows.filter(function(l){return!l.paid;}).reduce(function(s,l){return s+(parseFloat(l.total_amount)||0);},0);return{name:name,total:total,unpaid:unpaid};});
+  var unpaidTotal=helperLab.filter(function(l){return!l.paid;}).reduce(function(s,l){return s+(parseFloat(l.total_amount)||0);},0);
+  var sortedOwner=sortLab(ownerLab);
+  var sortedHelper=sortLab(helperLab);
+  document.getElementById('mc').innerHTML=
+    periodSelector()+
+    '<div class="stat-grid" style="margin-bottom:16px">'+sc('John — Total Earned',fmt(jt),'green')+sc('Steve — Total Earned',fmt(st),'green')+sc('Helpers — Unpaid',fmt(unpaidTotal),unpaidTotal>0?'amber':'')+'</div>'+
+    sh('Owner Labor ('+ownerLab.length+')',exportBtn('exportLabor')+'<button class="btn btn-sm" onclick="openLabModal()">+ Add Hours</button>')+
+    '<table class="tbl"><thead><tr>'+lth('Date','date')+lth('Event','event')+lth('Venue','venue')+lth('Person','person')+lth('Hours','hours')+lth('Rate','rate')+lth('Earned','earned')+'<th>Notes</th><th></th></tr></thead><tbody>'+
+    (sortedOwner.map(function(l){
+      var earned=parseFloat(l.total_amount)||((parseFloat(l.hours)||0)*(parseFloat(l.rate)||OWNER_RATE));
+      var ev=findEv(l.event_id);
+      return'<tr><td>'+fmtD(ev?ev.date:'')+'</td><td style="font-weight:500">'+evName(l.event_id)+'</td><td style="color:var(--muted)">'+esc(ev&&ev.venue||'—')+'</td><td style="text-transform:capitalize">'+esc(l.person)+'</td><td>'+(l.hours||'—')+'</td><td>'+(l.rate?fmt(l.rate)+'/hr':'—')+'</td><td style="color:var(--green)">'+fmt(earned)+'</td><td style="color:var(--muted)">'+esc(l.notes||'')+'</td>'+
+      '<td><div class="acts"><button class="btn btn-sm btn-outline" onclick="openEditLaborModal(\''+sid(l.id)+'\')">Edit</button><button class="btn btn-sm btn-danger" onclick="delRec(\'labor\',\''+sid(l.id)+'\')">Del</button></div></td></tr>';
+    }).join('')||'<tr><td colspan="9" class="empty">No owner labor in this period</td></tr>')+
+    '</tbody></table>'+
+    sh('Helper Labor ('+helperLab.length+')','<button class="btn btn-sm" onclick="openHelperLabModal()">+ Add Helper</button>')+
+    (helperSummary.length?'<div class="stat-grid" style="margin-bottom:16px">'+helperSummary.map(function(h){return'<div class="stat-card"><div class="stat-label">'+esc(h.name)+'</div><div class="stat-value '+(h.unpaid>0?'amber':'green')+'">'+fmt(h.unpaid)+' unpaid</div><div style="font-size:11px;color:var(--muted);margin-top:4px">'+fmt(h.total)+' total</div></div>';}).join('')+'</div>':'')+
+    '<table class="tbl"><thead><tr>'+lth('Date','date')+lth('Event','event')+lth('Venue','venue')+lth('Person','person')+lth('Hours','hours')+'<th>Amount</th><th>Status</th><th>Notes</th><th></th></tr></thead><tbody>'+
+    (sortedHelper.map(function(l){
+      var ev=findEv(l.event_id);
+      return'<tr><td>'+fmtD(ev?ev.date:'')+'</td><td style="font-weight:500">'+evName(l.event_id)+'</td><td style="color:var(--muted)">'+esc(ev&&ev.venue||'—')+'</td><td style="text-transform:capitalize">'+esc(l.person)+'</td><td>'+(l.hours||'—')+'</td><td style="color:var(--green)">'+fmt(l.total_amount)+'</td><td><span class="badge '+(l.paid?'bg':'ba')+'">'+(l.paid?'Paid':'Unpaid')+'</span>'+(l.paid&&l.paid_date?' <span style="font-size:10px;color:var(--muted)">'+fmtD(l.paid_date)+'</span>':'')+'</td><td style="color:var(--muted)">'+esc(l.notes||'')+'</td>'+
+      '<td><div class="acts"><button class="btn btn-sm btn-outline" onclick="openEditLaborModal(\''+sid(l.id)+'\')">Edit</button>'+(!l.paid?'<button class="btn btn-sm btn-outline" onclick="openHelperPayModal(\''+sid(l.id)+'\')">✓ Pay</button>':'')+'<button class="btn btn-sm btn-danger" onclick="delRec(\'labor\',\''+sid(l.id)+'\')">Del</button></div></td></tr>';
+    }).join('')||'<tr><td colspan="9" class="empty">No helper labor in this period</td></tr>')+
+    '</tbody></table>';
+}
+
+// ── OWNER FINANCES ────────────────────────────────────────────────────────────
+function ownerStats(person){
+  var lab=filterLaborByPeriod(C.labor).filter(function(l){return l.person===person;});
+  var exp=filterByPeriod(C.expenses,'date').filter(function(x){return x.person===person;});
+  var ps=filterByPeriod(C.profitShare,'date').filter(function(p){return p.person===person;});
+  var lp=filterByPeriod(C.laborPayments,'date').filter(function(p){return p.person===person;});
+  var laborEarned=lab.reduce(function(s,l){return s+(parseFloat(l.total_amount)||((parseFloat(l.hours)||0)*(parseFloat(l.rate)||OWNER_RATE)));},0);
+  var laborPaid=lp.reduce(function(s,p){return s+(parseFloat(p.amount)||0);},0);
+  var expPaid=exp.reduce(function(s,x){return s+(parseFloat(x.amount)||0);},0);
+  var expReimb=exp.filter(function(x){return x.reimbursed;}).reduce(function(s,x){return s+(parseFloat(x.amount)||0);},0);
+  var psTotal=ps.reduce(function(s,p){return s+(parseFloat(p.amount)||0);},0);
+  return{laborEarned:laborEarned,laborPaid:laborPaid,laborOwed:laborEarned-laborPaid,expPaid:expPaid,expReimb:expReimb,expOwed:expPaid-expReimb,psTotal:psTotal};
+}
+function renderOwnerFinances(){
+  var john=ownerStats('john'),steve=ownerStats('steve');
+  function personCard(name,s){
+    var label=name.charAt(0).toUpperCase()+name.slice(1);
+    var ps=filterByPeriod(C.profitShare,'date').filter(function(p){return p.person===name;}).sort(function(a,b){return b.date.localeCompare(a.date);});
+    var lp=filterByPeriod(C.laborPayments,'date').filter(function(p){return p.person===name;}).sort(function(a,b){return b.date.localeCompare(a.date);});
+    var labRows=filterLaborByPeriod(C.labor).filter(function(l){return l.person===name;});
+    return'<div style="margin-bottom:24px">'+
+      '<div class="section-title" style="margin-bottom:12px">'+label+'</div>'+
+      '<div class="stat-grid" style="margin-bottom:16px">'+
+        sc('Labor Earned',fmt(s.laborEarned),'green')+
+        sc('Labor Paid',fmt(s.laborPaid))+
+        sc('Labor Owed',fmt(s.laborOwed),s.laborOwed>0?'amber':'')+
+        sc('Expenses Out',fmt(s.expPaid))+
+        sc('Expenses Reimb.',fmt(s.expReimb))+
+        sc('Exp. Owed',fmt(s.expOwed),s.expOwed>0?'amber':'')+
+        sc('Profit Share',fmt(s.psTotal),'green')+
+        sc('Total Owed',fmt(s.laborOwed+s.expOwed),s.laborOwed+s.expOwed>0?'amber':'')+
+      '</div>'+
+      sh('Labor Payments — '+label,'<button class="btn btn-sm btn-outline" onclick="exportOwnerFinances(\''+name+'\')">⬇ CSV</button><button class="btn btn-sm" onclick="openLaborPayModal(\''+name+'\')">+ Add Labor Payment</button>')+
+      '<table class="tbl"><thead><tr><th>Date</th><th>Amount</th><th>Method</th><th>Notes</th><th></th></tr></thead><tbody>'+
+      (lp.map(function(p){return'<tr>'+
+        '<td>'+fmtD(p.date)+'</td>'+
+        '<td style="color:var(--green)">'+fmt(p.amount)+'</td>'+
+        '<td>'+esc(p.method||'—')+'</td>'+
+        '<td style="color:var(--muted)">'+esc(p.notes||'')+'</td>'+
+        '<td><button class="btn btn-sm btn-danger" onclick="delRec(\'labor_payments\',\''+p.id+'\')">Del</button></td>'+
+      '</tr>';}).join('')||'<tr><td colspan="5" class="empty">No labor payments recorded</td></tr>')+
+      '</tbody></table>'+
+      sh('Profit Share — '+label,'<button class="btn btn-sm" onclick="openPSModal(\''+name+'\')">+ Add Distribution</button>')+
+      '<table class="tbl"><thead><tr><th>Date</th><th>Amount</th><th>Method</th><th>Event</th><th>Notes</th><th></th></tr></thead><tbody>'+
+      (ps.map(function(p){return'<tr><td>'+fmtD(p.date)+'</td><td style="color:var(--green)">'+fmt(p.amount)+'</td><td>'+esc(p.method||'—')+'</td><td style="color:var(--muted)">'+(p.event_id?evName(p.event_id):'—')+'</td><td style="color:var(--muted)">'+esc(p.notes||'')+'</td><td><button class="btn btn-sm btn-danger" onclick="delRec(\'profit_share\',\''+sid(p.id)+'\')">Del</button></td></tr>';}).join('')||'<tr><td colspan="6" class="empty">No profit share distributions yet</td></tr>')+
+      '</tbody></table>'+
+      sh('Labor Detail — '+label)+
+      '<table class="tbl"><thead><tr><th>Event</th><th>Date</th><th>Hours</th><th>Earned</th><th>Notes</th><th></th></tr></thead><tbody>'+
+      (labRows.map(function(l){var ev=findEv(l.event_id);var earned=parseFloat(l.total_amount)||((parseFloat(l.hours)||0)*(parseFloat(l.rate)||OWNER_RATE));
+        return'<tr><td style="font-weight:500">'+evName(l.event_id)+'</td><td>'+(ev?fmtD(ev.date):'—')+'</td><td>'+(l.hours||'—')+'</td><td style="color:var(--green)">'+fmt(earned)+'</td><td style="color:var(--muted)">'+esc(l.notes||'')+'</td>'+
+        '<td><div class="acts"><button class="btn btn-sm btn-outline" onclick="openEditLaborModal(\''+sid(l.id)+'\')">Edit</button></div></td></tr>';}).join('')||'<tr><td colspan="6" class="empty">No labor records</td></tr>')+
+      '</tbody></table>'+
+    '</div>';
+  }
+  document.getElementById('mc').innerHTML=
+    periodSelector()+personCard('john',john)+'<hr style="border:none;border-top:2px solid var(--border);margin:8px 0 24px">'+personCard('steve',steve);
+}
+
+// ── EXPENSES ──────────────────────────────────────────────────────────────────
+function renderExpenses(){
+  function ths(lbl,col){var arrow=expSort.col===col?(expSort.dir===1?' ↑':' ↓'):'';return'<th style="cursor:pointer;user-select:none" onclick="sortExp(\''+col+'\')">'+lbl+arrow+'</th>';}
+  var filtered=filterByPeriod(C.expenses,'date');
+  var sorted=filtered.slice().sort(function(a,b){
+    var av,bv;
+    if(expSort.col==='date'){av=a.date||'';bv=b.date||'';}
+    else if(expSort.col==='event'){av=evName(a.event_id).toLowerCase();bv=evName(b.event_id).toLowerCase();}
+    else if(expSort.col==='person'){av=(a.person||'').toLowerCase();bv=(b.person||'').toLowerCase();}
+    else if(expSort.col==='category'){av=(a.category||'').toLowerCase();bv=(b.category||'').toLowerCase();}
+    else if(expSort.col==='amount'){av=parseFloat(a.amount)||0;bv=parseFloat(b.amount)||0;}
+    if(av<bv)return-1*expSort.dir;if(av>bv)return 1*expSort.dir;return 0;
+  });
+  var te=filtered.reduce(function(s,x){return s+(parseFloat(x.amount)||0);},0);
+  var ur=filtered.filter(function(x){return!x.reimbursed;}).reduce(function(s,x){return s+(parseFloat(x.amount)||0);},0);
+  document.getElementById('mc').innerHTML=
+    periodSelector()+
+    '<div class="stat-grid" style="margin-bottom:16px">'+sc('Total Expenses',fmt(te))+sc('Pending Reimbursement',fmt(ur),'amber')+'</div>'+
+    sh('Expenses ('+filtered.length+')',exportBtn('exportExpenses')+'<button class="btn btn-sm" onclick="openExpModal()">+ Add Expense</button>')+
+    '<table class="tbl"><thead><tr>'+ths('Date','date')+ths('Event','event')+ths('Person','person')+ths('Category','category')+'<th>Description</th>'+ths('Amount','amount')+'<th>Reimbursed</th><th></th></tr></thead><tbody>'+
+    (sorted.map(function(x){return'<tr><td>'+fmtD(x.date)+'</td><td style="font-weight:500">'+(x.event_id?evName(x.event_id):'<span style="color:var(--muted)">—</span>')+'</td><td style="text-transform:capitalize">'+esc(x.person||'—')+'</td><td><span class="badge bb">'+esc(x.category||'other')+'</span></td><td>'+esc(x.description||'—')+'</td><td>'+fmt(x.amount)+'</td><td><span class="badge '+(x.reimbursed?'bg':'ba')+'">'+(x.reimbursed?'Yes':'No')+'</span></td><td><div class="acts">'+(x.reimbursed?'':'<button class="btn btn-sm btn-outline" onclick="doReimb(\''+sid(x.id)+'\')">✓</button>')+'<button class="btn btn-sm btn-outline" onclick="openExpModal(null,\''+sid(x.id)+'\')">Edit</button><button class="btn btn-sm btn-danger" onclick="delRec(\'expenses\',\''+sid(x.id)+'\')">Del</button></div></td></tr>';}).join('')||'<tr><td colspan="8" class="empty">No expenses in this period</td></tr>')+
+    '</tbody></table>';
+}
+function sortExp(col){if(expSort.col===col){expSort.dir*=-1;}else{expSort.col=col;expSort.dir=1;}renderExpenses();}
+
+// ── EQUIPMENT CATALOG ─────────────────────────────────────────────────────────
+var openEqCardId=null;
+
+function renderEquipment(){
+  document.getElementById('mc').innerHTML=
+    sh('Equipment Catalog ('+C.equipItems.length+')','<button class="btn btn-sm" onclick="openEqItemModal()">+ Add Item</button>')+
+    (C.equipItems.length?C.equipItems.map(function(item){
+      var comps=C.equipComponents.filter(function(c){return c.equipment_item_id===item.id;}).sort(function(a,b){return(a.sort_order||0)-(b.sort_order||0);});
+      var isOpen=openEqCardId===item.id;
+      return'<div class="eq-card'+(isOpen?' open':'')+'" id="eqc-'+item.id+'">'+
+        '<div class="eq-card-head" onclick="toggleEqCard(\''+item.id+'\')">'+
+          '<div><div class="eq-card-name">'+esc(item.name)+'</div>'+
+          (item.category?'<div style="font-size:11px;color:var(--muted)">'+esc(item.category)+'</div>':'')+
+          '<div style="font-size:11px;color:var(--muted);margin-top:2px">'+comps.length+' component'+(comps.length!==1?'s':'')+(item.price?' · '+fmt(item.price)+'/unit':'')+'</div></div>'+
+          '<div style="display:flex;align-items:center;gap:8px">'+
+          (item.photo_url?'<img src="'+esc(item.photo_url)+'" style="width:36px;height:36px;object-fit:cover;border-radius:6px;border:1px solid var(--border)">':'')+
+            '<button class="btn btn-sm btn-outline" onclick="event.stopPropagation();openEqItemModal(\''+item.id+'\')">Edit</button>'+
+            '<button class="btn btn-sm btn-danger" onclick="event.stopPropagation();delRec(\'equipment_items\',\''+item.id+'\')">Del</button>'+
+            '<span class="expand-arrow">▼</span>'+
+          '</div>'+
+        '</div>'+
+        '<div class="eq-card-body">'+
+          sh('Components','<button class="btn btn-sm" onclick="openEqCompModal(\''+item.id+'\')">+ Add Component</button>')+
+          '<table class="tbl"><thead><tr><th>Component</th><th>Qty</th><th>Unit</th><th>Order</th><th></th></tr></thead><tbody>'+
+          (comps.map(function(c){return'<tr><td style="font-weight:500">'+esc(c.name)+'</td><td>'+(c.quantity||'—')+'</td><td style="color:var(--muted)">'+esc(c.unit||'—')+'</td><td style="color:var(--muted)">'+(c.sort_order||0)+'</td><td><div class="acts"><button class="btn btn-sm btn-outline" onclick="openEqCompModal(\''+item.id+'\',\''+c.id+'\')">Edit</button><button class="btn btn-sm btn-danger" onclick="delRec(\'equipment_components\',\''+c.id+'\')">Del</button></div></td></tr>';}).join('')||'<tr><td colspan="5" class="empty">No components yet — click + Add Component above</td></tr>')+
+          '</tbody></table>'+
+        '</div>'+
+      '</div>';
+    }).join(''):'<div class="empty">No equipment items yet. Add your first item to get started.</div>');
+}
+function toggleEqCard(id){openEqCardId=(openEqCardId===id?null:id);renderEquipment();}
+
+// ── PACKING LIST ──────────────────────────────────────────────────────────────
+function hasPackingList(e){
+  var main=(e.main_equip||[]).filter(function(x){return x.name;});
+  return main.some(function(x){return C.equipItems.find(function(i){return i.name.toLowerCase()===x.name.toLowerCase();});});
+}
+
+function openPackingList(eventId){
+  var e=findEv(eventId);if(!e)return;
+  currentPackEventId=eventId;
+  document.getElementById('packTitle').textContent='📦 Packing List — '+e.name+' ('+fmtD(e.date)+')';
+  renderPackingList();
+  document.getElementById('packOverlay').classList.add('open');
+}
+function closePackingList(){document.getElementById('packOverlay').classList.remove('open');currentPackEventId=null;}
+
+function renderPackingList(){
+  var e=findEv(currentPackEventId);if(!e)return;
+  var main=(e.main_equip||[]).filter(function(x){return x.name;});
+  var sections=[],totalComps=0,checkedComps=0;
+  main.forEach(function(equip){
+    var item=C.equipItems.find(function(i){return i.name.toLowerCase()===equip.name.toLowerCase();});
+    if(!item)return;
+    var qty=parseFloat(equip.qty)||1;
+    var comps=C.equipComponents.filter(function(c){return c.equipment_item_id===item.id;}).sort(function(a,b){return(a.sort_order||0)-(b.sort_order||0);});
+    if(!comps.length)return;
+    var compRows=comps.map(function(c){
+      var check=C.packChecks.find(function(pc){return sid(pc.event_id)===sid(currentPackEventId)&&pc.component_id===c.id;});
+      var isChecked=check&&check.checked;
+      totalComps++;if(isChecked)checkedComps++;
+      var compQty=c.quantity?Math.ceil(c.quantity*qty)+' '+(c.unit||''):((c.unit||'')+(qty>1?' × '+qty:''));
+      return'<div class="pack-item'+(isChecked?' checked':'')+'" onclick="togglePackCheck(\''+c.id+'\')">'+
+        '<div class="pack-check">'+(isChecked?'✓':'')+'</div>'+
+        '<div class="pack-name">'+esc(c.name)+'</div>'+
+        '<div class="pack-qty">'+esc(compQty)+'</div>'+
+      '</div>';
+    }).join('');
+    sections.push('<div class="pack-section"><div class="pack-section-title">'+esc(item.name)+(qty>1?' × '+qty:'')+'</div>'+compRows+'</div>');
+  });
+  var pct=totalComps>0?Math.round((checkedComps/totalComps)*100):0;
+  document.getElementById('packProgress').innerHTML=
+    '<div class="pack-progress">'+
+      '<div style="font-size:13px;color:var(--muted)">'+checkedComps+' of '+totalComps+' items packed</div>'+
+      '<div class="pack-bar-wrap"><div class="pack-bar" style="width:'+pct+'%"></div></div>'+
+      '<div class="pack-pct">'+pct+'%</div>'+
+    '</div>';
+  document.getElementById('packBody').innerHTML=sections.length?sections.join(''):'<div class="empty">No equipment with components found for this event.<br>Make sure equipment names match your catalog exactly.</div>';
+}
+
+async function togglePackCheck(componentId){
+  var e=findEv(currentPackEventId);if(!e)return;
+  var existing=C.packChecks.find(function(pc){return sid(pc.event_id)===sid(currentPackEventId)&&pc.component_id===componentId;});
+  var session=await sb.auth.getSession();
+  var userEmail=session&&session.data&&session.data.session?session.data.session.user.email:'';
+  if(existing){
+    var newVal=!existing.checked;
+    var r=await sb.from('packing_list_checks').update({checked:newVal,checked_by:newVal?userEmail:null,checked_at:newVal?new Date().toISOString():null}).eq('id',existing.id);
+    if(r.error){showErr(r.error.message);return;}
+    existing.checked=newVal;existing.checked_by=newVal?userEmail:null;
+  } else {
+    var r2=await sb.from('packing_list_checks').insert({event_id:currentPackEventId,component_id:componentId,checked:true,checked_by:userEmail,checked_at:new Date().toISOString()}).select().single();
+    if(r2.error){showErr(r2.error.message);return;}
+    C.packChecks.push(r2.data);
+  }
+  renderPackingList();
+}
+
+async function resetPackingList(){
+  if(!confirm('Reset all checks for this event?'))return;
+  var r=await sb.from('packing_list_checks').update({checked:false,checked_by:null,checked_at:null}).eq('event_id',currentPackEventId);
+  if(r.error){showErr(r.error.message);return;}
+  C.packChecks.forEach(function(pc){if(sid(pc.event_id)===sid(currentPackEventId))pc.checked=false;});
+  renderPackingList();
+}
+
+function printPackingList(){
+  var e=findEv(currentPackEventId);if(!e)return;
+  var w=window.open('','_blank');
+  w.document.write('<html><head><title>Packing List — '+e.name+'</title><style>body{font-family:sans-serif;padding:20px;}h1{font-size:18px;margin-bottom:4px;}h2{font-size:14px;color:#666;margin:16px 0 8px;}table{width:100%;border-collapse:collapse;}td{padding:6px 8px;border-bottom:1px solid #eee;font-size:13px;}.check{width:20px;text-align:center;}</style></head><body>');
+  w.document.write('<h1>📦 Packing List — '+e.name+'</h1><p style="color:#666;font-size:12px">'+fmtD(e.date)+(e.venue?' · '+e.venue:'')+'</p>');
+  var main=(e.main_equip||[]).filter(function(x){return x.name;});
+  main.forEach(function(equip){
+    var item=C.equipItems.find(function(i){return i.name.toLowerCase()===equip.name.toLowerCase();});
+    if(!item)return;
+    var qty=parseFloat(equip.qty)||1;
+    var comps=C.equipComponents.filter(function(c){return c.equipment_item_id===item.id;}).sort(function(a,b){return(a.sort_order||0)-(b.sort_order||0);});
+    if(!comps.length)return;
+    w.document.write('<h2>'+item.name+(qty>1?' × '+qty:'')+'</h2><table>');
+    comps.forEach(function(c){var compQty=c.quantity?Math.ceil(c.quantity*qty)+' '+(c.unit||''):'';w.document.write('<tr><td class="check">☐</td><td>'+c.name+'</td><td style="color:#999">'+compQty+'</td></tr>');});
+    w.document.write('</table>');
+  });
+  w.document.write('</body></html>');
+  w.document.close();
+}
+
+// ── MODAL CORE ────────────────────────────────────────────────────────────────
+var _modalSaveFn=null;
+function openModal(title,bodyHtml,saveFn,saveLabel){
+  document.getElementById('mt').textContent=title;
+  document.getElementById('mb').innerHTML=bodyHtml;
+  document.getElementById('msb').textContent=saveLabel||'Save';
+  _modalSaveFn=saveFn;
+  document.getElementById('mo').classList.add('open');
+}
+function closeModal(){document.getElementById('mo').classList.remove('open');_modalSaveFn=null;}
+function modalSave(){if(_modalSaveFn)_modalSaveFn();}
+function gv(id){var el=document.getElementById(id);return el?el.value.trim():'';}
+
+// ── EVENT MODAL ───────────────────────────────────────────────────────────────
+function typeToggleHtml(cur){
+  return'<div class="form-group"><label>Event Type</label>'+
+    '<div style="display:flex;gap:6px;flex-wrap:wrap">'+
+    [['gt','GT'],['looch','Looch'],['neon','Neon Nights'],['other','Other']].map(function(t){
+      var active=(cur||'gt')===t[0];
+      return'<button type="button" class="type-opt '+t[0]+(active?' active':'')+'" onclick="setEvType(\''+t[0]+'\')">'+t[1]+'</button>';
+    }).join('')+
+    '</div><input type="hidden" id="mEvType" value="'+(cur||'gt')+'"></div>';
+}
+function setEvType(t){
+  document.getElementById('mEvType').value=t;
+  document.querySelectorAll('.type-opt').forEach(function(b){
+    b.classList.remove('active');
+    if(b.classList.contains(t))b.classList.add('active');
+  });
+}
+function crewRowHtml(name,hrs,confirmed){
+  var knownCrew=['John','Steve','JP'];
+  var isCustom=name&&!knownCrew.map(function(n){return n.toLowerCase();}).includes((name||'').toLowerCase());
+  var selHtml='<select class="crew-name-sel" onchange="handleCrewSel(this)" style="'+(isCustom?'display:none':'width:100%')+'">'+
+    '<option value="">\u2014 select \u2014</option>'+
+    knownCrew.map(function(n){return'<option value="'+n+'"'+((!isCustom&&name&&name.toLowerCase()===n.toLowerCase())?' selected':'')+'>'+n+'</option>';}).join('')+
+    '<option value="__custom__">Other / Custom\u2026</option>'+
+    '</select>'+
+    '<input class="crew-name" placeholder="Type name\u2026" value="'+esc(isCustom?name:'')+'" style="'+(isCustom?'width:100%':'display:none')+'">';
+  return'<div class="crew-row" style="display:grid;grid-template-columns:1fr 80px 110px 32px;gap:6px;margin-bottom:6px;align-items:center">'+
+    '<div>'+selHtml+'</div>'+
+    '<input type="number" class="crew-hrs" value="'+hrs+'" step="0.5" placeholder="Hrs">'+
+    '<button type="button" class="crew-conf-btn btn btn-sm" style="background:'+(confirmed?'rgba(76,175,80,.2)':'var(--surface2)')+';color:'+(confirmed?'var(--green)':'var(--muted)')+';border:1px solid '+(confirmed?'rgba(76,175,80,.4)':'var(--border)')+';" onclick="toggleCrewConf(this)">'+(confirmed?'\u2713 Yes':'? TBD')+'</button>'+
+    '<button type="button" onclick="this.closest(\'.crew-row\').remove()" style="background:var(--accent2);color:#fff;border:none;border-radius:6px;cursor:pointer;width:32px;height:34px;font-size:16px;line-height:1">\u00d7</button>'+
+  '</div>';
+}
+function handleCrewSel(sel){
+  var wrap=sel.parentNode;
+  var input=wrap.querySelector('.crew-name');
+  if(sel.value==='__custom__'){
+    sel.style.display='none';
+    input.style.display='block';
+    input.style.width='100%';
+    input.value='';
+    input.focus();
+  }
+}
+function toggleCrewConf(btn){
+  var isConf=btn.textContent.trim().startsWith('✓');
+  btn.textContent=isConf?'? TBD':'✓ Yes';
+  btn.style.background=isConf?'var(--surface2)':'rgba(76,175,80,.2)';
+  btn.style.color=isConf?'var(--muted)':'var(--green)';
+  btn.style.borderColor=isConf?'var(--border)':'rgba(76,175,80,.4)';
+}
+function addCrewRow(){
+  document.getElementById("crewWrap").insertAdjacentHTML("beforeend",crewRowHtml("","",false));
+}
+function collectCrew(){
+  return Array.from(document.querySelectorAll('#crewWrap .crew-row')).map(function(row){
+    var sel=row.querySelector('.crew-name-sel');
+    var input=row.querySelector('.crew-name');
+    var name=sel&&sel.style.display!=='none'?sel.value:input.value;
+    name=(name||'').trim();
+    if(!name||name==='__custom__')return null;
+    return{name:name,qty:parseFloat(row.querySelector('.crew-hrs').value)||null,confirmed:row.querySelector('.crew-conf-btn').textContent.trim().startsWith('\u2713')};
+  }).filter(Boolean);
+}
+function collectEquip(wrapId){
+  return Array.from(document.querySelectorAll('#'+wrapId+' .equip-row')).map(function(row){
+    var name=row.querySelector('.eq-name').value.trim();
+    if(!name)return null;
+    return{name:name,qty:parseFloat(row.querySelector('.eq-qty').value)||1};
+  }).filter(Boolean);
+}
+function evCrewHtml(labor){
+  var rows=labor||[];
+  var out='<div style="font-size:11px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:.8px;margin-bottom:8px">⚒ Crew</div>';
+  if(rows.length){
+    out+='<div style="display:grid;grid-template-columns:1fr 80px 110px 32px;gap:6px;margin-bottom:4px">'+
+      '<div style="font-size:10px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.5px">Name</div>'+
+      '<div style="font-size:10px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.5px">Hours</div>'+
+      '<div style="font-size:10px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.5px">Confirmed</div>'+
+      '<div></div></div>';
+  }
+  out+='<div id="crewWrap">';
+  rows.forEach(function(r){out+=crewRowHtml(r.name||'',r.qty||'',r.confirmed);});
+  out+='</div>'+
+    '<button type="button" class="btn btn-sm btn-outline" style="margin-top:2px;margin-bottom:14px;border-style:dashed" onclick="addCrewRow()">+ Add Person</button>';
+  return out;
+}
+function equipRowHtml(name,qty){
+  return'<div class="equip-row" style="display:grid;grid-template-columns:1fr 80px 32px;gap:6px;margin-bottom:6px;align-items:center">'+
+    '<input class="eq-name" value="'+esc(name)+'" placeholder="Item name">'+
+    '<input type="number" class="eq-qty" value="'+qty+'" min="1">'+
+    '<button type="button" onclick="this.closest(\'.equip-row\').remove()" style="background:var(--accent2);color:#fff;border:none;border-radius:6px;cursor:pointer;width:32px;height:34px;font-size:16px;line-height:1">×</button>'+
+  '</div>';
+}
+function quickAddEquip(sel,wrapId){
+  if(!sel.value)return;
+  document.getElementById(wrapId).insertAdjacentHTML('beforeend',equipRowHtml(sel.value,1));
+  sel.value='';
+}
+function addEquipRow(wrapId){
+  document.getElementById(wrapId).insertAdjacentHTML('beforeend',equipRowHtml('',1));
+}
+function evEquipHtml(wrapId,items,label,emoji){
+  var rows=items||[];
+  var catOpts='<option value="">— select —</option>'+C.equipItems.map(function(x){return'<option value="'+esc(x.name)+'">'+esc(x.name)+'</option>';}).join('');
+  var out='<div style="font-size:11px;font-weight:700;color:var(--green);text-transform:uppercase;letter-spacing:.8px;margin-bottom:8px">'+emoji+' '+label+'</div>';
+  if(rows.length){
+    out+='<div style="display:grid;grid-template-columns:1fr 80px 32px;gap:6px;margin-bottom:4px">'+
+      '<div style="font-size:10px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.5px">Item</div>'+
+      '<div style="font-size:10px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.5px">Qty</div>'+
+      '<div></div></div>';
+  }
+  out+='<div id="'+wrapId+'">';
+  rows.forEach(function(r){out+=equipRowHtml(r.name||'',r.qty||1);});
+  out+='</div>'+
+    '<div style="display:flex;gap:8px;align-items:center;margin-top:4px;flex-wrap:wrap">'+
+    (C.equipItems.length?'<select onchange="quickAddEquip(this,\''+wrapId+'\')" style="flex:1;min-width:140px;font-size:13px">'+catOpts+'</select>':'')+
+    '<button type="button" class="btn btn-sm btn-outline" style="border-style:dashed;white-space:nowrap;font-size:12px" onclick="addEquipRow(\''+wrapId+'\')">+ Custom Item</button>'+
+    '</div>';
+  return out;
+}
+function openEvModal(id,dateStr){
+  var ev=id?C.events.find(function(e){return sid(e.id)===sid(id);}):null;
+  var d=ev?ev.date:(dateStr||todayStr());
+  openModal(ev?'Edit Event':'New Event',
+    '<div class="form-group"><label>Event Name</label><input id="mEvName" value="'+esc(ev?ev.name:'')+'"></div>'+
+    typeToggleHtml(ev?ev.type:'gt')+
+    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">'+
+      '<div class="form-group"><label>Date</label><input type="date" id="mEvDate" value="'+d+'"></div>'+
+      '<div class="form-group"><label>Time</label><input id="mEvTime" value="'+esc(ev?ev.time||'':'')+'"></div>'+
+    '</div>'+
+    '<div class="form-group"><label>Venue</label><input id="mEvVenue" value="'+esc(ev?ev.venue||'':'')+'"></div>'+
+    evCrewHtml(ev?ev.labor:[])+
+    '<div style="background:var(--surface2);border-radius:10px;padding:14px;margin-bottom:12px">'+
+      evEquipHtml('mainEquipWrap',ev?ev.main_equip:[],'Main Equipment','🎛')+
+    '</div>'+
+    '<div style="background:var(--surface2);border-radius:10px;padding:14px;margin-bottom:12px">'+
+      evEquipHtml('secEquipWrap',ev?ev.sec_equip:[],'Secondary Equipment','📦')+
+    '</div>'+
+    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">'+
+      '<div class="form-group"><label>Status</label><select id="mEvStatus">'+
+        ['upcoming','confirmed','completed','cancelled'].map(function(s){return'<option value="'+s+'"'+(ev&&ev.status===s?' selected':(!ev&&s==='upcoming'?' selected':''))+'>'+s.charAt(0).toUpperCase()+s.slice(1)+'</option>';}).join('')+
+      '</select></div>'+
+      '<div class="form-group"><label>Invoice Amount ($)</label><input type="number" id="mEvInv" value="'+(ev&&ev.invoice_amount!=null?ev.invoice_amount:'')+'"></div>'+
+    '</div>'+
+    '<div class="form-group"><label>Customer</label><select id="mEvCu">'+cuOpts(ev?ev.customer_id:'')+'</select></div>'+
+    '<div class="form-group"><label>Notes</label><textarea id="mEvNotes">'+esc(ev?ev.notes||'':'')+'</textarea></div>',
+    function(){saveEv(id);}
+  );
+}
+async function saveEv(id){
+  var name=gv('mEvName'),date=gv('mEvDate'),time=gv('mEvTime'),venue=gv('mEvVenue'),type=gv('mEvType'),status=gv('mEvStatus'),cuRaw=gv('mEvCu'),inv=gv('mEvInv'),notes=gv('mEvNotes');
+  if(!name||!date){showErr('Name and date required.');return;}
+  var cuId=cuRaw==='__new__'?await quickAddCu():cuRaw||null;
+  var obj={name:name,date:date,time:time||null,venue:venue||null,type:type,status:status,customer_id:cuId,invoice_amount:inv?parseFloat(inv):null,notes:notes||null,
+    labor:collectCrew(),main_equip:collectEquip('mainEquipWrap'),sec_equip:collectEquip('secEquipWrap')};
+  var r=id?await sb.from('events').update(obj).eq('id',id):await sb.from('events').insert(obj);
+  if(r.error){showErr(r.error.message);return;}
+  syncToGCal(obj,!!id);
+  closeModal();await loadAll();showTab('events');
+}
+
+// ── CUSTOMER MODAL ────────────────────────────────────────────────────────────
+function openCuModal(id){
+  var c=id?C.customers.find(function(x){return sid(x.id)===sid(id);}):null;
+  openModal(c?'Edit Customer':'New Customer',
+    '<div class="form-group"><label>Name</label><input id="mCuName" value="'+esc(c?c.name:'')+'"></div>'+
+    '<div class="form-group"><label>Email</label><input type="email" id="mCuEmail" value="'+esc(c?c.email||'':'')+'"></div>'+
+    '<div class="form-group"><label>Phone</label><input id="mCuPhone" value="'+esc(c?c.phone||'':'')+'"></div>'+
+    '<div class="form-group"><label>Notes</label><textarea id="mCuNotes">'+esc(c?c.notes||'':'')+'</textarea></div>',
+    function(){saveCu(id);}
+  );
+}
+async function saveCu(id){
+  var name=gv('mCuName'),email=gv('mCuEmail'),phone=gv('mCuPhone'),notes=gv('mCuNotes');
+  if(!name){showErr('Name required.');return;}
+  var obj={name:name,email:email||null,phone:phone||null,notes:notes||null};
+  var r=id?await sb.from('customers').update(obj).eq('id',id):await sb.from('customers').insert(obj);
+  if(r.error){showErr(r.error.message);return;}
+  closeModal();await loadAll();showTab('customers');
+}
+async function quickAddCu(){
+  var name=prompt('New customer name:');
+  if(!name)return null;
+  var r=await sb.from('customers').insert({name:name.trim()}).select().single();
+  if(r.error){showErr(r.error.message);return null;}
+  C.customers.push(r.data);
+  return r.data.id;
+}
+
+// ── PAYMENT MODAL ─────────────────────────────────────────────────────────────
+function openPayModal(cuId,evId){
+  openModal('Add Payment',
+    '<div class="form-group"><label>Customer</label><select id="mPyCu">'+cuOpts(cuId)+'</select></div>'+
+    '<div class="form-group"><label>Event</label><select id="mPyEv"><option value="">— None —</option>'+C.events.map(function(e){return'<option value="'+sid(e.id)+'"'+(sid(e.id)===sid(evId)?' selected':'')+'>'+esc(e.name)+' ('+fmtD(e.date)+')</option>';}).join('')+'</select></div>'+
+    '<div class="form-group"><label>Amount</label><input type="number" id="mPyAmt"></div>'+
+    '<div class="form-group"><label>Date</label><input type="date" id="mPyDate" value="'+todayStr()+'"></div>'+
+    '<div class="form-group"><label>Method</label><select id="mPyMeth"><option value="">—</option><option>Cash</option><option>Check</option><option>Venmo</option><option>Zelle</option><option>Card</option><option>Other</option></select></div>'+
+    '<div class="form-group"><label>Notes</label><input id="mPyNotes"></div>',
+    savePay
+  );
+}
+async function savePay(){
+  var cu=gv('mPyCu'),ev=gv('mPyEv'),amt=gv('mPyAmt'),date=gv('mPyDate'),method=gv('mPyMeth'),notes=gv('mPyNotes');
+  if(!amt||!date){showErr('Amount and date required.');return;}
+  var obj={customer_id:cu||null,event_id:ev||null,amount:parseFloat(amt),date:date,method:method||null,notes:notes||null};
+  var r=await sb.from('customer_payments').insert(obj);
+  if(r.error){showErr(r.error.message);return;}
+  closeModal();await loadAll();showTab('customers');
+}
+
+// ── OWNER LABOR MODAL ─────────────────────────────────────────────────────────
+function openLabModal(evId){
+  openModal('Add Owner Labor',
+    '<div class="form-group"><label>Person</label><select id="mLbPer"><option value="john">John</option><option value="steve">Steve</option></select></div>'+
+    '<div class="form-group"><label>Event</label><select id="mLbEv"><option value="">— None —</option>'+C.events.map(function(e){return'<option value="'+sid(e.id)+'"'+(sid(e.id)===sid(evId)?' selected':'')+'>'+esc(e.name)+' ('+fmtD(e.date)+')</option>';}).join('')+'</select></div>'+
+    '<div class="form-group"><label>Hours</label><input type="number" step="0.25" id="mLbHrs"></div>'+
+    '<div class="form-group"><label>Rate (leave blank for default $'+OWNER_RATE+'/hr)</label><input type="number" id="mLbRate"></div>'+
+    '<div class="form-group"><label>Notes</label><input id="mLbNotes"></div>',
+    saveLab
+  );
+}
+function openEditLaborModal(id){
+  var l=C.labor.find(function(x){return sid(x.id)===sid(id);});
+  if(!l)return;
+  openModal('Edit Labor',
+    '<div class="form-group"><label>Person</label><select id="mLbPer"><option value="john"'+(l.person==='john'?' selected':'')+'>John</option><option value="steve"'+(l.person==='steve'?' selected':'')+'>Steve</option><option value="'+esc(l.person)+'"'+(l.person!=='john'&&l.person!=='steve'?' selected':'')+'>'+esc(l.person)+'</option></select></div>'+
+    '<div class="form-group"><label>Hours</label><input type="number" step="0.25" id="mLbHrs" value="'+(l.hours||'')+'"></div>'+
+    '<div class="form-group"><label>Rate</label><input type="number" id="mLbRate" value="'+(l.rate||'')+'"></div>'+
+    '<div class="form-group"><label>Total Amount (overrides hrs×rate)</label><input type="number" id="mLbTotal" value="'+(l.total_amount||'')+'"></div>'+
+    '<div class="form-group"><label>Notes</label><input id="mLbNotes" value="'+esc(l.notes||'')+'"></div>',
+    function(){saveLabEdit(id);}
+  );
+}
+async function saveLab(){
+  var per=gv('mLbPer'),ev=gv('mLbEv'),hrs=gv('mLbHrs'),rate=gv('mLbRate'),notes=gv('mLbNotes');
+  if(!per||!hrs){showErr('Person and hours required.');return;}
+  var h=parseFloat(hrs),r2=rate?parseFloat(rate):OWNER_RATE;
+  var obj={person:per,event_id:ev||null,hours:h,rate:r2,total_amount:h*r2,notes:notes||null};
+  var r=await sb.from('labor').insert(obj);
+  if(r.error){showErr(r.error.message);return;}
+  closeModal();await loadAll();renderLabor();
+}
+async function saveLabEdit(id){
+  var per=gv('mLbPer'),hrs=gv('mLbHrs'),rate=gv('mLbRate'),total=gv('mLbTotal'),notes=gv('mLbNotes');
+  var h=parseFloat(hrs)||null,r2=parseFloat(rate)||null,t=total?parseFloat(total):h&&r2?h*r2:null;
+  var r=await sb.from('labor').update({person:per,hours:h,rate:r2,total_amount:t,notes:notes||null}).eq('id',id);
+  if(r.error){showErr(r.error.message);return;}
+  closeModal();await loadAll();renderLabor();
+}
+
+// ── HELPER LABOR MODAL ────────────────────────────────────────────────────────
+function openHelperLabModal(evId){
+  openModal('Add Helper Labor',
+    '<div class="form-group"><label>Person</label><input id="mHlPer" placeholder="helper name"></div>'+
+    '<div class="form-group"><label>Event</label><select id="mHlEv"><option value="">— None —</option>'+C.events.map(function(e){return'<option value="'+sid(e.id)+'"'+(sid(e.id)===sid(evId)?' selected':'')+'>'+esc(e.name)+' ('+fmtD(e.date)+')</option>';}).join('')+'</select></div>'+
+    '<div class="form-group"><label>Hours</label><input type="number" step="0.25" id="mHlHrs"></div>'+
+    '<div class="form-group"><label>Rate ($/hr)</label><input type="number" id="mHlRate"></div>'+
+    '<div class="form-group"><label>Notes</label><input id="mHlNotes"></div>',
+    saveHelperLab
+  );
+}
+async function saveHelperLab(){
+  var per=gv('mHlPer'),ev=gv('mHlEv'),hrs=gv('mHlHrs'),rate=gv('mHlRate'),notes=gv('mHlNotes');
+  if(!per||!hrs){showErr('Person and hours required.');return;}
+  var h=parseFloat(hrs),r2=parseFloat(rate)||0;
+  var obj={person:per.toLowerCase(),event_id:ev||null,hours:h,rate:r2||null,total_amount:h*r2,is_owner:false,paid:false,notes:notes||null};
+  var r=await sb.from('labor').insert(obj);
+  if(r.error){showErr(r.error.message);return;}
+  closeModal();await loadAll();renderLabor();
+}
+function openHelperPayModal(laborId){
+  var l=C.labor.find(function(x){return sid(x.id)===sid(laborId);});
+  if(!l)return;
+  var ev=findEv(l.event_id);
+  var owed=parseFloat(l.total_amount)||0;
+  openModal('Pay '+l.person.charAt(0).toUpperCase()+l.person.slice(1),
+    '<div style="background:var(--surface2);border-radius:8px;padding:10px 12px;margin-bottom:14px;font-size:13px">'+
+      '<div style="color:var(--muted);margin-bottom:4px">'+esc(evName(l.event_id))+(ev?' \u00b7 '+fmtD(ev.date):'')+'</div>'+
+      '<div style="font-size:18px;font-weight:700;color:var(--green)">Amount owed: '+fmt(owed)+'</div>'+
+    '</div>'+
+    '<div class="form-group"><label>Amount Paid ($)</label><input type="number" id="hpAmt" value="'+owed+'" step="0.01"></div>'+
+    '<div class="form-group"><label>Date Paid</label><input type="date" id="hpDate" value="'+todayStr()+'"></div>'+
+    '<div class="form-group"><label>Method</label><select id="hpMethod">'+
+      ['Cash','Zelle','Venmo','Other'].map(function(m){return'<option>'+m+'</option>';}).join('')+
+    '</select></div>'+
+    '<div class="form-group"><label>Paid By</label><select id="hpPaidBy">'+
+      ['John','Steve','GT'].map(function(p){return'<option>'+p+'</option>';}).join('')+
+    '</select></div>'+
+    '<div class="form-group"><label>Notes</label><input id="hpNotes" placeholder="optional"></div>',
+    function(){saveHelperPay(laborId,owed);}
+  );
+}
+async function saveHelperPay(laborId,totalOwed){
+  var amt=parseFloat(gv('hpAmt'));
+  var date=gv('hpDate'),method=gv('hpMethod'),paidBy=gv('hpPaidBy').toLowerCase(),notes=gv('hpNotes');
+  if(!amt||!date){showErr('Amount and date required.');return;}
+  var l=C.labor.find(function(x){return sid(x.id)===sid(laborId);});
+  if(!l)return;
+  var ev=findEv(l.event_id);
+  var fullyPaid=amt>=totalOwed;
+  // Mark labor as paid
+  var lr=await sb.from('labor').update({paid:true,paid_date:date}).eq('id',laborId);
+  if(lr.error){showErr(lr.error.message);return;}
+  // If paid by John or Steve, create an expense so they can be reimbursed
+  if(paidBy==='john'||paidBy==='steve'){
+    var desc=l.person.charAt(0).toUpperCase()+l.person.slice(1)+' labor payment'+(ev?' for '+ev.name:'')+(method?' via '+method:'');
+    var expObj={
+      date:date,
+      person:paidBy,
+      category:'helper',
+      description:desc,
+      amount:amt,
+      event_id:l.event_id||null,
+      notes:notes||null,
+      reimbursed:false
+    };
+    var er=await sb.from('expenses').insert(expObj);
+    if(er.error)console.warn('Expense creation error:',er.error.message);
+  }
+  closeModal();
+  await loadAll();
+  renderLabor();
+  showErr('\u2713 Payment recorded'+(paidBy!=='gt'?' \u2014 expense created for '+paidBy.charAt(0).toUpperCase()+paidBy.slice(1):''));
+}
+
+// ── EXPENSE MODAL ─────────────────────────────────────────────────────────────
+function openExpModal(evId,xId){
+  var x=xId?C.expenses.find(function(e){return sid(e.id)===sid(xId);}):null;
+  openModal(x?'Edit Expense':'Add Expense',
+    '<div class="form-group"><label>Date</label><input type="date" id="mExDate" value="'+(x?x.date||todayStr():todayStr())+'"></div>'+
+    '<div class="form-group"><label>Event</label><select id="mExEv"><option value="">— None —</option>'+C.events.map(function(e){return'<option value="'+sid(e.id)+'"'+(sid(e.id)===sid(evId)?' selected':'')+'>'+esc(e.name)+' ('+fmtD(e.date)+')</option>';}).join('')+'</select></div>'+
+    '<div class="form-group"><label>Person</label><select id="mExPer"><option value="john">John</option><option value="steve">Steve</option></select></div>'+
+    '<div class="form-group"><label>Category</label><select id="mExCat"><option value="travel">Travel</option><option value="toll">Toll</option><option value="equipment">Equipment</option><option value="helper">Helper</option><option value="other">Other</option></select></div>'+
+    '<div class="form-group"><label>Description</label><input id="mExDesc" value="'+esc(x?x.description||'':'')+'"></div>'+
+    '<div class="form-group"><label>Amount</label><input type="number" id="mExAmt" value="'+(x?x.amount||'':'')+'"></div>'+
+    '<div class="form-group"><label>Notes</label><input id="mNo" value="'+esc(x?x.notes||'':'')+'"></div>',
+    function(){saveExp(xId);}
+  );
+  if(x){
+    var per=document.getElementById('mExPer');if(per&&x.person)per.value=x.person;
+    var cat=document.getElementById('mExCat');if(cat&&x.category)cat.value=x.category;
+    var ev2=document.getElementById('mExEv');if(ev2&&x.event_id)ev2.value=sid(x.event_id);
+  }
+}
+async function saveExp(xId){
+  var date=gv('mExDate'),eid2=gv('mExEv'),per=gv('mExPer'),cat=gv('mExCat'),desc=gv('mExDesc'),amt=gv('mExAmt'),nts=gv('mNo');
+  if(!amt||!date){showErr('Date and amount required.');return;}
+  var obj={date:date,event_id:eid2||null,person:per,category:cat,description:desc||null,amount:parseFloat(amt),notes:nts||null};
+  var r=xId?await sb.from('expenses').update(obj).eq('id',xId):await sb.from('expenses').insert(Object.assign({},obj,{reimbursed:false}));
+  if(r.error){console.error('Expense error:',JSON.stringify(r.error));showErr(r.error.message+' — '+JSON.stringify(r.error.details||r.error.hint||''));return;}
+  closeModal();await loadAll();showTab('expenses');
+}
+
+// ── LABOR PAYMENT MODAL ───────────────────────────────────────────────────────
+function openLaborPayModal(person){
+  openModal('Add Labor Payment',
+    '<div class="form-group"><label>Person</label><input id="mLpPer" value="'+esc(person||'')+'" readonly></div>'+
+    '<div class="form-group"><label>Amount</label><input type="number" id="mLpAmt" placeholder="0.00"></div>'+
+    '<div class="form-group"><label>Date</label><input type="date" id="mLpDate" value="'+todayStr()+'"></div>'+
+    '<div class="form-group"><label>Method</label><select id="mLpMeth"><option value="">—</option><option>Cash</option><option>Check</option><option>Venmo</option><option>Zelle</option><option>ACH</option><option>Other</option></select></div>'+
+    '<div class="form-group"><label>Notes</label><input id="mLpNotes"></div>',
+    saveLaborPay
+  );
+}
+async function saveLaborPay(){
+  var per=gv('mLpPer'),amt=gv('mLpAmt'),date=gv('mLpDate'),method=gv('mLpMeth'),notes=gv('mLpNotes');
+  if(!amt||!date){showErr('Amount and date required.');return;}
+  var r=await sb.from('labor_payments').insert({person:per,amount:parseFloat(amt),date:date,method:method||null,notes:notes||null});
+  if(r.error){showErr(r.error.message);return;}
+  closeModal();await loadAll();renderOwnerFinances();
+}
+
+// ── PROFIT SHARE MODAL ────────────────────────────────────────────────────────
+function openPSModal(person){
+  openModal('Add Distribution',
+    '<div class="form-group"><label>Person</label><input id="mPsPer" value="'+esc(person||'')+'" readonly></div>'+
+    '<div class="form-group"><label>Amount</label><input type="number" id="mPsAmt" placeholder="0.00"></div>'+
+    '<div class="form-group"><label>Date</label><input type="date" id="mPsDate" value="'+todayStr()+'"></div>'+
+    '<div class="form-group"><label>Method</label><select id="mPsMeth"><option value="">—</option><option>Cash</option><option>Check</option><option>Venmo</option><option>Zelle</option><option>ACH</option><option>Other</option></select></div>'+
+    '<div class="form-group"><label>Event (optional)</label><select id="mPsEv"><option value="">— None —</option>'+C.events.map(function(e){return'<option value="'+sid(e.id)+'">'+esc(e.name)+' ('+fmtD(e.date)+')</option>';}).join('')+'</select></div>'+
+    '<div class="form-group"><label>Notes</label><input id="mPsNotes"></div>',
+    savePS
+  );
+}
+async function savePS(){
+  var per=gv('mPsPer'),amt=gv('mPsAmt'),date=gv('mPsDate'),method=gv('mPsMeth'),ev=gv('mPsEv'),notes=gv('mPsNotes');
+  if(!amt||!date){showErr('Amount and date required.');return;}
+  var r=await sb.from('profit_share').insert({person:per,amount:parseFloat(amt),date:date,method:method||null,event_id:ev||null,notes:notes||null});
+  if(r.error){showErr(r.error.message);return;}
+  closeModal();await loadAll();renderOwnerFinances();
+}
+
+// ── EQUIPMENT MODALS ──────────────────────────────────────────────────────────
+function openEqItemModal(id){
+  var item=id?C.equipItems.find(function(x){return sid(x.id)===sid(id);}):null;
+  openModal(item?'Edit Equipment Item':'New Equipment Item',
+    '<div class="form-group"><label>Name</label><input id="mEqName" value="'+esc(item?item.name:'')+'"></div>'+
+    '<div class="form-group"><label>Category</label><input id="mEqCat" value="'+esc(item?item.category||'':'')+'"></div>'+
+    '<div class="form-group"><label>Description (shown on quotes)</label><textarea id="mEqDesc">'+esc(item?item.description||'':'')+'</textarea></div>'+
+    '<div class="form-group"><label>Price per unit ($)</label><input type="number" id="mEqPrice" value="'+(item&&item.price!=null?item.price:'')+'"></div>'+
+    '<div class="form-group"><label>Photo</label>'+
+      '<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">'+
+        '<input id="mEqPhoto" value="'+esc(item?item.photo_url||'':'')+'" placeholder="URL or upload below" style="flex:1;min-width:180px">'+
+        '<label style="cursor:pointer;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:7px 12px;font-size:12px;font-weight:600;white-space:nowrap">'+
+          '&#128247; Upload Photo'+
+          '<input type="file" id="mEqPhotoFile" accept="image/*" style="display:none" onchange="previewEqPhoto(this)">'+
+        '</label>'+
+      '</div>'+
+      '<div id="mEqPhotoPreview" style="margin-top:8px">'+
+        (item&&item.photo_url?'<img src="'+esc(item.photo_url)+'" style="width:100%;max-height:160px;object-fit:cover;border-radius:8px;border:1px solid var(--border)">':'')+
+      '</div>'+
+    '</div>'+
+    '<div class="form-group"><label>Notes</label><textarea id="mEqNotes">'+esc(item?item.notes||'':'')+'</textarea></div>',
+    function(){saveEqItem(id);}
+  );
+}
+function previewEqPhoto(input){
+  var file=input.files[0];
+  if(!file)return;
+  var reader=new FileReader();
+  reader.onload=function(e){
+    document.getElementById('mEqPhotoPreview').innerHTML='<img src="'+e.target.result+'" style="width:100%;max-height:160px;object-fit:cover;border-radius:8px;border:1px solid var(--border)">';
+    document.getElementById('mEqPhoto').value=''; // will be set after upload
+  };
+  reader.readAsDataURL(file);
+}
+async function saveEqItem(id){
+  var name=gv('mEqName'),cat=gv('mEqCat'),desc=gv('mEqDesc'),price=gv('mEqPrice'),notes=gv('mEqNotes');
+  if(!name){showErr('Name required.');return;}
+  var photoUrl=gv('mEqPhoto');
+  var fileInput=document.getElementById('mEqPhotoFile');
+  if(fileInput&&fileInput.files&&fileInput.files[0]){
+    var file=fileInput.files[0];
+    var ext=file.name.split('.').pop();
+    var path='eq-'+Date.now()+'-'+name.toLowerCase().replace(/[^a-z0-9]/g,'-')+'.'+ext;
+    document.getElementById('msb').textContent='Uploading...';
+    document.getElementById('msb').disabled=true;
+    // Get current session token and pass explicitly
+    var sessionRes=await sb.auth.getSession();
+    var token=sessionRes&&sessionRes.data&&sessionRes.data.session&&sessionRes.data.session.access_token;
+    var formData=new FormData();
+    formData.append('',file,path);
+    var uploadRes=await fetch('https://rbtzcswnounmybumqbwu.supabase.co/storage/v1/object/equipment-photos/'+path,{
+      method:'POST',
+      headers:token?{'Authorization':'Bearer '+token}:{},
+      body:file
+    });
+    document.getElementById('msb').textContent='Save';
+    document.getElementById('msb').disabled=false;
+    if(!uploadRes.ok){
+      var errText=await uploadRes.text();
+      showErr('Photo upload failed: '+errText);return;
+    }
+    photoUrl='https://rbtzcswnounmybumqbwu.supabase.co/storage/v1/object/public/equipment-photos/'+path;
+  }
+  var obj={name:name,category:cat||null,description:desc||null,price:price?parseFloat(price):null,photo_url:photoUrl||null,notes:notes||null};
+  var r=id?await sb.from('equipment_items').update(obj).eq('id',id):await sb.from('equipment_items').insert(obj);
+  if(r.error){showErr(r.error.message);return;}
+  closeModal();await loadAll();showTab('equipment');
+}
+function openEqCompModal(itemId,compId){
+  var comp=compId?C.equipComponents.find(function(x){return sid(x.id)===sid(compId);}):null;
+  var item=C.equipItems.find(function(x){return sid(x.id)===sid(itemId);});
+  openModal((comp?'Edit':'Add')+' Component'+(item?' — '+item.name:''),
+    '<div class="form-group"><label>Component Name</label><input id="mCpName" value="'+esc(comp?comp.name:'')+'"></div>'+
+    '<div class="form-group"><label>Quantity</label><input type="number" step="0.1" id="mCpQty" value="'+(comp?comp.quantity||'':'')+'"></div>'+
+    '<div class="form-group"><label>Unit (e.g. ft, pcs)</label><input id="mCpUnit" value="'+esc(comp?comp.unit||'':'')+'"></div>'+
+    '<div class="form-group"><label>Sort Order</label><input type="number" id="mCpSort" value="'+(comp?comp.sort_order||'':'')+'"></div>',
+    function(){saveEqComp(itemId,compId);}
+  );
+}
+async function saveEqComp(itemId,compId){
+  var name=gv('mCpName'),qty=gv('mCpQty'),unit=gv('mCpUnit'),sort=gv('mCpSort');
+  if(!name){showErr('Name required.');return;}
+  var obj={equipment_item_id:itemId,name:name,quantity:qty?parseFloat(qty):null,unit:unit||null,sort_order:sort?parseInt(sort):null};
+  var r=compId?await sb.from('equipment_components').update(obj).eq('id',compId):await sb.from('equipment_components').insert(obj);
+  if(r.error){showErr(r.error.message);return;}
+  closeModal();await loadAll();showTab('equipment');
+}
+
+// ── DELETE ────────────────────────────────────────────────────────────────────
+async function delRec(table,id,cb){
+  if(!confirm('Delete this record?'))return;
+  var r=await sb.from(table).delete().eq('id',id);
+  if(r.error){showErr(r.error.message);return;}
+  await loadAll();
+  if(cb)cb();
+  else if(table==='labor')renderLabor();
+  else if(table==='profit_share'||table==='labor_payments')renderOwnerFinances();
+  else if(table==='expenses')renderExpenses();
+  else if(table==='customer_payments')showTab('customers');
+  else if(table==='events')showTab('events');
+  else if(table==='customers')showTab('customers');
+  else if(table==='equipment_items'||table==='equipment_components')showTab('equipment');
+}
+
+
+// ── QUOTES ────────────────────────────────────────────────────────────────────
+var MAKE_QUOTE_WEBHOOK='https://hook.us2.make.com/45ahfu63kofewwwnvxkrpymqffxp52wx';
+var QUOTE_PAGE_URL='https://groovetechrental.github.io/grooveops/quote.html';
+var SUPABASE_ANON_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJidHpjc3dub3VubXlidW1xYnd1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYyOTI3OTgsImV4cCI6MjA5MTg2ODc5OH0.d_CSDndGJcuBve_EtHo8RDcHG8dxQVn22gpUjQ7FGNY';
+var QUOTE_STATUS_BADGE={draft:'ba',sent:'bb',accepted:'bg',declined:'br'};
+var QUOTE_STATUS_LABEL={draft:'Draft',sent:'Sent',accepted:'Accepted',declined:'Declined'};
+
+function quoteBadge(s){return'<span class="badge '+(QUOTE_STATUS_BADGE[s]||'ba')+'">'+(QUOTE_STATUS_LABEL[s]||s)+'</span>';}
+
+function renderQuotes(){
+  function ths(lbl,col){var arrow=quoteSort.col===col?(quoteSort.dir===1?' ↑':' ↓'):'';return'<th style="cursor:pointer;user-select:none" onclick="sortQuotes(\''+col+'\')">'+lbl+arrow+'</th>';}
+  var qs=C.quotes.slice().sort(function(a,b){
+    var av,bv;
+    if(quoteSort.col==='created_at'){av=a.created_at||'';bv=b.created_at||'';}
+    else if(quoteSort.col==='customer'){av=(a.customer_name||'').toLowerCase();bv=(b.customer_name||'').toLowerCase();}
+    else if(quoteSort.col==='event'){av=(a.event_name||'').toLowerCase();bv=(b.event_name||'').toLowerCase();}
+    else if(quoteSort.col==='event_date'){av=a.event_date||'';bv=b.event_date||'';}
+    else if(quoteSort.col==='total'){av=parseFloat(a.total)||0;bv=parseFloat(b.total)||0;}
+    else if(quoteSort.col==='status'){av=a.status||'';bv=b.status||'';}
+    if(av<bv)return-1*quoteSort.dir;if(av>bv)return 1*quoteSort.dir;return 0;
+  });
+  var counts={draft:0,sent:0,accepted:0};
+  qs.forEach(function(q){if(counts[q.status]!=null)counts[q.status]++;});
+  document.getElementById('mc').innerHTML=
+    '<div class="g3" style="margin-bottom:16px">'+sc('Draft',counts.draft)+sc('Sent',counts.sent)+sc('Accepted',counts.accepted,'green')+'</div>'+
+    sh('Quotes ('+qs.length+')','<button class="btn btn-sm" onclick="openQuoteModal()">+ New Quote</button>')+
+    '<table class="tbl"><thead><tr>'+ths('Created','created_at')+ths('Customer','customer')+ths('Event','event')+ths('Event Date','event_date')+ths('Total','total')+ths('Status','status')+'<th></th></tr></thead><tbody>'+
+    (qs.map(function(q){
+      var qid=q.id;
+      return'<tr style="cursor:pointer" onclick="openQuoteDetail(\''+qid+'\')">'+ 
+        '<td>'+fmtD(q.created_at?q.created_at.split('T')[0]:'')+'</td>'+
+        '<td style="font-weight:500">'+esc(q.customer_name||'\u2014')+'</td>'+
+        '<td>'+esc(q.event_name||'\u2014')+'</td>'+
+        '<td>'+fmtD(q.event_date)+'</td>'+
+        '<td style="color:var(--green)">'+fmt(q.total)+'</td>'+
+        '<td>'+quoteBadge(q.status)+'</td>'+
+        '<td onclick="event.stopPropagation()"><div class="acts">'+
+          '<button class="btn btn-sm btn-outline" onclick="openQuoteModal(\''+qid+'\')">'+'Edit</button>'+
+          (q.status==='draft'?'<button class="btn btn-sm" onclick="sendQuote(\''+qid+'\')">'+'Send</button>':'')+ 
+          '<button class="btn btn-sm btn-outline" onclick="openQuotePreview(\''+qid+'\')">'+'Preview</button>'+
+          '<button class="btn btn-sm btn-danger" onclick="delRec(\'quotes\',\''+qid+'\',function(){renderQuotes();})">Del</button>'+
+        '</div></td></tr>';
+    }).join('')||'<tr><td colspan="7" class="empty">No quotes yet</td></tr>')+
+    '</tbody></table>';
+}
+function sortQuotes(col){if(quoteSort.col===col){quoteSort.dir*=-1;}else{quoteSort.col=col;quoteSort.dir=-1;}renderQuotes();}
+
+function openQuoteDetail(id){
+  var q=C.quotes.find(function(x){return x.id===id;});
+  if(!q)return;
+  var items=C.quoteItems.filter(function(x){return x.quote_id===id;}).sort(function(a,b){return(a.sort_order||0)-(b.sort_order||0);});
+  document.getElementById('mc').innerHTML=
+    '<div class="back" onclick="renderQuotes()">\u2190 Back to Quotes</div>'+
+    '<div style="display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:16px">'+
+      '<div><div style="font-family:\'Bebas Neue\',sans-serif;font-size:28px;letter-spacing:2px">'+esc(q.event_name||'Quote')+'</div>'+
+      '<div style="color:var(--muted);font-size:13px">'+esc(q.customer_name)+(q.customer_email?' \u00b7 '+esc(q.customer_email):'')+'</div></div>'+
+      '<div style="display:flex;gap:8px;align-items:center">'+quoteBadge(q.status)+
+        '<button class="btn btn-sm btn-outline" onclick="openQuoteModal(\''+id+'\')">Edit</button>'+
+        '<button class="btn btn-sm btn-outline" onclick="openQuotePreview(\''+id+'\')">Preview</button>'+
+        (q.status==='draft'?'<button class="btn btn-sm" onclick="sendQuote(\''+id+'\')">Send</button>':'')+
+      '</div></div>'+
+    '<div class="g2" style="margin-bottom:16px">'+
+      '<div class="dp"><div class="dp-title">Customer</div>'+
+        qdr('Name',q.customer_name||'\u2014')+qdr('Email',q.customer_email||'\u2014')+qdr('Phone',q.customer_phone||'\u2014')+
+      '</div>'+
+      '<div class="dp"><div class="dp-title">Event</div>'+
+        qdr('Event',q.event_name||'\u2014')+qdr('Venue',q.venue||'\u2014')+qdr('Date',fmtD(q.event_date))+qdr('Time',q.event_time||'\u2014')+
+      '</div>'+
+    '</div>'+
+    sh('Line Items','<button class="btn btn-sm" onclick="openQuoteItemModal(\''+id+'\')">+ Add Item</button>')+
+    '<table class="tbl"><thead><tr><th>Type</th><th>Item</th><th>Description</th><th>Qty</th><th>Unit Price</th><th>Total</th><th></th></tr></thead><tbody>'+
+    (items.map(function(li){
+      return'<tr>'+
+        '<td><span class="badge bb" style="text-transform:capitalize">'+esc(li.type||'')+'</span></td>'+
+        '<td style="font-weight:500">'+(li.photo_url?'<img src="'+esc(li.photo_url)+'" style="width:32px;height:32px;object-fit:cover;border-radius:4px;vertical-align:middle;margin-right:6px">':'')+esc(li.label)+'</td>'+
+        '<td style="color:var(--muted);font-size:12px">'+esc(li.description||'')+'</td>'+
+        '<td>'+li.qty+'</td><td>'+fmt(li.unit_price)+'</td>'+
+        '<td style="color:var(--green)">'+fmt(li.total)+'</td>'+
+        '<td><div class="acts">'+
+          '<button class="btn btn-sm btn-outline" onclick="openQuoteItemModal(\''+id+'\',\''+li.id+'\')">Edit</button>'+
+          '<button class="btn btn-sm btn-danger" onclick="delRec(\'quote_line_items\',\''+li.id+'\',function(){loadAll().then(function(){openQuoteDetail(\''+id+'\');});})">Del</button>'+
+        '</div></td></tr>';
+    }).join('')||'<tr><td colspan="7" class="empty">No line items yet</td></tr>')+
+    '</tbody></table>'+
+    '<div class="dp" style="max-width:320px;margin-left:auto">'+
+      qdr('Subtotal',fmt(q.subtotal))+
+      (q.tax_rate?qdr('Tax ('+(q.tax_rate*100).toFixed(1)+'%)',fmt(q.tax_amount)):'')+
+      '<div class="dr" style="font-size:16px;font-weight:700;border-top:2px solid var(--border);padding-top:10px;margin-top:4px"><span>Total</span><span style="color:var(--green)">'+fmt(q.total)+'</span></div>'+
+      (q.deposit_amount?qdr('Deposit Required',fmt(q.deposit_amount)+(q.deposit_due_date?' by '+fmtD(q.deposit_due_date):'')):'') +
+    '</div>'+
+    (q.signed_name?'<div class="dp" style="border-color:var(--green);margin-top:16px"><div class="dp-title" style="color:var(--green)">\u2713 Signed</div>'+
+      qdr('Signed by',q.signed_name)+qdr('At',q.signed_at?new Date(q.signed_at).toLocaleString():'')+
+    '</div>':'')+
+    (q.notes?'<div class="dp" style="margin-top:16px"><div class="dp-title">Notes</div><div style="font-size:13px">'+esc(q.notes)+'</div></div>':'')+
+    (q.valid_until?'<div style="font-size:12px;color:var(--muted);margin-top:10px">Valid until: '+fmtD(q.valid_until)+'</div>':'');
+}
+
+function qdr(l,v){return'<div class="dr"><span class="l">'+esc(l)+'</span><span class="v">'+v+'</span></div>';}
+
+function qLineItemsHtml(existing){
+  var rows=existing||[];
+  var catOpts='<option value="">\u2014 from catalog \u2014</option>'+
+    C.equipItems.map(function(x){return'<option value="__eq__'+x.id+'__'+esc(x.name)+'__'+(x.price||0)+'__'+(x.photo_url||'')+'__'+(x.description||'')+'">'+esc(x.name)+(x.price?' \u2014 $'+parseFloat(x.price).toFixed(2):'')+'</option>';}).join('');
+  var out='<div id="qLiWrap">';
+  rows.forEach(function(li,i){out+=qLiRowHtml(li,i);});
+  out+='</div>'+
+    '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:6px">'+
+    (C.equipItems.length?'<select onchange="qAddFromCatalog(this)" style="flex:1;min-width:160px;font-size:13px"><'+catOpts+'</select>':'')+
+    '<button type="button" class="btn btn-sm btn-outline" style="border-style:dashed;white-space:nowrap" onclick="qAddRow(\'equipment\')">+ Equipment</button>'+
+    '<button type="button" class="btn btn-sm btn-outline" style="border-style:dashed;white-space:nowrap" onclick="qAddRow(\'labor\')">+ Labor</button>'+
+    '<button type="button" class="btn btn-sm btn-outline" style="border-style:dashed;white-space:nowrap" onclick="qAddRow(\'travel\')">+ Travel</button>'+
+    '</div>'+
+    '<div style="display:flex;justify-content:space-between;align-items:center;margin-top:12px;padding-top:10px;border-top:1px solid var(--border)">'+
+    '<span style="font-size:12px;color:var(--muted)">Subtotal</span>'+
+    '<span style="font-weight:700;color:var(--green)" id="qSubtotalDisplay">$0.00</span>'+
+    '</div>';
+  return out;
+}
+function qLiRowHtml(li,i){
+  var typeBadgeColors={equipment:'color:var(--green)',labor:'color:var(--accent)',travel:'color:var(--blue)',other:'color:var(--muted)'};
+  return'<div class="qli-row" style="background:var(--surface2);border-radius:8px;padding:10px;margin-bottom:8px">'+
+    '<div style="display:flex;gap:6px;align-items:center;margin-bottom:8px">'+
+      '<select class="qli-type" onchange="qCalcRow(this.closest(\'.qli-row\'))" style="width:100px;font-size:12px;padding:4px 6px">'+
+        ['equipment','labor','travel','other'].map(function(t){return'<option value="'+t+'"'+(li.type===t?' selected':'')+'>'+t.charAt(0).toUpperCase()+t.slice(1)+'</option>';}).join('')+
+      '</select>'+
+      '<input class="qli-label" placeholder="Item name" value="'+esc(li.label||'')+'" style="flex:1;font-size:13px">'+
+      '<button type="button" onclick="this.closest(\'.qli-row\').remove();qUpdateSubtotal()" style="background:var(--accent2);color:#fff;border:none;border-radius:6px;width:28px;height:28px;cursor:pointer;font-size:15px;line-height:1">\u00d7</button>'+
+    '</div>'+
+    '<div style="display:grid;grid-template-columns:60px 100px 100px;gap:6px;align-items:center">'+
+      '<div><div style="font-size:10px;color:var(--muted);margin-bottom:2px">QTY</div>'+
+        '<input type="number" class="qli-qty" value="'+(li.qty||1)+'" min="0.5" step="0.5" style="font-size:13px;padding:4px 6px" oninput="qCalcRow(this.closest(\'.qli-row\'))"></div>'+
+      '<div><div style="font-size:10px;color:var(--muted);margin-bottom:2px">UNIT PRICE</div>'+
+        '<input type="number" class="qli-price" value="'+(li.unit_price||0)+'" min="0" step="0.01" style="font-size:13px;padding:4px 6px" oninput="qCalcRow(this.closest(\'.qli-row\'))"></div>'+
+      '<div><div style="font-size:10px;color:var(--muted);margin-bottom:2px">TOTAL</div>'+
+        '<div class="qli-total" style="font-size:14px;font-weight:700;color:var(--green);padding:4px 0">'+fmt(li.total||0)+'</div>'+
+        '<input type="hidden" class="qli-total-val" value="'+(li.total||0)+'">'+
+      '</div>'+
+    '</div>'+
+    (li.id?'<input type="hidden" class="qli-id" value="'+li.id+'">':'')+
+    (li.photo_url?'<input type="hidden" class="qli-photo" value="'+esc(li.photo_url)+'">':'')+
+    (li.description?'<input type="hidden" class="qli-desc" value="'+esc(li.description)+'">':'')+
+  '</div>';
+}
+function qCalcRow(row){
+  var qty=parseFloat(row.querySelector('.qli-qty').value)||0;
+  var price=parseFloat(row.querySelector('.qli-price').value)||0;
+  var total=(qty*price).toFixed(2);
+  row.querySelector('.qli-total').textContent=fmt(total);
+  row.querySelector('.qli-total-val').value=total;
+  qUpdateSubtotal();
+}
+function qUpdateSubtotal(){
+  var total=0;
+  document.querySelectorAll('#qLiWrap .qli-total-val').forEach(function(el){total+=parseFloat(el.value)||0;});
+  var el=document.getElementById('qSubtotalDisplay');
+  if(el)el.textContent=fmt(total);
+}
+function qAddRow(type){
+  var wrap=document.getElementById('qLiWrap');
+  if(!wrap)return;
+  var div=document.createElement('div');
+  div.innerHTML=qLiRowHtml({type:type,label:'',qty:1,unit_price:0,total:0},wrap.children.length);
+  wrap.appendChild(div.firstChild);
+}
+function qAddFromCatalog(sel){
+  if(!sel.value)return;
+  var parts=sel.value.split('__');
+  // parts: ['', 'eq', id, name, price, photo, desc]
+  var name=parts[3]||'',price=parseFloat(parts[4])||0,photo=parts[5]||'',desc=parts[6]||'';
+  var wrap=document.getElementById('qLiWrap');
+  if(!wrap)return;
+  var div=document.createElement('div');
+  div.innerHTML=qLiRowHtml({type:'equipment',label:name,qty:1,unit_price:price,total:price,photo_url:photo,description:desc},wrap.children.length);
+  wrap.appendChild(div.firstChild);
+  sel.value='';
+  qUpdateSubtotal();
+}
+function collectQLineItems(){
+  return Array.from(document.querySelectorAll('#qLiWrap .qli-row')).map(function(row){
+    var label=(row.querySelector('.qli-label').value||'').trim();
+    if(!label)return null;
+    var idEl=row.querySelector('.qli-id');
+    var photoEl=row.querySelector('.qli-photo');
+    var descEl=row.querySelector('.qli-desc');
+    return{
+      id:idEl?idEl.value:null,
+      type:row.querySelector('.qli-type').value,
+      label:label,
+      qty:parseFloat(row.querySelector('.qli-qty').value)||1,
+      unit_price:parseFloat(row.querySelector('.qli-price').value)||0,
+      total:parseFloat(row.querySelector('.qli-total-val').value)||0,
+      photo_url:photoEl?photoEl.value:null,
+      description:descEl?descEl.value:null
+    };
+  }).filter(Boolean);
+}
+function openQuoteModal(id){
+  var q=id?C.quotes.find(function(x){return x.id===id;}):null;
+  var existItems=id?C.quoteItems.filter(function(x){return x.quote_id===id;}).sort(function(a,b){return(a.sort_order||0)-(b.sort_order||0);}):[];
+  openModal(q?'Edit Quote':'New Quote',
+    '<div style="font-size:11px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:.8px;margin-bottom:10px">Customer</div>'+
+    '<div class="g2">'+
+      '<div class="form-group"><label>Name</label><input id="qCuName" value="'+esc(q?q.customer_name||'':'')+'"></div>'+
+      '<div class="form-group"><label>Email</label><input type="email" id="qCuEmail" value="'+esc(q?q.customer_email||'':'')+'"></div>'+
+    '</div>'+
+    '<div class="form-group"><label>Phone</label><input id="qCuPhone" value="'+esc(q?q.customer_phone||'':'')+'"></div>'+
+    '<div style="font-size:11px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:.8px;margin:14px 0 10px">Event</div>'+
+    '<div class="form-group"><label>Event Name</label><input id="qEvName" value="'+esc(q?q.event_name||'':'')+'"></div>'+
+    '<div class="form-group"><label>Venue</label><input id="qEvVenue" value="'+esc(q?q.venue||'':'')+'"></div>'+
+    '<div class="g2">'+
+      '<div class="form-group"><label>Date</label><input type="date" id="qEvDate" value="'+(q?q.event_date||'':'')+'"></div>'+
+      '<div class="form-group"><label>Time</label><input id="qEvTime" value="'+esc(q?q.event_time||'':'')+'"></div>'+
+    '</div>'+
+    '<div style="font-size:11px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:.8px;margin:14px 0 10px">Equipment &amp; Services</div>'+
+    qLineItemsHtml(existItems)+
+    '<div style="font-size:11px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:.8px;margin:14px 0 10px">Pricing</div>'+
+    '<div class="g2">'+
+      '<div class="form-group"><label>Tax Rate (%)</label><input type="number" id="qTax" step="0.1" value="'+(q&&q.tax_rate?q.tax_rate*100:'')+'"></div>'+
+      '<div class="form-group"><label>Deposit Amount ($)</label><input type="number" id="qDeposit" value="'+(q?q.deposit_amount||'':'')+'"></div>'+
+    '</div>'+
+    '<div class="g2">'+
+      '<div class="form-group"><label>Deposit Due Date</label><input type="date" id="qDepDate" value="'+(q?q.deposit_due_date||'':'')+'"></div>'+
+      '<div class="form-group"><label>Valid Until</label><input type="date" id="qValid" value="'+(q?q.valid_until||'':'')+'"></div>'+
+    '</div>'+
+    '<div class="form-group"><label>Notes (shown on quote)</label><textarea id="qNotes">'+esc(q?q.notes||'':'')+'</textarea></div>'+
+    '<div class="form-group"><label>Internal Notes</label><textarea id="qIntNotes">'+esc(q?q.internal_notes||'':'')+'</textarea></div>',
+    function(){saveQuote(id);}
+  );
+  setTimeout(qUpdateSubtotal,0);
+}
+
+async function saveQuote(id){
+  var name=gv('qCuName'),email=gv('qCuEmail'),phone=gv('qCuPhone');
+  var evName2=gv('qEvName'),venue=gv('qEvVenue'),evDate=gv('qEvDate'),evTime=gv('qEvTime');
+  var tax=gv('qTax'),deposit=gv('qDeposit'),depDate=gv('qDepDate'),valid=gv('qValid'),notes=gv('qNotes'),intNotes=gv('qIntNotes');
+  if(!name){showErr('Customer name required.');return;}
+  var lineItems=collectQLineItems();
+  var taxRate=tax?parseFloat(tax)/100:0;
+  var subtotal=lineItems.reduce(function(s,x){return s+(parseFloat(x.total)||0);},0);
+  var taxAmt=subtotal*taxRate;
+  var obj={customer_name:name,customer_email:email||null,customer_phone:phone||null,
+    event_name:evName2||null,venue:venue||null,event_date:evDate||null,event_time:evTime||null,
+    tax_rate:taxRate,deposit_amount:deposit?parseFloat(deposit):null,deposit_due_date:depDate||null,
+    valid_until:valid||null,notes:notes||null,internal_notes:intNotes||null,
+    subtotal:subtotal,tax_amount:taxAmt,total:subtotal+taxAmt,updated_at:new Date().toISOString()};
+  var r=id?await sb.from('quotes').update(obj).eq('id',id):await sb.from('quotes').insert(Object.assign({},obj,{status:'draft'}));
+  if(r.error){showErr(r.error.message);return;}
+  var qId=id||(r.data&&r.data[0]&&r.data[0].id);
+  if(!qId){var fresh=await sb.from('quotes').select('id').eq('customer_name',name).order('created_at',{ascending:false}).limit(1);qId=fresh.data&&fresh.data[0]&&fresh.data[0].id;}
+  if(qId&&lineItems.length){
+    if(id)await sb.from('quote_line_items').delete().eq('quote_id',qId);
+    var liObjs=lineItems.map(function(li,i){return{quote_id:qId,type:li.type,label:li.label,description:li.description||null,photo_url:li.photo_url||null,qty:li.qty,unit_price:li.unit_price,total:li.total,sort_order:i};});
+    var lr=await sb.from('quote_line_items').insert(liObjs);
+    if(lr.error)console.warn('Line items error:',lr.error.message);
+  }
+  closeModal();await loadAll();renderQuotes();
+}
+
+function openQuoteItemModal(quoteId,itemId){
+  var li=itemId?C.quoteItems.find(function(x){return x.id===itemId;}):null;
+  var catOpts='<option value="">\u2014 select from catalog \u2014</option>'+
+    C.equipItems.map(function(x){return'<option value="'+x.id+'">'+esc(x.name)+(x.price?' ($'+parseFloat(x.price).toFixed(2)+')':'')+'</option>';}).join('');
+  openModal(li?'Edit Line Item':'Add Line Item',
+    '<div class="form-group"><label>Type</label><select id="qLiType" onchange="handleQliType(this)">'+
+      ['equipment','labor','travel','other'].map(function(t){return'<option value="'+t+'"'+(li&&li.type===t?' selected':'')+'>'+t.charAt(0).toUpperCase()+t.slice(1)+'</option>';}).join('')+
+    '</select></div>'+
+    '<div id="qLiCatWrap" class="form-group" style="'+(li&&li.type!=='equipment'?'display:none':'')+'"><label>Quick Add from Catalog</label><select id="qLiCatalog" onchange="fillFromCatalog(this)"><'+catOpts+'</select></div>'+
+    '<div class="form-group"><label>Label</label><input id="qLiLabel" value="'+esc(li?li.label:'')+'"></div>'+
+    '<div class="form-group"><label>Description</label><input id="qLiDesc" value="'+esc(li?li.description||'':'')+'"></div>'+
+    '<div id="qLiPhotoWrap" class="form-group" style="'+(li&&li.type!=='equipment'?'display:none':'')+'"><label>Photo URL</label><input id="qLiPhoto" value="'+esc(li?li.photo_url||'':'')+'"></div>'+
+    '<div class="g2">'+
+      '<div class="form-group"><label>Qty</label><input type="number" id="qLiQty" value="'+(li?li.qty:1)+'" step="0.5" min="0.5" oninput="updateQliTotal()"></div>'+
+      '<div class="form-group"><label>Unit Price ($)</label><input type="number" id="qLiPrice" value="'+(li?li.unit_price:0)+'" oninput="updateQliTotal()"></div>'+
+    '</div>'+
+    '<div class="form-group"><label>Line Total ($)</label><input type="number" id="qLiTotal" value="'+(li?li.total:0)+'"></div>',
+    function(){saveQuoteItem(quoteId,itemId);}
+  );
+}
+
+function handleQliType(sel){
+  var isEq=sel.value==='equipment';
+  var w=document.getElementById('qLiCatWrap');if(w)w.style.display=isEq?'':'none';
+  var p=document.getElementById('qLiPhotoWrap');if(p)p.style.display=isEq?'':'none';
+}
+
+function fillFromCatalog(sel){
+  if(!sel.value)return;
+  var item=C.equipItems.find(function(x){return x.id===sel.value;});
+  if(!item)return;
+  document.getElementById('qLiLabel').value=item.name;
+  document.getElementById('qLiDesc').value=item.description||'';
+  document.getElementById('qLiPhoto').value=item.photo_url||'';
+  document.getElementById('qLiPrice').value=item.price||0;
+  updateQliTotal();
+}
+
+function updateQliTotal(){
+  var qty=parseFloat(document.getElementById('qLiQty').value)||0;
+  var price=parseFloat(document.getElementById('qLiPrice').value)||0;
+  document.getElementById('qLiTotal').value=(qty*price).toFixed(2);
+}
+
+async function saveQuoteItem(quoteId,itemId){
+  var type=gv('qLiType'),label=gv('qLiLabel'),desc=gv('qLiDesc'),photo=gv('qLiPhoto');
+  var qty=parseFloat(gv('qLiQty'))||1,price=parseFloat(gv('qLiPrice'))||0,total=parseFloat(gv('qLiTotal'))||qty*price;
+  if(!label){showErr('Label required.');return;}
+  var sortOrder=C.quoteItems.filter(function(x){return x.quote_id===quoteId;}).length;
+  var obj={quote_id:quoteId,type:type,label:label,description:desc||null,photo_url:photo||null,
+    qty:qty,unit_price:price,total:total,sort_order:itemId?undefined:sortOrder};
+  if(itemId)delete obj.sort_order;
+  var r=itemId?await sb.from('quote_line_items').update(obj).eq('id',itemId):await sb.from('quote_line_items').insert(obj);
+  if(r.error){showErr(r.error.message);return;}
+  await loadAll();
+  var q2=C.quotes.find(function(x){return x.id===quoteId;});
+  if(q2){
+    var allItems=C.quoteItems.filter(function(x){return x.quote_id===quoteId;});
+    var sub=allItems.reduce(function(s,x){return s+(parseFloat(x.total)||0);},0);
+    var ta=sub*(q2.tax_rate||0);
+    await sb.from('quotes').update({subtotal:sub,tax_amount:ta,total:sub+ta,updated_at:new Date().toISOString()}).eq('id',quoteId);
+  }
+  closeModal();await loadAll();openQuoteDetail(quoteId);
+}
+
+async function sendQuote(id){
+  var q=C.quotes.find(function(x){return x.id===id;});
+  if(!q)return;
+  if(!q.customer_email){showErr('Customer email required to send quote.');return;}
+  if(!confirm('Mark as sent to '+q.customer_email+'?'))return;
+  var r=await sb.from('quotes').update({status:'sent',updated_at:new Date().toISOString()}).eq('id',id);
+  if(r.error){showErr(r.error.message);return;}
+  if(MAKE_QUOTE_WEBHOOK){
+    var items=C.quoteItems.filter(function(x){return x.quote_id===id;});
+    fetch(MAKE_QUOTE_WEBHOOK,{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({token:q.token,customer_name:q.customer_name,customer_email:q.customer_email,
+        event_name:q.event_name,event_date:q.event_date,venue:q.venue,total:q.total,
+        quote_url:QUOTE_PAGE_URL+'?id='+q.token,
+        line_items:items.map(function(li){return{label:li.label,qty:li.qty,unit_price:li.unit_price,total:li.total};})
+      })
+    }).catch(function(e){console.warn('Quote webhook failed:',e);});
+  }
+  await loadAll();
+  showErr('\u2713 Quote sent'+(MAKE_QUOTE_WEBHOOK?' \u2014 email triggered via Make':''));
+  renderQuotes();
+}
+
+function openQuotePreview(id){
+  var q=C.quotes.find(function(x){return x.id===id;});
+  if(!q)return;
+  var items=C.quoteItems.filter(function(x){return x.quote_id===id;}).sort(function(a,b){return(a.sort_order||0)-(b.sort_order||0);});
+  var w=window.open('','_blank');
+  w.document.write(buildQuoteHTML(q,items));
+  w.document.close();
+}
+
+function buildQuoteHTML(q,items){
   var eqItems=items.filter(function(x){return x.type==='equipment';});
   var svcItems=items.filter(function(x){return x.type!=='equipment';});
-
-  var statusBadge='';
-  if(q.status==='accepted')statusBadge='<span class="badge badge-accepted">&#10003; Accepted</span>';
-  else if(q.status==='sent')statusBadge='<span class="badge badge-sent">Awaiting Signature</span>';
-
-  var quoteDate=q.created_at?new Date(q.created_at).toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'}):new Date().toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'});
-
-  var html=
+  var SURL='https://rbtzcswnounmybumqbwu.supabase.co';
+  var SKEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJidHpjc3dub3VubXlidW1xYnd1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYyOTI3OTgsImV4cCI6MjA5MTg2ODc5OH0.d_CSDndGJcuBve_EtHo8RDcHG8dxQVn22gpUjQ7FGNY';
+  var isSent=q.status==='sent'||q.status==='accepted';
+  return'<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">'+
+  '<title>Quote \u2014 '+esc(q.event_name||q.customer_name)+'</title>'+
+  '<style>*{box-sizing:border-box;margin:0;padding:0;}'+
+  'body{font-family:"Helvetica Neue",Arial,sans-serif;background:#f4f4f8;color:#1a1a2e;padding:20px;}'+
+  '.page{max-width:760px;margin:0 auto;background:#fff;border-radius:16px;overflow:hidden;box-shadow:0 4px 32px rgba(0,0,0,.12);}'+
+  '.hdr{background:#1a1a2e;padding:28px 32px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:16px;}'+
+  '.hdr img{height:52px;}'+
+  '.hdr-r{text-align:right;font-size:13px;color:rgba(255,255,255,.6);}'+
+  '.hdr-r .qt{font-size:20px;font-weight:700;color:#b39ddb;margin-bottom:4px;}'+
+  '.body{padding:28px 32px;}'+
+  '.stitle{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#999;margin-bottom:10px;padding-bottom:6px;border-bottom:1px solid #eee;}'+
+  '.two{display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:24px;}'+
+  '@media(max-width:520px){.two{grid-template-columns:1fr;}}'+
+  '.ib p{font-size:13px;color:#555;margin-bottom:3px;line-height:1.5;}strong{color:#1a1a2e;}'+
+  '.eq-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(185px,1fr));gap:14px;margin-bottom:24px;}'+
+  '.eqc{border:1px solid #eee;border-radius:10px;overflow:hidden;}'+
+  '.eqc img{width:100%;height:130px;object-fit:cover;display:block;}'+
+  '.eqc-b{padding:10px 12px;}'+
+  '.eqc-n{font-weight:600;font-size:14px;margin-bottom:3px;}'+
+  '.eqc-d{font-size:12px;color:#aaa;margin-bottom:5px;}'+
+  '.eqc-p{font-size:12px;color:#555;}'+
+  'table{width:100%;border-collapse:collapse;margin-bottom:24px;font-size:13px;}'+
+  'th{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#aaa;padding:9px 10px;text-align:left;border-bottom:2px solid #eee;}'+
+  'td{padding:9px 10px;border-bottom:1px solid #f2f2f2;}tr:last-child td{border-bottom:none;}'+
+  '.tots{max-width:260px;margin-left:auto;margin-bottom:24px;}'+
+  '.tr{display:flex;justify-content:space-between;padding:7px 0;font-size:14px;border-bottom:1px solid #f2f2f2;}'+
+  '.grand{font-size:17px;font-weight:700;border-bottom:none;border-top:2px solid #1a1a2e;padding-top:10px;margin-top:4px;}'+
+  '.dep{color:#6c3fc8;font-weight:600;}'+
+  '.nbox{background:#f9f9fc;border-radius:8px;padding:14px;margin-bottom:24px;font-size:13px;color:#555;line-height:1.6;}'+
+  '.sbox{background:#f0f7ff;border:1px solid #c5dff8;border-radius:12px;padding:24px;margin-bottom:8px;}'+
+  '.sbox h3{font-size:17px;font-weight:700;margin-bottom:6px;}.sbox p{font-size:13px;color:#666;margin-bottom:16px;line-height:1.5;}'+
+  'input[type=text]{width:100%;padding:12px 14px;border:2px solid #ddd;border-radius:8px;font-size:16px;font-family:inherit;margin-bottom:12px;outline:none;transition:border-color .2s;}'+
+  'input[type=text]:focus{border-color:#6c3fc8;}'+
+  '.sbtn{background:#6c3fc8;color:#fff;border:none;border-radius:8px;padding:14px;font-size:15px;font-weight:700;cursor:pointer;width:100%;transition:background .15s;}'+
+  '.sbtn:hover{background:#5a32a8;}.sbtn:disabled{background:#aaa;cursor:not-allowed;}'+
+  '.signed{background:#e8f5e9;border:1px solid #a5d6a7;border-radius:10px;padding:20px;text-align:center;color:#2e7d32;font-weight:600;font-size:15px;}'+
+  '.foot{background:#f5f5f7;padding:16px 32px;text-align:center;font-size:12px;color:#aaa;}'+
+  '@media print{body{background:#fff;padding:0;}.sbox{display:none;}.page{box-shadow:none;border-radius:0;}}'+
+  '</style></head><body>'+
+  '<div class="page">'+
     '<div class="hdr">'+
       '<img src="https://groovetechrental.com/wp-content/uploads/2024/09/gtfulllogo-edited-2959047573-e1725910986602.png" alt="Groove Tech Rental">'+
       '<div class="hdr-r">'+
-        '<div class="qt">Event Quote'+statusBadge+'</div>'+
+        '<div class="qt">Event Quote</div>'+
         '<div>groovetechrental.com</div>'+
-        '<div class="hdr-phone">856-625-0855</div>'+
-        '<div>Quote date: '+quoteDate+'</div>'+
+        '<div>'+new Date().toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'})+'</div>'+
         (q.valid_until?'<div>Valid until: '+fmtD(q.valid_until)+'</div>':'')+
       '</div>'+
     '</div>'+
@@ -141,92 +1985,72 @@ function renderQuote(q,items){
           (q.event_date?'<p>&#128197; '+fmtD(q.event_date)+'</p>':'')+
           (q.event_time?'<p>&#128336; '+esc(q.event_time)+'</p>':'')+
         '</div></div>'+
-      '</div>';
-
-  if(eqItems.length){
-    html+='<div class="stitle">Equipment</div><div class="eq-grid">';
-    eqItems.forEach(function(li){
-      html+='<div class="eqc">'+
-        (li.photo_url?'<img src="'+esc(li.photo_url)+'" alt="'+esc(li.label)+'">':'<div class="eqc-placeholder">&#127916;</div>')+
-        '<div class="eqc-b">'+
-          '<div class="eqc-n">'+esc(li.label)+'</div>'+
-          (li.description?'<div class="eqc-d">'+esc(li.description)+'</div>':'')+
-          '<div class="eqc-p">Qty: '+li.qty+' &nbsp;&middot;&nbsp; '+fmt(li.unit_price)+' each</div>'+
-        '</div></div>';
-    });
-    html+='</div>';
-  }
-
-  if(svcItems.length){
-    html+='<div class="stitle">Services</div>'+
-      '<table><thead><tr><th>Service</th><th>Description</th><th>Qty</th><th>Unit Price</th><th>Total</th></tr></thead><tbody>';
-    svcItems.forEach(function(li){
-      html+='<tr>'+
-        '<td><strong>'+esc(li.label)+'</strong><br><small style="color:#aaa;text-transform:capitalize">'+esc(li.type)+'</small></td>'+
-        '<td style="color:#888">'+esc(li.description||'')+'</td>'+
-        '<td>'+li.qty+'</td><td>'+fmt(li.unit_price)+'</td><td><strong>'+fmt(li.total)+'</strong></td></tr>';
-    });
-    html+='</tbody></table>';
-  }
-
-  html+=
-    '<div class="tots">'+
-      '<div class="tr"><span>Subtotal</span><span>'+fmt(q.subtotal)+'</span></div>'+
-      (q.tax_rate?'<div class="tr"><span>Tax ('+(q.tax_rate*100).toFixed(1)+'%)</span><span>'+fmt(q.tax_amount)+'</span></div>':'')+
-      '<div class="tr grand"><span>Total</span><span>'+fmt(q.total)+'</span></div>'+
-      (q.deposit_amount?'<div class="tr dep"><span>Deposit Required</span><span>'+fmt(q.deposit_amount)+'</span></div>':'')+
+      '</div>'+
+      (eqItems.length?
+        '<div class="stitle">Equipment</div>'+
+        '<div class="eq-grid">'+
+        eqItems.map(function(li){
+          return'<div class="eqc">'+
+            (li.photo_url?'<img src="'+esc(li.photo_url)+'" alt="'+esc(li.label)+'">':
+              '<div style="height:130px;background:#f0f0f5;display:flex;align-items:center;justify-content:center;font-size:32px">&#127916;</div>')+
+            '<div class="eqc-b">'+
+              '<div class="eqc-n">'+esc(li.label)+'</div>'+
+              (li.description?'<div class="eqc-d">'+esc(li.description)+'</div>':'')+
+              '<div class="eqc-p">Qty: '+li.qty+' &nbsp;&middot;&nbsp; '+fmt(li.unit_price)+' each</div>'+
+            '</div></div>';
+        }).join('')+'</div>':'')+ 
+      (svcItems.length?
+        '<div class="stitle">Services</div>'+
+        '<table><thead><tr><th>Service</th><th>Description</th><th>Qty</th><th>Unit Price</th><th>Total</th></tr></thead><tbody>'+
+        svcItems.map(function(li){
+          return'<tr><td><strong>'+esc(li.label)+'</strong><br><small style="color:#aaa;text-transform:capitalize">'+esc(li.type)+'</small></td>'+
+            '<td style="color:#888">'+esc(li.description||'')+'</td>'+
+            '<td>'+li.qty+'</td><td>'+fmt(li.unit_price)+'</td><td><strong>'+fmt(li.total)+'</strong></td></tr>';
+        }).join('')+'</tbody></table>':'')+
+      '<div class="tots">'+
+        '<div class="tr"><span>Subtotal</span><span>'+fmt(q.subtotal)+'</span></div>'+
+        (q.tax_rate?'<div class="tr"><span>Tax ('+(q.tax_rate*100).toFixed(1)+'%)</span><span>'+fmt(q.tax_amount)+'</span></div>':'')+
+        '<div class="tr grand"><span>Total</span><span>'+fmt(q.total)+'</span></div>'+
+        (q.deposit_amount?'<div class="tr dep"><span>Deposit Required</span><span>'+fmt(q.deposit_amount)+'</span></div>':'')+
+      '</div>'+
+      (q.notes?'<div class="stitle">Notes</div><div class="nbox">'+esc(q.notes).replace(/\n/g,'<br>')+'</div>':'')+
+      '<div class="sbox" id="signWrap">'+
+        (q.signed_name?
+          '<div class="signed">&#10003; Accepted &amp; signed by '+esc(q.signed_name)+' on '+new Date(q.signed_at).toLocaleString()+'</div>':
+          (isSent?
+            '<h3>Accept This Quote</h3>'+
+            '<p>By signing below you agree to the terms of this quote.'+(q.deposit_amount?' A deposit of '+fmt(q.deposit_amount)+' is required to secure your date.':'')+'</p>'+
+            '<input type="text" id="sigName" placeholder="Type your full name to sign" autocomplete="name">'+
+            '<button class="sbtn" id="sigBtn" onclick="doSign()">&#9997; Sign &amp; Accept</button>':
+            '<p style="text-align:center;color:#aaa;font-size:13px">Quote preview &mdash; signing available once sent to customer</p>'
+          )
+        )+
+      '</div>'+
     '</div>'+
-    (q.notes?'<div class="stitle">Notes</div><div class="nbox">'+esc(q.notes).replace(/\n/g,'<br>')+'</div>':'')+
-    '<div class="sbox" id="signWrap">';
-
-  if(q.signed_name){
-    html+='<div class="signed">&#10003; Accepted &amp; signed by <strong>'+esc(q.signed_name)+'</strong> on '+new Date(q.signed_at).toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric',hour:'2-digit',minute:'2-digit'})+'</div>';
-  } else if(q.status==='sent'){
-    html+=
-      '<h3>Accept This Quote</h3>'+
-      '<p>By signing below you agree to the terms of this quote.'+(q.deposit_amount?' A deposit of <strong>'+fmt(q.deposit_amount)+'</strong> is required to secure your date.':'')+'</p>'+
-      '<input type="text" id="sigName" placeholder="Type your full name to sign" autocomplete="name">'+
-      '<button class="sbtn" id="sigBtn" onclick="doSign()">&#9997;&nbsp; Sign &amp; Accept Quote</button>';
-  } else {
-    html+='<p style="text-align:center;color:#aaa;font-size:13px">This quote has not yet been sent.</p>';
-  }
-
-  html+=
-    '</div></div>'+
-    '<div class="foot">'+
-      '<a href="https://groovetechrental.com">groovetechrental.com</a>'+
-      ' &nbsp;&middot;&nbsp; 856-625-0855 &nbsp;&middot;&nbsp; Thank you for your business!'+
-    '</div>';
-
-  document.getElementById('page').innerHTML=html;
+    '<div class="foot">Groove Tech Rental &nbsp;&middot;&nbsp; groovetechrental.com &nbsp;&middot;&nbsp; Thank you for your business!</div>'+
+  '</div>'+
+  '<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></scr'+'ipt>'+
+  '<script>'+
+  'var _sb=null;'+
+  'function fmt(n){return"$"+(parseFloat(n)||0).toFixed(2).replace(/\\B(?=(\\d{3})+(?!\\d))/g,",");}'+
+  'function doSign(){'+
+    'var name=(document.getElementById("sigName").value||"").trim();'+
+    'if(!name){alert("Please type your full name.");return;}'+
+    'if(!confirm("Sign as \\""+name+"\\"? This confirms your agreement to the quote terms."))return;'+
+    'var btn=document.getElementById("sigBtn");btn.disabled=true;btn.textContent="Signing\u2026";'+
+    'if(!_sb)_sb=supabase.createClient("'+SURL+'","'+SKEY+'");'+
+    '_sb.from("quotes").update({signed_name:name,signed_at:new Date().toISOString(),status:"accepted"}).eq("token","'+q.token+'")'+
+    '.then(function(r){'+
+      'if(r.error){alert("Error: "+r.error.message);btn.disabled=false;btn.textContent="Sign & Accept";return;}'+
+      'document.getElementById("signWrap").innerHTML="<div class=\\"signed\\">&#10003; Signed by "+name+". Thank you! We\'ll be in touch shortly.</div>";'+
+    '});'+
+  '}'+
+  '</scr'+'ipt>'+
+  '</body></html>';
 }
 
-async function doSign(){
-  var name=(document.getElementById('sigName').value||'').trim();
-  if(!name){alert('Please type your full name to sign.');return;}
-  if(!confirm('Sign as "'+name+'"?\n\nThis confirms your agreement to the quote terms.'))return;
-  var btn=document.getElementById('sigBtn');
-  btn.disabled=true;
-  btn.textContent='Signing\u2026';
-  var ip=null;
-  try{var ipRes=await fetch('https://api.ipify.org?format=json');var ipData=await ipRes.json();ip=ipData.ip;}catch(e){}
-  var r=await sb.from('quotes').update({
-    signed_name:name,
-    signed_at:new Date().toISOString(),
-    signed_ip:ip,
-    status:'accepted'
-  }).eq('token',quoteToken);
-  if(r.error){
-    alert('Error signing: '+r.error.message);
-    btn.disabled=false;
-    btn.textContent='Sign & Accept Quote';
-    return;
-  }
-  document.getElementById('signWrap').innerHTML=
-    '<div class="signed">&#10003; Signed by <strong>'+esc(name)+'</strong>. Thank you! We\'ll be in touch shortly to confirm your booking.</div>';
-}
 
-loadQuote();
+init();
 </script>
 </body>
 </html>
