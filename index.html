@@ -496,6 +496,95 @@ function exportExpenses(){
     filterByPeriod(C.expenses,'date').map(function(x){return[x.date||'',x.event_id?cleanName(evName(x.event_id)):'',x.person||'',x.category||'',x.description||'',x.amount||'',x.reimbursed?'Yes':'No',x.notes||''];})
   ));
 }
+function exportCustomersCSV(){
+  var rows=C.customers.map(function(c){
+    var b=cuBal(c.id);
+    var evs=C.events.filter(function(e){return sid(e.customer_id)===sid(c.id);});
+    var pms=C.payments.filter(function(p){return sid(p.customer_id)===sid(c.id);});
+    var lastEv=evs.length?evs.slice().sort(function(a,b){return b.date.localeCompare(a.date);})[0]:null;
+    return[c.name,c.email||'',c.phone||'',b.inv.toFixed(2),b.paid.toFixed(2),b.bal.toFixed(2),evs.length,lastEv?lastEv.date:'',c.notes||''];
+  });
+  downloadCSV('customers.csv',toCSV(['Name','Email','Phone','Invoiced','Paid','Balance','Events','Last Event','Notes'],rows));
+}
+function exportCustomerHTML(cid){
+  var c=C.customers.find(function(x){return sid(x.id)===sid(cid);});
+  if(!c)return;
+  var b=cuBal(c.id);
+  var evs=C.events.filter(function(e){return sid(e.customer_id)===sid(c.id);}).sort(function(a,b){return b.date.localeCompare(a.date);});
+  var pms=C.payments.filter(function(p){return sid(p.customer_id)===sid(c.id);}).sort(function(a,b){return b.date.localeCompare(a.date);});
+  var html='<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">'+
+  '<title>Account Summary — '+esc(c.name)+'</title>'+
+  '<style>*{box-sizing:border-box;margin:0;padding:0;}body{font-family:"Helvetica Neue",Arial,sans-serif;background:#f4f4f8;color:#1a1a2e;padding:20px;}'+
+  '.page{max-width:720px;margin:0 auto;background:#fff;border-radius:16px;overflow:hidden;box-shadow:0 4px 32px rgba(0,0,0,.12);}'+
+  '.hdr{background:#692fb4;padding:24px 32px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:16px;}'+
+  '.hdr img{height:52px;}'+
+  '.hdr-r{text-align:right;font-size:13px;color:rgba(255,255,255,.7);}'+
+  '.hdr-r .title{font-family:"Bebas Neue",sans-serif;font-size:22px;color:#ccf76f;letter-spacing:2px;margin-bottom:3px;}'+
+  '.body{padding:28px 32px;}'+
+  '.stitle{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#999;margin-bottom:10px;padding-bottom:6px;border-bottom:1px solid #eee;margin-top:24px;}'+
+  '.stitle:first-child{margin-top:0;}'+
+  '.info{font-size:14px;margin-bottom:4px;color:#555;}strong{color:#1a1a2e;}'+
+  '.bal-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:8px;}'+
+  '.bal-card{background:#f9f9fc;border-radius:10px;padding:14px;text-align:center;}'+
+  '.bal-label{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#aaa;margin-bottom:6px;}'+
+  '.bal-val{font-size:20px;font-weight:700;color:#1a1a2e;}'+
+  '.bal-val.green{color:#2e7d32;}.bal-val.red{color:#c62828;}.bal-val.purple{color:#692fb4;}'+
+  'table{width:100%;border-collapse:collapse;font-size:13px;margin-top:8px;}'+
+  'th{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#aaa;padding:8px 10px;text-align:left;border-bottom:2px solid #eee;}'+
+  'td{padding:9px 10px;border-bottom:1px solid #f2f2f2;vertical-align:top;}'+
+  'tr:last-child td{border-bottom:none;}'+
+  '.foot{background:#692fb4;padding:14px 32px;text-align:center;font-size:12px;color:rgba(255,255,255,.6);}'+
+  '.foot a{color:#ccf76f;text-decoration:none;}'+
+  '@media print{body{background:#fff;padding:0;}.page{box-shadow:none;border-radius:0;}.foot{display:none;}}'+
+  '</style></head><body>'+
+  '<div class="page">'+
+    '<div class="hdr">'+
+      '<img src="https://groovetechrental.com/wp-content/uploads/2024/09/gtfulllogo-edited-2959047573-e1725910986602.png" alt="Groove Tech Rental">'+
+      '<div class="hdr-r">'+
+        '<div class="title">Account Summary</div>'+
+        '<div>groovetechrental.com</div>'+
+        '<div>856-625-0855</div>'+
+        '<div>Generated: '+new Date().toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'})+'</div>'+
+      '</div>'+
+    '</div>'+
+    '<div class="body">'+
+      '<div class="stitle">Customer</div>'+
+      '<div class="info"><strong>'+esc(c.name)+'</strong></div>'+
+      (c.email?'<div class="info">'+esc(c.email)+'</div>':'')+
+      (c.phone?'<div class="info">'+esc(c.phone)+'</div>':'')+
+      '<div class="stitle">Account Balance</div>'+
+      '<div class="bal-grid">'+
+        '<div class="bal-card"><div class="bal-label">Total Invoiced</div><div class="bal-val purple">'+fmt(b.inv)+'</div></div>'+
+        '<div class="bal-card"><div class="bal-label">Total Paid</div><div class="bal-val green">'+fmt(b.paid)+'</div></div>'+
+        '<div class="bal-card"><div class="bal-label">Balance Due</div><div class="bal-val '+(b.bal>0?'red':'green')+'">'+fmt(b.bal)+'</div></div>'+
+      '</div>'+
+      (evs.length?
+        '<div class="stitle">Events</div>'+
+        '<table><thead><tr><th>Event</th><th>Date</th><th>Venue</th><th>Invoice</th></tr></thead><tbody>'+
+        evs.map(function(e){return'<tr>'+
+          '<td><strong>'+esc(e.name)+'</strong></td>'+
+          '<td style="white-space:nowrap">'+fmtD(e.date)+'</td>'+
+          '<td style="color:#888">'+esc(e.venue||'—')+'</td>'+
+          '<td>'+(e.invoice_amount?fmt(e.invoice_amount):'—')+'</td>'+
+        '</tr>';}).join('')+
+        '</tbody></table>':'')+
+      (pms.length?
+        '<div class="stitle">Payment History</div>'+
+        '<table><thead><tr><th>Date</th><th>Amount</th><th>Method</th><th>Notes</th></tr></thead><tbody>'+
+        pms.map(function(p){return'<tr>'+
+          '<td style="white-space:nowrap">'+fmtD(p.date)+'</td>'+
+          '<td style="color:#2e7d32;font-weight:600">'+fmt(p.amount)+'</td>'+
+          '<td>'+esc(p.method||'—')+'</td>'+
+          '<td style="color:#888">'+esc(p.notes||'')+'</td>'+
+        '</tr>';}).join('')+
+        '</tbody></table>':'')+
+    '</div>'+
+    '<div class="foot"><a href="https://groovetechrental.com">groovetechrental.com</a> &nbsp;&middot;&nbsp; 856-625-0855 &nbsp;&middot;&nbsp; Thank you for your business!</div>'+
+  '</div></body></html>';
+  var blob=new Blob([html],{type:'text/html;charset=utf-8;'});
+  var url=URL.createObjectURL(blob);
+  var a=document.createElement('a');a.href=url;a.download=esc(c.name).replace(/\s+/g,'-').toLowerCase()+'-account-summary.html';a.click();URL.revokeObjectURL(url);
+}
 function exportOwnerFinances(person){
   var lab=filterByPeriod(C.labor,'created_at').filter(function(l){return l.person===person;});
   var ps=filterByPeriod(C.profitShare,'date').filter(function(p){return p.person===person;});
@@ -744,7 +833,7 @@ function renderCustomers(){
     if(av<bv)return-1*cuSort.dir;if(av>bv)return 1*cuSort.dir;return 0;
   });
   document.getElementById('mc').innerHTML=
-    sh('Customers ('+C.customers.length+')','<button class="btn btn-sm" onclick="openCuModal()">+ Add Customer</button>')+
+    sh('Customers ('+C.customers.length+')','<button class="btn btn-sm btn-outline" onclick="exportCustomersCSV()">⬇ CSV</button> <button class="btn btn-sm" onclick="openCuModal()">+ Add Customer</button>')+
     '<table class="tbl"><thead><tr>'+ths('Name','name')+ths('Email','email')+'<th>Phone</th>'+ths('Invoiced','invoiced')+ths('Paid','paid')+ths('Balance','balance')+'<th></th></tr></thead><tbody>'+
     (sorted.map(function(c){var b=cuBal(c.id);return'<tr style="cursor:pointer" onclick="openCuDetail(\''+sid(c.id)+'\')"><td style="font-weight:500">'+esc(c.name)+'</td><td style="color:var(--muted)">'+esc(c.email||'—')+'</td><td style="color:var(--muted)">'+esc(c.phone||'—')+'</td><td>'+fmt(b.inv)+'</td><td style="color:var(--green)">'+fmt(b.paid)+'</td><td><span class="badge '+(b.bal>0?'ba':b.bal<0?'bb':'bg')+'">'+fmt(b.bal)+'</span></td><td onclick="event.stopPropagation()"><div class="acts"><button class="btn btn-sm btn-outline" onclick="openCuModal(\''+sid(c.id)+'\')">Edit</button><button class="btn btn-sm btn-danger" onclick="delRec(\'customers\',\''+sid(c.id)+'\')">Del</button></div></td></tr>';}).join('')||'<tr><td colspan="7" class="empty">No customers</td></tr>')+
     '</tbody></table>';
@@ -757,7 +846,7 @@ function openCuDetail(id){
   var cPa=C.payments.filter(function(p){return sid(p.customer_id)===sid(id);});
   document.getElementById('mc').innerHTML=
     '<div class="back" onclick="renderCustomers()">← Back to Customers</div>'+
-    '<div class="section-header"><div class="section-title">'+esc(c.name)+'</div><button class="btn btn-sm btn-outline" onclick="openCuModal(\''+sid(c.id)+'\')">Edit</button></div>'+
+    '<div class="section-header"><div class="section-title">'+esc(c.name)+'</div><div style="display:flex;gap:8px"><button class="btn btn-sm btn-outline" onclick="exportCustomerHTML(\''+sid(c.id)+'\')">⬇ Account Summary</button><button class="btn btn-sm btn-outline" onclick="openCuModal(\''+sid(c.id)+'\')">Edit</button></div></div>'+
     '<div class="g2" style="margin-bottom:16px">'+
       '<div class="dp"><div class="dp-title">Contact</div><div class="dr"><span class="l">Email</span><span class="v">'+esc(c.email||'—')+'</span></div><div class="dr"><span class="l">Phone</span><span class="v">'+esc(c.phone||'—')+'</span></div><div class="dr"><span class="l">Notes</span><span class="v">'+esc(c.notes||'—')+'</span></div></div>'+
       '<div class="dp"><div class="dp-title">Account Balance</div><div class="dr"><span class="l">Total Invoiced</span><span class="v">'+fmt(b.inv)+'</span></div><div class="dr"><span class="l">Total Paid</span><span class="v" style="color:var(--green)">'+fmt(b.paid)+'</span></div><div class="dr"><span class="l">Balance Owing</span><span class="v"><span class="badge '+(b.bal>0?'ba':'bg')+'">'+fmt(b.bal)+'</span></span></div></div>'+
