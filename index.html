@@ -295,11 +295,29 @@ function fmtD(d){return d?new Date(d+'T00:00:00').toLocaleDateString('en-US',{mo
 function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
 function todayStr(){return new Date().toISOString().split('T')[0];}
 function cuOpts(sel){return'<option value="">— None —</option><option value="__new__">＋ Add new customer…</option>'+C.customers.map(function(c){return'<option value="'+sid(c.id)+'"'+(sid(c.id)===sid(sel)?' selected':'')+'>'+esc(c.name)+'</option>';}).join('');}
+function openReimbModal(xid,eid,prevTab){
+  openModal('Mark as Reimbursed',
+    '<div class="form-group"><label>Date Reimbursed</label><input type="date" id="rDate" value="'+todayStr()+'"></div>'+
+    '<div class="form-group"><label>Method</label><select id="rMethod">'+
+      ['Cash','Check','Venmo','Zelle','ACH','Other'].map(function(m){return'<option>'+m+'</option>';}).join('')+
+    '</select></div>'+
+    '<div class="form-group"><label>Notes</label><input id="rNotes" placeholder="optional"></div>',
+    function(){saveReimb(xid,eid,prevTab);}
+  );
+}
+async function saveReimb(xid,eid,prevTab){
+  var date=gv('rDate'),method=gv('rMethod'),notes=gv('rNotes');
+  var r=await sb.from('expenses').update({reimbursed:true,reimbursed_date:date||null,reimbursed_method:method||null,reimbursed_notes:notes||null}).eq('id',xid);
+  if(r.error){
+    // fallback if columns don't exist yet — just mark reimbursed
+    var r2=await sb.from('expenses').update({reimbursed:true}).eq('id',xid);
+    if(r2.error){showErr(r2.error.message);return;}
+  }
+  closeModal();await loadAll();
+  if(eid)openEvDetail(eid,prevTab||'events');else renderExpenses();
+}
 async function doReimb(xid,eid,prevTab){
-  var r=await sb.from('expenses').update({reimbursed:true}).eq('id',xid);
-  if(r.error){showErr(r.error.message);return;}
-  await loadAll();
-  if(eid)openEvDetail(eid,prevTab||'events');else showTab('expenses');
+  openReimbModal(xid,eid,prevTab);
 }
 function findEv(id){return C.events.find(function(e){return sid(e.id)===sid(id);});}
 function findCu(id){return C.customers.find(function(c){return sid(c.id)===sid(id);});}
@@ -883,32 +901,34 @@ function renderPayments(){
 function sortPay(col){if(paySort.col===col){paySort.dir*=-1;}else{paySort.col=col;paySort.dir=1;}renderPayments();}
 
 // ── LABOR ─────────────────────────────────────────────────────────────────────
+function getLabDate(l){var e=findEv(l.event_id);return e?e.date:'';}
+function sortLabArr(arr){
+  return arr.slice().sort(function(a,b){
+    var av,bv;
+    if(laborSort.col==='date'){av=getLabDate(a);bv=getLabDate(b);}
+    else if(laborSort.col==='event'){av=evName(a.event_id).toLowerCase();bv=evName(b.event_id).toLowerCase();}
+    else if(laborSort.col==='venue'){var ea=findEv(a.event_id),eb=findEv(b.event_id);av=(ea&&ea.venue||'').toLowerCase();bv=(eb&&eb.venue||'').toLowerCase();}
+    else if(laborSort.col==='person'){av=(a.person||'').toLowerCase();bv=(b.person||'').toLowerCase();}
+    else if(laborSort.col==='hours'){av=parseFloat(a.hours)||0;bv=parseFloat(b.hours)||0;}
+    else if(laborSort.col==='earned'){av=parseFloat(a.total_amount)||((parseFloat(a.hours)||0)*(parseFloat(a.rate)||OWNER_RATE));bv=parseFloat(b.total_amount)||((parseFloat(b.hours)||0)*(parseFloat(b.rate)||OWNER_RATE));}
+    if(av<bv)return-1*laborSort.dir;if(av>bv)return 1*laborSort.dir;return 0;
+  });
+}
+function sortLab(col){if(laborSort.col===col){laborSort.dir*=-1;}else{laborSort.col=col;laborSort.dir=-1;}renderLabor();}
+function lth(lbl,col){var arrow=laborSort.col===col?(laborSort.dir===1?' ↑':' ↓'):'';return'<th style="cursor:pointer;user-select:none" onclick="sortLab(\''+col+'\')">'+lbl+arrow+'</th>';}
+
 function renderLabor(){
   var allLabor=filterLaborByPeriod(C.labor);
   var owners=['john','steve'];
   var ownerLab=allLabor.filter(function(l){return owners.includes(l.person);});
   var helperLab=allLabor.filter(function(l){return!owners.includes(l.person);});
-  function getLabDate(l){var e=findEv(l.event_id);return e?e.date:'';}
-  function sortLab(arr){
-    return arr.slice().sort(function(a,b){
-      var av,bv;
-      if(laborSort.col==='date'){av=getLabDate(a);bv=getLabDate(b);}
-      else if(laborSort.col==='event'){av=evName(a.event_id).toLowerCase();bv=evName(b.event_id).toLowerCase();}
-      else if(laborSort.col==='venue'){var ea=findEv(a.event_id),eb=findEv(b.event_id);av=(ea&&ea.venue||'').toLowerCase();bv=(eb&&eb.venue||'').toLowerCase();}
-      else if(laborSort.col==='person'){av=(a.person||'').toLowerCase();bv=(b.person||'').toLowerCase();}
-      else if(laborSort.col==='hours'){av=parseFloat(a.hours)||0;bv=parseFloat(b.hours)||0;}
-      else if(laborSort.col==='earned'){av=parseFloat(a.total_amount)||((parseFloat(a.hours)||0)*(parseFloat(a.rate)||OWNER_RATE));bv=parseFloat(b.total_amount)||((parseFloat(b.hours)||0)*(parseFloat(b.rate)||OWNER_RATE));}
-      if(av<bv)return-1*laborSort.dir;if(av>bv)return 1*laborSort.dir;return 0;
-    });
-  }
-  function lth(lbl,col){var arrow=laborSort.col===col?(laborSort.dir===1?' ↑':' ↓'):'';return'<th style="cursor:pointer;user-select:none" onclick="sortLab(\''+col+'\')">'+lbl+arrow+'</th>';}
-  var jt=ownerLab.filter(function(l){return l.person==='john';}).reduce(function(s,l){return s+(parseFloat(l.total_amount)||((parseFloat(l.hours)||0)*(parseFloat(l.rate)||OWNER_RATE)));},0);
-  var st=ownerLab.filter(function(l){return l.person==='steve';}).reduce(function(s,l){return s+(parseFloat(l.total_amount)||((parseFloat(l.hours)||0)*(parseFloat(l.rate)||OWNER_RATE)));},0);
   var helperNames=[...new Set(helperLab.map(function(l){return l.person;}))];
   var helperSummary=helperNames.map(function(name){var rows=helperLab.filter(function(l){return l.person===name;});var total=rows.reduce(function(s,l){return s+(parseFloat(l.total_amount)||0);},0);var unpaid=rows.filter(function(l){return!l.paid;}).reduce(function(s,l){return s+(parseFloat(l.total_amount)||0);},0);return{name:name,total:total,unpaid:unpaid};});
   var unpaidTotal=helperLab.filter(function(l){return!l.paid;}).reduce(function(s,l){return s+(parseFloat(l.total_amount)||0);},0);
-  var sortedOwner=sortLab(ownerLab);
-  var sortedHelper=sortLab(helperLab);
+  var jt=ownerLab.filter(function(l){return l.person==='john';}).reduce(function(s,l){return s+(parseFloat(l.total_amount)||((parseFloat(l.hours)||0)*(parseFloat(l.rate)||OWNER_RATE)));},0);
+  var st=ownerLab.filter(function(l){return l.person==='steve';}).reduce(function(s,l){return s+(parseFloat(l.total_amount)||((parseFloat(l.hours)||0)*(parseFloat(l.rate)||OWNER_RATE)));},0);
+  var sortedOwner=sortLabArr(ownerLab);
+  var sortedHelper=sortLabArr(helperLab);
   document.getElementById('mc').innerHTML=
     periodSelector()+
     '<div class="stat-grid" style="margin-bottom:16px">'+sc('John — Total Earned',fmt(jt),'green')+sc('Steve — Total Earned',fmt(st),'green')+sc('Helpers — Unpaid',fmt(unpaidTotal),unpaidTotal>0?'amber':'')+'</div>'+
