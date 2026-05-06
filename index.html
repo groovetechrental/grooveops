@@ -308,16 +308,12 @@ function openReimbModal(xid,eid,prevTab){
 async function saveReimb(xid,eid,prevTab){
   var date=gv('rDate'),method=gv('rMethod'),notes=gv('rNotes');
   var r=await sb.from('expenses').update({reimbursed:true,reimbursed_date:date||null,reimbursed_method:method||null,reimbursed_notes:notes||null}).eq('id',xid);
-  if(r.error){
-    // fallback if columns don't exist yet — just mark reimbursed
-    var r2=await sb.from('expenses').update({reimbursed:true}).eq('id',xid);
-    if(r2.error){showErr(r2.error.message);return;}
-  }
+  if(r.error){showErr(r.error.message);return;}
   closeModal();await loadAll();
   if(eid)openEvDetail(eid,prevTab||'events');else renderExpenses();
 }
-async function doReimb(xid,eid,prevTab){
-  openReimbModal(xid,eid,prevTab);
+function doReimb(xid,eid,prevTab){
+  openReimbModal(xid,eid||null,prevTab||null);
 }
 function findEv(id){return C.events.find(function(e){return sid(e.id)===sid(id);});}
 function findCu(id){return C.customers.find(function(c){return sid(c.id)===sid(id);});}
