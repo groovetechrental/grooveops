@@ -1420,7 +1420,7 @@ async function saveHelperLab(){
   var per=gv('mHlPer'),ev=gv('mHlEv'),hrs=gv('mHlHrs'),rate=gv('mHlRate'),notes=gv('mHlNotes');
   if(!per||!hrs){showErr('Person and hours required.');return;}
   var h=parseFloat(hrs),r2=parseFloat(rate)||0;
-  var obj={person:per.toLowerCase(),event_id:ev||null,hours:h,rate:r2||null,total_amount:h*r2,is_owner:false,paid:false,notes:notes||null};
+  var obj={person:per.toLowerCase(),event_id:ev||null,hours:h,rate:r2||null,total_amount:h*r2,paid:false,notes:notes||null};
   var r=await sb.from('labor').insert(obj);
   if(r.error){showErr(r.error.message);return;}
   closeModal();await loadAll();renderLabor();
