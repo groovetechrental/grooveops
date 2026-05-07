@@ -735,7 +735,15 @@ function renderEvents(){
     else if(evSort.col==='venue'){av=(a.venue||'').toLowerCase();bv=(b.venue||'').toLowerCase();}
     else if(evSort.col==='customer'){av=cuName(a.customer_id).toLowerCase();bv=cuName(b.customer_id).toLowerCase();}
     else if(evSort.col==='invoice'){av=parseFloat(a.invoice_amount)||0;bv=parseFloat(b.invoice_amount)||0;}
-    else if(evSort.col==='hours'){av=C.labor.filter(function(l){return sid(l.event_id)===sid(a.id);}).reduce(function(s,l){return s+(parseFloat(l.hours)||0);},0);bv=C.labor.filter(function(l){return sid(l.event_id)===sid(b.id);}).reduce(function(s,l){return s+(parseFloat(l.hours)||0);},0);}
+    else if(evSort.col==='hours'){
+      var aH=C.labor.filter(function(l){return sid(l.event_id)===sid(a.id);}).reduce(function(s,l){return s+(parseFloat(l.hours)||0);},0)||((a.labor||[]).reduce(function(s,x){return s+(parseFloat(x.qty)||0);},0));
+      var bH=C.labor.filter(function(l){return sid(l.event_id)===sid(b.id);}).reduce(function(s,l){return s+(parseFloat(l.hours)||0);},0)||((b.labor||[]).reduce(function(s,x){return s+(parseFloat(x.qty)||0);},0));
+      // N/A always sorts after 0h: use -1 as sentinel so it's distinct
+      av=a.hours_na?-1:aH; bv=b.hours_na?-1:bH;
+      // N/A should always be last regardless of direction
+      if(a.hours_na&&!b.hours_na)return 1;
+      if(!a.hours_na&&b.hours_na)return-1;
+    }
     else if(evSort.col==='profit'){av=evFin(a.id).profit;bv=evFin(b.id).profit;}
     else if(evSort.col==='status'){av=a.status||'';bv=b.status||'';}
     if(av<bv)return-1*evSort.dir;if(av>bv)return 1*evSort.dir;return 0;
