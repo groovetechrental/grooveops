@@ -1336,6 +1336,53 @@ function openEvModal(id,dateStr){
     function(){saveEv(id);}
   );
 }
+async function syncCrewToLabor(eventId, crew){
+  if(!eventId||!crew||!crew.length)return;
+  var owners=['john','steve'];
+  for(var i=0;i<crew.length;i++){
+    var c=crew[i];
+    if(!c.name)continue;
+    var personKey=c.name.toLowerCase();
+    var isOwner=owners.includes(personKey);
+    var hrs=parseFloat(c.qty)||null;
+    var earned=isOwner&&hrs?(hrs*OWNER_RATE):null;
+    var existing=C.labor.find(function(l){return sid(l.event_id)===sid(eventId)&&l.person===personKey;});
+    if(existing){
+      if(existing.hours!==hrs){
+        var upd=isOwner?{hours:hrs,total_amount:earned}:{hours:hrs};
+        await sb.from('labor').update(upd).eq('id',existing.id);
+      }
+    } else {
+      var newRec={person:personKey,event_id:eventId,hours:hrs,notes:null};
+      if(isOwner){newRec.rate=OWNER_RATE;newRec.total_amount=earned;}
+      else{newRec.paid=false;newRec.total_amount=null;}
+      await sb.from('labor').insert(newRec);
+    }
+  }
+  // Remove labor records for crew members no longer in the list
+  var crewNames=crew.map(function(c){return c.name.toLowerCase();});
+  var toRemove=C.labor.filter(function(l){
+    return sid(l.event_id)===sid(eventId)&&!crewNames.includes(l.person);
+  });
+  for(var j=0;j<toRemove.length;j++){
+    await sb.from('labor').delete().eq('id',toRemove[j].id);
+  }
+}
+
+async function syncLaborToEventCrew(eventId, person, hours){
+  if(!eventId)return;
+  var ev=C.events.find(function(e){return sid(e.id)===sid(eventId);});
+  if(!ev)return;
+  var crew=(ev.labor||[]).slice();
+  var personName=person.charAt(0).toUpperCase()+person.slice(1);
+  var existing=crew.find(function(c){return c.name&&c.name.toLowerCase()===person.toLowerCase();});
+  if(existing){
+    existing.qty=hours||null;
+  } else {
+    crew.push({name:personName,qty:hours||null,confirmed:true});
+  }
+  await sb.from('events').update({labor:crew}).eq('id',eventId);
+}
 async function saveEv(id){
   var name=gv('mEvName'),date=gv('mEvDate'),time=gv('mEvTime'),venue=gv('mEvVenue'),type=gv('mEvType'),status=gv('mEvStatus'),cuRaw=gv('mEvCu'),inv=gv('mEvInv'),notes=gv('mEvNotes');
   var hoursNA=document.getElementById('mEvHoursNA')?document.getElementById('mEvHoursNA').checked:false;
@@ -1345,6 +1392,10 @@ async function saveEv(id){
     labor:collectCrew(),main_equip:collectEquip('mainEquipWrap'),sec_equip:collectEquip('secEquipWrap')};
   var r=id?await sb.from('events').update(obj).eq('id',id):await sb.from('events').insert(obj);
   if(r.error){showErr(r.error.message);return;}
+  var savedId=id||(r.data&&r.data[0]&&r.data[0].id);
+  if(!savedId){var fe=await sb.from('events').select('id').eq('name',name).order('created_at',{ascending:false}).limit(1);savedId=fe.data&&fe.data[0]&&fe.data[0].id;}
+  await loadAll();
+  if(savedId)await syncCrewToLabor(savedId,obj.labor||[]);
   syncToGCal(obj,!!id);
   closeModal();await loadAll();showTab('events');
 }
@@ -1428,13 +1479,16 @@ async function saveLab(){
   var obj={person:per,event_id:ev||null,hours:h,rate:r2,total_amount:h*r2,notes:notes||null};
   var r=await sb.from('labor').insert(obj);
   if(r.error){showErr(r.error.message);return;}
+  if(ev)await syncLaborToEventCrew(ev,per,h);
   closeModal();await loadAll();renderLabor();
 }
 async function saveLabEdit(id){
   var per=gv('mLbPer'),hrs=gv('mLbHrs'),rate=gv('mLbRate'),total=gv('mLbTotal'),notes=gv('mLbNotes');
   var h=parseFloat(hrs)||null,r2=parseFloat(rate)||null,t=total?parseFloat(total):h&&r2?h*r2:null;
+  var existing=C.labor.find(function(l){return sid(l.id)===sid(id);});
   var r=await sb.from('labor').update({person:per,hours:h,rate:r2,total_amount:t,notes:notes||null}).eq('id',id);
   if(r.error){showErr(r.error.message);return;}
+  if(existing&&existing.event_id)await syncLaborToEventCrew(existing.event_id,per,h);
   closeModal();await loadAll();renderLabor();
 }
 
