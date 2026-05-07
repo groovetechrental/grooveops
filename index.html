@@ -262,6 +262,7 @@ header{background:var(--surface);border-bottom:1px solid var(--border);padding:1
       <button class="btn btn-sm btn-outline" onclick="resetPackingList()">↺ Reset All</button>
       <button class="btn btn-sm btn-outline" onclick="printPackingList()">🖨 Print</button>
       <button class="btn btn-sm btn-outline" onclick="sharePackingList()">⬇ Share HTML</button>
+      <button class="btn btn-sm btn-outline" onclick="copyPackingLink()">🔗 Copy Link</button>
     </div>
   </div>
 </div>
@@ -1228,6 +1229,16 @@ function printPackingList(){
   w.document.write(buildPackingHTML(e,false));
   w.document.close();
   setTimeout(function(){w.print();},500);
+}
+
+function copyPackingLink(){
+  var PACKING_URL='https://groovetechrental.github.io/grooveops/packing.html';
+  var url=PACKING_URL+'?id='+currentPackEventId;
+  navigator.clipboard.writeText(url).then(function(){
+    showErr('\u2713 Link copied to clipboard');
+  }).catch(function(){
+    prompt('Copy this link:',url);
+  });
 }
 
 function sharePackingList(){
