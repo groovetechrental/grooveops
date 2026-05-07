@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Packing List — Groove Tech Rental</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:"Helvetica Neue",Arial,sans-serif;background:#f4f4f8;color:#1a1a2e;padding:16px;}
+.page{max-width:680px;margin:0 auto;background:#fff;border-radius:14px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,.1);}
+.hdr{background:#692fb4;padding:20px 28px;color:#fff;display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:12px;}
+.hdr img{height:44px;}
+.hdr-r{text-align:right;font-size:12px;color:rgba(255,255,255,.8);}
+.hdr-r .ev{font-size:20px;font-weight:700;color:#ccf76f;margin-bottom:3px;letter-spacing:.5px;}
+.body{padding:20px 24px;}
+.notes-box{background:#f5f0fc;border-left:3px solid #692fb4;border-radius:0 8px 8px 0;padding:12px 14px;margin-bottom:18px;font-size:13px;line-height:1.6;color:#333;}
+.notes-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:#692fb4;margin-bottom:5px;}
+.crew-box{background:#f9f9fc;border-radius:8px;padding:12px 14px;margin-bottom:18px;}
+.crew-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:#999;margin-bottom:8px;}
+.crew-list{display:flex;flex-wrap:wrap;gap:8px;}
+.crew-chip{background:#fff;border:1px solid #ddd;border-radius:20px;padding:5px 14px;font-size:13px;font-weight:600;}
+.crew-chip.conf{border-color:#692fb4;color:#692fb4;background:#f5f0fc;}
+.section{margin-bottom:20px;}
+.section-title{font-size:13px;font-weight:700;color:#692fb4;text-transform:uppercase;letter-spacing:.5px;padding:8px 0 6px;border-bottom:2px solid #f0f0f5;margin-bottom:2px;}
+.item{display:flex;align-items:center;gap:12px;padding:10px 4px;border-bottom:1px solid #f5f5f5;cursor:pointer;transition:background .1s;border-radius:6px;}
+.item:last-child{border-bottom:none;}
+.item:active{background:#f9f9fc;}
+.item.checked{opacity:.5;}
+.item.checked .item-name{text-decoration:line-through;}
+.checkbox{width:26px;height:26px;border:2px solid #ccc;border-radius:6px;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .15s;font-size:15px;color:#fff;}
+.checkbox.checked{background:#692fb4;border-color:#692fb4;}
+.item-name{flex:1;font-size:14px;}
+.item-qty{font-size:12px;color:#aaa;white-space:nowrap;}
+.progress-wrap{background:#f0f0f5;border-radius:20px;height:6px;margin-bottom:6px;overflow:hidden;}
+.progress-bar{background:#692fb4;height:100%;border-radius:20px;transition:width .3s;}
+.progress-label{font-size:12px;color:#aaa;margin-bottom:16px;}
+.loader{text-align:center;padding:60px;color:#999;}
+.err{text-align:center;padding:60px;color:#c62828;}
+.foot{background:#692fb4;padding:14px 24px;text-align:center;font-size:12px;color:rgba(255,255,255,.6);}
+.foot a{color:#ccf76f;text-decoration:none;}
+.print-btn{display:block;width:100%;padding:14px;background:#692fb4;color:#fff;border:none;border-radius:8px;font-size:15px;font-weight:700;cursor:pointer;margin-top:20px;letter-spacing:.3px;}
+.print-btn:hover{background:#5a2799;}
+@media print{
+  body{background:#fff;padding:0;}
+  .page{box-shadow:none;border-radius:0;}
+  .print-btn{display:none;}
+  .item{cursor:default;}
+  .checkbox{border-color:#ccc!important;background:#fff!important;}
+  .checkbox.checked::after{content:'✓';color:#692fb4;font-size:14px;}
+  .foot{display:none;}
+}
+</style>
+</head>
+<body>
+
+<div class="page" id="page">
+  <div class="loader">Loading packing list…</div>
+</div>
+
+<script>
+var SUPABASE_URL='https://rbtzcswnounmybumqbwu.supabase.co';
+var SUPABASE_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJidHpjc3dub3VubXlidW1xYnd1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYyOTI3OTgsImV4cCI6MjA5MTg2ODc5OH0.d_CSDndGJcuBve_EtHo8RDcHG8dxQVn22gpUjQ7FGNY';
+var sb=supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
+
+var eventData=null, equipItems=[], equipComponents=[];
+var checks={}; // componentId -> boolean
+
+function fmtD(d){return d?new Date(d+'T00:00:00').toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric',year:'numeric'}):'—';}
+function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+
+async function loadData(){
+  var params=new URLSearchParams(window.location.search);
+  var id=params.get('id');
+  if(!id){showError('No event ID in URL.');return;}
+
+  var [evRes,itemsRes,compsRes]=await Promise.all([
+    sb.from('events').select('*').eq('id',id).single(),
+    sb.from('equipment_items').select('*'),
+    sb.from('equipment_components').select('*').order('sort_order')
+  ]);
+
+  if(evRes.error||!evRes.data){showError('Event not found.');return;}
+  eventData=evRes.data;
+  equipItems=itemsRes.data||[];
+  equipComponents=compsRes.data||[];
+
+  render();
+}
+
+function showError(msg){
+  document.getElementById('page').innerHTML='<div class="err">'+esc(msg)+'</div>';
+}
+
+function getComps(itemId,qty){
+  return equipComponents.filter(function(c){return c.equipment_item_id===itemId;}).map(function(c){
+    var compQty=c.quantity?Math.ceil(c.quantity*qty)+' '+(c.unit||''):'';
+    return{id:c.id,name:c.name,qty:compQty};
+  });
+}
+
+function updateProgress(){
+  var total=0,done=0;
+  Object.keys(checks).forEach(function(k){total++;if(checks[k])done++;});
+  if(total===0)return;
+  var pct=Math.round((done/total)*100);
+  var bar=document.getElementById('progBar');
+  var lbl=document.getElementById('progLbl');
+  if(bar)bar.style.width=pct+'%';
+  if(lbl)lbl.textContent=done+' of '+total+' items packed ('+pct+'%)';
+}
+
+function toggleCheck(compId){
+  checks[compId]=!checks[compId];
+  var item=document.getElementById('item-'+compId);
+  var box=document.getElementById('box-'+compId);
+  if(item){item.classList.toggle('checked',checks[compId]);}
+  if(box){
+    box.classList.toggle('checked',checks[compId]);
+    box.textContent=checks[compId]?'✓':'';
+  }
+  updateProgress();
+}
+
+function render(){
+  var e=eventData;
+  var main=(e.main_equip||[]).filter(function(x){return x.name;});
+  var crew=(e.labor||[]).filter(function(x){return x.name;});
+
+  // Build sections
+  var sections=[];
+  var totalComps=0;
+  main.forEach(function(equip){
+    var item=equipItems.find(function(i){return i.name.toLowerCase()===equip.name.toLowerCase();});
+    if(!item)return;
+    var qty=parseFloat(equip.qty)||1;
+    var comps=getComps(item.id,qty);
+    if(!comps.length)return;
+    totalComps+=comps.length;
+    comps.forEach(function(c){checks[c.id]=false;});
+    sections.push({title:item.name+(qty>1?' × '+qty:''),comps:comps});
+  });
+
+  var html=
+    '<div class="hdr">'+
+      '<img src="https://groovetechrental.com/wp-content/uploads/2024/09/gtfulllogo-edited-2959047573-e1725910986602.png" alt="Groove Tech Rental">'+
+      '<div class="hdr-r">'+
+        '<div class="ev">'+esc(e.name)+'</div>'+
+        '<div>'+fmtD(e.date)+'</div>'+
+        (e.time?'<div>'+esc(e.time)+'</div>':'')+
+        (e.venue?'<div>'+esc(e.venue)+'</div>':'')+
+      '</div>'+
+    '</div>'+
+    '<div class="body">';
+
+  if(e.notes){
+    html+='<div class="notes-box"><div class="notes-label">Event Notes</div>'+esc(e.notes).replace(/\n/g,'<br>')+'</div>';
+  }
+
+  if(crew.length){
+    html+='<div class="crew-box"><div class="crew-label">Crew</div><div class="crew-list">'+
+      crew.map(function(c){
+        return'<div class="crew-chip'+(c.confirmed?' conf':'')+'">'+(c.confirmed?'✓ ':'')+esc(c.name)+(c.qty?' ('+c.qty+'h)':'')+'</div>';
+      }).join('')+
+    '</div></div>';
+  }
+
+  if(totalComps>0){
+    html+='<div class="progress-wrap"><div class="progress-bar" id="progBar" style="width:0%"></div></div>'+
+      '<div class="progress-label" id="progLbl">0 of '+totalComps+' items packed</div>';
+  }
+
+  sections.forEach(function(s){
+    html+='<div class="section"><div class="section-title">'+esc(s.title)+'</div>';
+    s.comps.forEach(function(c){
+      html+='<div class="item" id="item-'+c.id+'" onclick="toggleCheck(\''+c.id+'\')">'+
+        '<div class="checkbox" id="box-'+c.id+'"></div>'+
+        '<div class="item-name">'+esc(c.name)+'</div>'+
+        (c.qty?'<div class="item-qty">'+esc(c.qty)+'</div>':'')+
+      '</div>';
+    });
+    html+='</div>';
+  });
+
+  if(!sections.length){
+    html+='<div style="text-align:center;padding:40px;color:#aaa;font-size:14px">No equipment components found for this event.</div>';
+  }
+
+  html+='<button class="print-btn" onclick="window.print()">🖨 Print Packing List</button>';
+  html+='</div>'+
+    '<div class="foot"><a href="https://groovetechrental.com">groovetechrental.com</a> &nbsp;&middot;&nbsp; 856-625-0855</div>';
+
+  document.getElementById('page').innerHTML=html;
+}
+
+loadData();
+</script>
+</body>
+</html>
