@@ -141,7 +141,31 @@ header{background:var(--surface);border-bottom:1px solid var(--border);padding:1
 .ev-card-detail{display:none;border-top:1px solid var(--border);padding:14px;}
 .ev-card.expanded .ev-card-detail{display:block;}
 .type-sel{display:flex;gap:5px;flex-wrap:wrap;}
-.type-opt{flex:1;min-width:60px;padding:7px 4px;border-radius:8px;border:2px solid var(--border);background:transparent;color:var(--muted);font-family:'DM Sans',sans-serif;font-size:11px;font-weight:700;cursor:pointer;transition:all .15s;text-align:center;}
+.stage-inquiry{background:rgba(79,195,247,.15);color:#0288d1;border:1px solid rgba(79,195,247,.3);}
+.stage-contacted{background:rgba(255,213,79,.15);color:#f9a825;border:1px solid rgba(255,213,79,.3);}
+.stage-qualified{background:rgba(255,152,0,.15);color:#e65100;border:1px solid rgba(255,152,0,.3);}
+.stage-proposal{background:rgba(179,157,219,.15);color:#7c4dff;border:1px solid rgba(179,157,219,.3);}
+.stage-booked{background:rgba(76,175,80,.15);color:#2e7d32;border:1px solid rgba(76,175,80,.3);}
+.stage-completed{background:rgba(120,144,156,.15);color:#546e7a;border:1px solid rgba(120,144,156,.3);}
+.stage-lost{background:rgba(239,83,80,.15);color:#c62828;border:1px solid rgba(239,83,80,.3);}
+.pipeline-col{background:var(--surface2);border-radius:10px;padding:12px;min-width:160px;flex:1;}
+.pipeline-col-title{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;margin-bottom:10px;padding-bottom:8px;border-bottom:1px solid var(--border);}
+.pipeline-card{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:10px 12px;margin-bottom:8px;cursor:pointer;transition:border-color .15s;}
+.pipeline-card:hover{border-color:var(--accent);}
+.pipeline-card-name{font-weight:600;font-size:13px;margin-bottom:3px;}
+.pipeline-card-meta{font-size:11px;color:var(--muted);}
+.interaction-item{display:flex;gap:12px;padding:12px 0;border-bottom:1px solid var(--border);}
+.interaction-item:last-child{border-bottom:none;}
+.interaction-icon{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0;background:var(--surface2);}
+.interaction-body{flex:1;}
+.interaction-meta{font-size:11px;color:var(--muted);margin-bottom:3px;}
+.interaction-notes{font-size:13px;line-height:1.5;}
+.last-contact-green{color:var(--green);}
+.last-contact-amber{color:var(--amber,#f9a825);}
+.last-contact-red{color:var(--accent2);}
+.crm-view-toggle{display:flex;gap:6px;margin-bottom:16px;}
+.crm-view-btn{padding:6px 14px;border-radius:6px;border:1px solid var(--border);background:transparent;color:var(--muted);cursor:pointer;font-size:12px;font-weight:600;}
+.crm-view-btn.active{background:var(--accent);color:#fff;border-color:var(--accent);}min-width:60px;padding:7px 4px;border-radius:8px;border:2px solid var(--border);background:transparent;color:var(--muted);font-family:'DM Sans',sans-serif;font-size:11px;font-weight:700;cursor:pointer;transition:all .15s;text-align:center;}
 .type-opt.active.gt{border-color:var(--gt);color:var(--gt);background:rgba(245,166,35,.1);}
 .type-opt.active.looch{border-color:var(--looch);color:var(--looch);background:rgba(224,92,92,.1);}
 .type-opt.active.neon{border-color:var(--neon);color:var(--neon);background:rgba(179,157,219,.1);}
@@ -227,6 +251,7 @@ header{background:var(--surface);border-bottom:1px solid var(--border);padding:1
     <div class="nav-tab" onclick="showTab('calendar')">Calendar</div>
     <div class="nav-tab" onclick="showTab('events')">Events</div>
     <div class="nav-tab" onclick="showTab('customers')">Customers</div>
+    <div class="nav-tab" onclick="showTab('crm')">CRM</div>
     <div class="nav-tab" onclick="showTab('payments')">Payments</div>
     <div class="nav-tab" onclick="showTab('labor')">Labor</div>
     <div class="nav-tab" onclick="showTab('ownerfinances')">Owner Finances</div>
@@ -288,7 +313,7 @@ var expSort={col:'date',dir:-1};
 var paySort={col:'date',dir:-1};
 var quoteSort={col:'created_at',dir:-1};
 var currentPackEventId=null;
-var C={events:[],customers:[],payments:[],labor:[],expenses:[],profitShare:[],equipItems:[],equipComponents:[],packChecks:[],laborPayments:[],quotes:[],quoteItems:[]};
+var C={events:[],customers:[],payments:[],labor:[],expenses:[],profitShare:[],equipItems:[],equipComponents:[],packChecks:[],laborPayments:[],quotes:[],quoteItems:[],interactions:[]};
 
 // ── HELPERS ───────────────────────────────────────────────────────────────────
 function sid(x){return String(x==null?'':x);}
@@ -441,7 +466,8 @@ function loadAll(){
     sb.from('packing_list_checks').select('*'),
     sb.from('labor_payments').select('*').order('date',{ascending:false}),
     sb.from('quotes').select('*').order('created_at',{ascending:false}),
-    sb.from('quote_line_items').select('*').order('sort_order')
+    sb.from('quote_line_items').select('*').order('sort_order'),
+    sb.from('interactions').select('*').order('date',{ascending:false})
   ]).then(function(r){
     var errs=r.filter(function(x){return x.error;}).map(function(x){return x.error.message;});
     if(errs.length)console.warn('loadAll partial errors:',errs.join('; '));
@@ -449,6 +475,7 @@ function loadAll(){
     C.labor=r[3].data||[];C.expenses=r[4].data||[];C.profitShare=r[5].data||[];
     C.equipItems=r[6].data||[];C.equipComponents=r[7].data||[];C.packChecks=r[8].data||[];
     C.laborPayments=r[9].data||[];C.quotes=r[10].data||[];C.quoteItems=r[11].data||[];
+    C.interactions=r[12].data||[];
   });
 }
 
@@ -625,6 +652,7 @@ function showTab(tab){
   else if(tab==='expenses')renderExpenses();
   else if(tab==='equipment')renderEquipment();
   else if(tab==='quotes')renderQuotes();
+  else if(tab==='crm')renderCRM();
 }
 
 // ── DASHBOARD ─────────────────────────────────────────────────────────────────
@@ -1823,6 +1851,7 @@ async function delRec(table,id,cb){
   else if(table==='events')showTab('events');
   else if(table==='customers')showTab('customers');
   else if(table==='equipment_items'||table==='equipment_components')showTab('equipment');
+  else if(table==='interactions')renderCRM();
 }
 
 
@@ -2310,6 +2339,290 @@ function buildQuoteHTML(q,items){
   '}'+
   '</scr'+'ipt>'+
   '</body></html>';
+}
+
+
+// ── CRM ───────────────────────────────────────────────────────────────────────
+var CRM_STAGES=['inquiry','contacted','qualified','proposal','booked','completed','lost'];
+var CRM_STAGE_LABELS={inquiry:'Inquiry',contacted:'Contacted',qualified:'Qualified',proposal:'Proposal',booked:'Booked',completed:'Completed',lost:'Lost'};
+var CRM_STAGE_EMOJI={inquiry:'🔵',contacted:'🟡',qualified:'🟠',proposal:'🟣',booked:'🟢',completed:'⚫',lost:'🔴'};
+var CRM_SOURCES=['email','instagram','facebook','referral','website','phone','walk-in','other'];
+var CRM_INT_TYPES=['email','call','text','meeting','note','quote','other'];
+var CRM_INT_ICONS={email:'✉',call:'📞',text:'💬',meeting:'🤝',note:'📝',quote:'📋',other:'•'};
+var crmView='table';
+var crmStageFilter='all';
+
+function stageBadge(s){return'<span class="badge stage-'+(s||'inquiry')+'">'+(CRM_STAGE_LABELS[s]||s||'inquiry')+'</span>';}
+
+function lastContactColor(dateStr){
+  if(!dateStr)return'last-contact-red';
+  var days=Math.floor((new Date()-new Date(dateStr))/(1000*60*60*24));
+  return days<=7?'last-contact-green':days<=14?'last-contact-amber':'last-contact-red';
+}
+
+function renderCRM(){
+  var cuSort2={col:'last_contact',dir:-1};
+  var customers=C.customers.slice();
+
+  // Stage counts
+  var counts={};
+  CRM_STAGES.forEach(function(s){counts[s]=0;});
+  customers.forEach(function(c){var s=c.stage||'inquiry';if(counts[s]!=null)counts[s]++;});
+  var total=customers.length;
+
+  // Filter
+  var filtered=crmStageFilter==='all'?customers:customers.filter(function(c){return(c.stage||'inquiry')===crmStageFilter;});
+
+  var stageBar='<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px">'+
+    '<button class="crm-view-btn'+(crmStageFilter==='all'?' active':'')+'" onclick="setCrmFilter(\'all\')">All ('+total+')</button>'+
+    CRM_STAGES.map(function(s){return'<button class="crm-view-btn'+(crmStageFilter===s?' active':'')+'" onclick="setCrmFilter(\''+s+'\')">'+(CRM_STAGE_EMOJI[s]||'')+' '+CRM_STAGE_LABELS[s]+' ('+counts[s]+')</button>';}).join('')+
+  '</div>';
+
+  var viewToggle='<div class="crm-view-toggle">'+
+    '<button class="crm-view-btn'+(crmView==='table'?' active':'')+'" onclick="setCrmView(\'table\')">☰ Table</button>'+
+    '<button class="crm-view-btn'+(crmView==='pipeline'?' active':'')+'" onclick="setCrmView(\'pipeline\')">⬛ Pipeline</button>'+
+  '</div>';
+
+  var headerBtns='<button class="btn btn-sm" onclick="openCuModal()">+ Add Lead</button>';
+
+  var body='';
+  if(crmView==='pipeline'){
+    body='<div style="display:flex;gap:10px;overflow-x:auto;padding-bottom:8px">';
+    CRM_STAGES.forEach(function(s){
+      var stageCu=customers.filter(function(c){return(c.stage||'inquiry')===s;});
+      body+='<div class="pipeline-col">'+
+        '<div class="pipeline-col-title" style="color:var(--text)">'+CRM_STAGE_EMOJI[s]+' '+CRM_STAGE_LABELS[s]+' <span style="color:var(--muted);font-weight:400">('+stageCu.length+')</span></div>'+
+        stageCu.map(function(c){
+          var lastInt=C.interactions.filter(function(i){return sid(i.customer_id)===sid(c.id);}).sort(function(a,b){return b.date.localeCompare(a.date);})[0];
+          var lastEv=C.events.filter(function(e){return sid(e.customer_id)===sid(c.id);}).sort(function(a,b){return b.date.localeCompare(a.date);})[0];
+          return'<div class="pipeline-card" onclick="openCuCRM(\''+sid(c.id)+'\')">'+
+            '<div class="pipeline-card-name">'+esc(c.name)+'</div>'+
+            '<div class="pipeline-card-meta">'+(c.event_type_interest?esc(c.event_type_interest)+'<br>':'')+(lastInt?'Last: '+fmtD(lastInt.date):lastEv?'Event: '+fmtD(lastEv.date):'No contact yet')+'</div>'+
+            (c.budget_min||c.budget_max?'<div class="pipeline-card-meta" style="margin-top:4px;color:var(--green)">$'+(c.budget_min||0)+' – $'+(c.budget_max||'?')+'</div>':'')+
+          '</div>';
+        }).join('')+
+        (stageCu.length===0?'<div style="text-align:center;padding:16px;color:var(--muted);font-size:12px">Empty</div>':'')+
+      '</div>';
+    });
+    body+='</div>';
+  } else {
+    // Table view
+    var sorted=filtered.slice().sort(function(a,b){
+      var lastA=C.interactions.filter(function(i){return sid(i.customer_id)===sid(a.id);}).sort(function(x,y){return y.date.localeCompare(x.date);})[0];
+      var lastB=C.interactions.filter(function(i){return sid(i.customer_id)===sid(b.id);}).sort(function(x,y){return y.date.localeCompare(x.date);})[0];
+      var da=lastA?lastA.date:(a.last_contact||a.inquiry_date||'');
+      var db=lastB?lastB.date:(b.last_contact||b.inquiry_date||'');
+      return db.localeCompare(da);
+    });
+    body='<table class="tbl"><thead><tr><th>Name</th><th>Stage</th><th>Source</th><th>Interest</th><th>Budget</th><th>Last Contact</th><th>Interactions</th><th></th></tr></thead><tbody>'+
+    (sorted.map(function(c){
+      var ints=C.interactions.filter(function(i){return sid(i.customer_id)===sid(c.id);});
+      var lastInt=ints.sort(function(a,b){return b.date.localeCompare(a.date);})[0];
+      var lastDate=lastInt?lastInt.date:(c.last_contact||c.inquiry_date||'');
+      var colorCls=lastDate?lastContactColor(lastDate):'last-contact-red';
+      return'<tr style="cursor:pointer" onclick="openCuCRM(\''+sid(c.id)+'\')">'+
+        '<td style="font-weight:500">'+esc(c.name)+'<br><span style="font-size:11px;color:var(--muted)">'+esc(c.email||'')+'</span></td>'+
+        '<td>'+stageBadge(c.stage||'inquiry')+'</td>'+
+        '<td style="font-size:12px;color:var(--muted);text-transform:capitalize">'+esc(c.source||'—')+'</td>'+
+        '<td style="font-size:12px">'+esc(c.event_type_interest||'—')+'</td>'+
+        '<td style="font-size:12px;color:var(--green)">'+(c.budget_min||c.budget_max?'$'+(c.budget_min||0)+' – $'+(c.budget_max||'?'):'—')+'</td>'+
+        '<td class="'+colorCls+'" style="font-size:12px">'+(lastDate?fmtD(lastDate):'<span style="color:var(--accent2)">Never</span>')+'</td>'+
+        '<td style="font-size:12px;color:var(--muted)">'+ints.length+'</td>'+
+        '<td onclick="event.stopPropagation()"><div class="acts">'+
+          '<button class="btn btn-sm btn-outline" onclick="openCuCRM(\''+sid(c.id)+'\')">View</button>'+
+          '<button class="btn btn-sm" onclick="openInteractionModal(\''+sid(c.id)+'\')">+ Log</button>'+
+        '</div></td>'+
+      '</tr>';
+    }).join('')||'<tr><td colspan="8" class="empty">No customers</td></tr>')+
+    '</tbody></table>';
+  }
+
+  document.getElementById('mc').innerHTML=
+    sh('CRM Pipeline',headerBtns)+
+    stageBar+
+    viewToggle+
+    body;
+}
+
+function setCrmFilter(s){crmStageFilter=s;renderCRM();}
+function setCrmView(v){crmView=v;renderCRM();}
+
+function openCuCRM(id){
+  var c=C.customers.find(function(x){return sid(x.id)===sid(id);});
+  if(!c)return;
+  var ints=C.interactions.filter(function(i){return sid(i.customer_id)===sid(id);}).sort(function(a,b){return b.date.localeCompare(a.date);});
+  var evs=C.events.filter(function(e){return sid(e.customer_id)===sid(id);}).sort(function(a,b){return b.date.localeCompare(a.date);});
+  var quotes=C.quotes.filter(function(q){return q.customer_name&&q.customer_name.toLowerCase()===c.name.toLowerCase();});
+  var b=cuBal(id);
+
+  document.getElementById('mc').innerHTML=
+    '<div class="back" onclick="renderCRM()">\u2190 Back to CRM</div>'+
+    '<div style="display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:16px">'+
+      '<div>'+
+        '<div style="font-family:\'Bebas Neue\',sans-serif;font-size:28px;letter-spacing:2px">'+esc(c.name)+'</div>'+
+        '<div style="color:var(--muted);font-size:13px">'+(c.email?esc(c.email):'')+(c.phone?' \u00b7 '+esc(c.phone):'')+'</div>'+
+      '</div>'+
+      '<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">'+
+        stageBadge(c.stage||'inquiry')+
+        '<button class="btn btn-sm btn-outline" onclick="openCuModal(\''+sid(id)+'\')">Edit</button>'+
+        '<button class="btn btn-sm" onclick="openInteractionModal(\''+sid(id)+'\')">+ Log Interaction</button>'+
+        '<button class="btn btn-sm" onclick="openQuoteModal();document.getElementById(\'qCuName\').value=\''+esc(c.name)+'\';document.getElementById(\'qCuEmail\').value=\''+(c.email||'\'\'')+'\'">+ New Quote</button>'+
+      '</div>'+
+    '</div>'+
+
+    '<div class="g3" style="margin-bottom:16px">'+
+      '<div class="dp"><div class="dp-title">Lead Info</div>'+
+        qdr('Stage',stageBadge(c.stage||'inquiry'))+
+        qdr('Source','<span style="text-transform:capitalize">'+esc(c.source||'—')+'</span>')+
+        qdr('Inquiry Date',fmtD(c.inquiry_date))+
+        qdr('Preferred Contact','<span style="text-transform:capitalize">'+esc(c.preferred_contact||'—')+'</span>')+
+        (c.referral_source?qdr('Referred By',esc(c.referral_source)):'')+
+      '</div>'+
+      '<div class="dp"><div class="dp-title">Event Interest</div>'+
+        qdr('Event Type','<span style="text-transform:capitalize">'+esc(c.event_type_interest||'—')+'</span>')+
+        qdr('Headcount',c.headcount?c.headcount+' guests':'—')+
+        qdr('Budget',(c.budget_min||c.budget_max?'$'+(c.budget_min||0)+' \u2013 $'+(c.budget_max||'?'):'—'))+
+      '</div>'+
+      '<div class="dp"><div class="dp-title">Account</div>'+
+        qdr('Invoiced',fmt(b.inv))+
+        qdr('Paid','<span style="color:var(--green)">'+fmt(b.paid)+'</span>')+
+        qdr('Balance','<span class="badge '+(b.bal>0?'ba':b.bal<0?'bb':'bg')+'">'+fmt(b.bal)+'</span>')+
+        qdr('Events',evs.length+' event'+(evs.length!==1?'s':''))+
+      '</div>'+
+    '</div>'+
+
+    // Stage quick-move
+    '<div style="margin-bottom:16px">'+
+      '<div style="font-size:11px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.8px;margin-bottom:8px">Move Stage</div>'+
+      '<div style="display:flex;gap:6px;flex-wrap:wrap">'+
+        CRM_STAGES.map(function(s){
+          var active=(c.stage||'inquiry')===s;
+          return'<button onclick="moveStage(\''+sid(id)+'\',\''+s+'\')" class="crm-view-btn'+(active?' active':'')+'" style="'+(active?'border-color:var(--accent);background:var(--accent);color:#fff;':'')+'">'+CRM_STAGE_EMOJI[s]+' '+CRM_STAGE_LABELS[s]+'</button>';
+        }).join('')+
+      '</div>'+
+    '</div>'+
+
+    // Interactions
+    sh('Interactions ('+ints.length+')','<button class="btn btn-sm" onclick="openInteractionModal(\''+sid(id)+'\')">+ Log</button>')+
+    '<div style="margin-bottom:16px">'+
+    (ints.length?ints.map(function(i){
+      return'<div class="interaction-item">'+
+        '<div class="interaction-icon">'+( CRM_INT_ICONS[i.type]||'•')+'</div>'+
+        '<div class="interaction-body">'+
+          '<div class="interaction-meta">'+fmtD(i.date)+' \u00b7 <span style="text-transform:capitalize">'+esc(i.type)+(i.direction?' \u00b7 '+i.direction:'')+'</span>'+(i.created_by?' \u00b7 by '+esc(i.created_by):'')+'</div>'+
+          (i.subject?'<div style="font-weight:600;font-size:13px;margin-bottom:2px">'+esc(i.subject)+'</div>':'')+
+          '<div class="interaction-notes">'+esc(i.notes)+'</div>'+
+        '</div>'+
+        '<button class="btn btn-sm btn-danger" onclick="delRec(\'interactions\',\''+sid(i.id)+'\',function(){openCuCRM(\''+sid(id)+'\');})">Del</button>'+
+      '</div>';
+    }).join(''):'<div style="color:var(--muted);font-size:13px;padding:12px 0">No interactions logged yet.</div>')+
+    '</div>'+
+
+    // Events
+    (evs.length?
+      sh('Events ('+evs.length+')','')+
+      '<table class="tbl"><thead><tr><th>Event</th><th>Date</th><th>Venue</th><th>Invoice</th></tr></thead><tbody>'+
+      evs.map(function(e){return'<tr style="cursor:pointer" onclick="openEvDetail(\''+sid(e.id)+'\',\'crm\')"><td style="font-weight:500">'+esc(e.name)+'</td><td>'+fmtD(e.date)+'</td><td style="color:var(--muted)">'+esc(e.venue||'—')+'</td><td>'+(e.invoice_amount?fmt(e.invoice_amount):'—')+'</td></tr>';}).join('')+
+      '</tbody></table>':'')+
+
+    // Quotes
+    (quotes.length?
+      sh('Quotes ('+quotes.length+')','')+
+      '<table class="tbl"><thead><tr><th>Event</th><th>Date</th><th>Total</th><th>Status</th><th></th></tr></thead><tbody>'+
+      quotes.map(function(q){return'<tr><td>'+esc(q.event_name||'—')+'</td><td>'+fmtD(q.event_date)+'</td><td style="color:var(--green)">'+fmt(q.total)+'</td><td>'+quoteBadge(q.status)+'</td><td><button class="btn btn-sm btn-outline" onclick="openQuotePreview(\''+q.id+'\')">View</button></td></tr>';}).join('')+
+      '</tbody></table>':'');
+}
+
+function openInteractionModal(customerId,intId){
+  var i=intId?C.interactions.find(function(x){return x.id===intId;}):null;
+  var c=C.customers.find(function(x){return sid(x.id)===sid(customerId);});
+  openModal((i?'Edit':'Log')+' Interaction'+(c?' \u2014 '+c.name:''),
+    '<div class="form-group"><label>Date</label><input type="date" id="iDate" value="'+(i?i.date:todayStr())+'"></div>'+
+    '<div class="g2">'+
+      '<div class="form-group"><label>Type</label><select id="iType">'+
+        CRM_INT_TYPES.map(function(t){return'<option value="'+t+'"'+(i&&i.type===t?' selected':'')+'>'+t.charAt(0).toUpperCase()+t.slice(1)+'</option>';}).join('')+
+      '</select></div>'+
+      '<div class="form-group"><label>Direction</label><select id="iDir">'+
+        ['inbound','outbound','internal'].map(function(d){return'<option value="'+d+'"'+(i&&i.direction===d?' selected':(!i&&d==='inbound'?' selected':''))+'>'+d.charAt(0).toUpperCase()+d.slice(1)+'</option>';}).join('')+
+      '</select></div>'+
+    '</div>'+
+    '<div class="form-group"><label>Subject (optional)</label><input id="iSubject" value="'+esc(i?i.subject||'':'')+'"></div>'+
+    '<div class="form-group"><label>Notes</label><textarea id="iNotes" style="min-height:80px">'+esc(i?i.notes||'':'')+'</textarea></div>'+
+    '<div class="form-group"><label>Logged By</label><select id="iBy">'+
+      ['John','Steve','GT'].map(function(p){return'<option value="'+p+'"'+(i&&i.created_by===p?' selected':'')+'>'+p+'</option>';}).join('')+
+    '</select></div>',
+    function(){saveInteraction(customerId,intId);}
+  );
+}
+
+async function saveInteraction(customerId,intId){
+  var date=gv('iDate'),type=gv('iType'),dir=gv('iDir'),subject=gv('iSubject'),notes=gv('iNotes'),by=gv('iBy');
+  if(!notes){showErr('Notes required.');return;}
+  var obj={customer_id:customerId,date:date,type:type,direction:dir,subject:subject||null,notes:notes,created_by:by};
+  var r=intId?await sb.from('interactions').update(obj).eq('id',intId):await sb.from('interactions').insert(obj);
+  if(r.error){showErr(r.error.message);return;}
+  // Update last_contact on customer
+  await sb.from('customers').update({last_contact:date}).eq('id',customerId);
+  closeModal();await loadAll();openCuCRM(customerId);
+}
+
+async function moveStage(customerId,stage){
+  var r=await sb.from('customers').update({stage:stage}).eq('id',customerId);
+  if(r.error){showErr(r.error.message);return;}
+  await loadAll();openCuCRM(customerId);
+}
+
+// Update openCuModal to include CRM fields
+function openCuModal(id){
+  var c=id?C.customers.find(function(x){return sid(x.id)===sid(id);}):null;
+  openModal(c?'Edit Customer':'New Lead',
+    '<div style="font-size:11px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:.8px;margin-bottom:10px">Contact Info</div>'+
+    '<div class="form-group"><label>Name</label><input id="mCuName" value="'+esc(c?c.name:'')+'"></div>'+
+    '<div class="g2">'+
+      '<div class="form-group"><label>Email</label><input type="email" id="mCuEmail" value="'+esc(c?c.email||'':'')+'"></div>'+
+      '<div class="form-group"><label>Phone</label><input id="mCuPhone" value="'+esc(c?c.phone||'':'')+'"></div>'+
+    '</div>'+
+    '<div style="font-size:11px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:.8px;margin:14px 0 10px">CRM</div>'+
+    '<div class="g2">'+
+      '<div class="form-group"><label>Stage</label><select id="mCuStage">'+
+        CRM_STAGES.map(function(s){return'<option value="'+s+'"'+(c&&c.stage===s?' selected':(!c&&s==='inquiry'?' selected':''))+'>'+CRM_STAGE_LABELS[s]+'</option>';}).join('')+
+      '</select></div>'+
+      '<div class="form-group"><label>Source</label><select id="mCuSource"><option value="">—</option>'+
+        CRM_SOURCES.map(function(s){return'<option value="'+s+'"'+(c&&c.source===s?' selected':'')+'>'+s.charAt(0).toUpperCase()+s.slice(1)+'</option>';}).join('')+
+      '</select></div>'+
+    '</div>'+
+    '<div class="g2">'+
+      '<div class="form-group"><label>Inquiry Date</label><input type="date" id="mCuInqDate" value="'+(c?c.inquiry_date||'':todayStr())+'"></div>'+
+      '<div class="form-group"><label>Preferred Contact</label><select id="mCuPrefCon"><option value="">—</option>'+
+        ['email','phone','text'].map(function(s){return'<option value="'+s+'"'+(c&&c.preferred_contact===s?' selected':'')+'>'+s.charAt(0).toUpperCase()+s.slice(1)+'</option>';}).join('')+
+      '</select></div>'+
+    '</div>'+
+    '<div style="font-size:11px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:.8px;margin:14px 0 10px">Event Interest</div>'+
+    '<div class="form-group"><label>Event Type</label><input id="mCuEvType" placeholder="e.g. Wedding, Corporate, Birthday" value="'+esc(c?c.event_type_interest||'':'')+'"></div>'+
+    '<div class="g2">'+
+      '<div class="form-group"><label>Budget Min ($)</label><input type="number" id="mCuBudMin" value="'+(c?c.budget_min||'':'')+'"></div>'+
+      '<div class="form-group"><label>Budget Max ($)</label><input type="number" id="mCuBudMax" value="'+(c?c.budget_max||'':'')+'"></div>'+
+    '</div>'+
+    '<div class="form-group"><label>Headcount</label><input type="number" id="mCuHead" value="'+(c?c.headcount||'':'')+'"></div>'+
+    '<div class="form-group"><label>Referral Source</label><input id="mCuRef" placeholder="who referred them" value="'+esc(c?c.referral_source||'':'')+'"></div>'+
+    '<div class="form-group"><label>Notes</label><textarea id="mCuNotes">'+esc(c?c.notes||'':'')+'</textarea></div>',
+    function(){saveCu(id);}
+  );
+}
+
+async function saveCu(id){
+  var name=gv('mCuName'),email=gv('mCuEmail'),phone=gv('mCuPhone');
+  var stage=gv('mCuStage'),source=gv('mCuSource'),inqDate=gv('mCuInqDate'),prefCon=gv('mCuPrefCon');
+  var evType=gv('mCuEvType'),budMin=gv('mCuBudMin'),budMax=gv('mCuBudMax'),head=gv('mCuHead'),ref=gv('mCuRef'),notes=gv('mCuNotes');
+  if(!name){showErr('Name required.');return;}
+  var obj={name:name,email:email||null,phone:phone||null,notes:notes||null,
+    stage:stage||'inquiry',source:source||null,inquiry_date:inqDate||null,preferred_contact:prefCon||null,
+    event_type_interest:evType||null,budget_min:budMin?parseInt(budMin):null,budget_max:budMax?parseInt(budMax):null,
+    headcount:head?parseInt(head):null,referral_source:ref||null};
+  var r=id?await sb.from('customers').update(obj).eq('id',id):await sb.from('customers').insert(obj);
+  if(r.error){showErr(r.error.message);return;}
+  closeModal();await loadAll();
+  if(currentTab==='crm')renderCRM();else showTab('customers');
 }
 
 
