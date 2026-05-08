@@ -2439,37 +2439,43 @@ function setCrmView(v){crmView=v;renderCRM();}
 function openReplyModal(customerId){
   var c=C.customers.find(function(x){return sid(x.id)===sid(customerId);});
   if(!c){showErr('Customer not found.');return;}
-  var evs=C.events.filter(function(e){return sid(e.customer_id)===sid(customerId);});
-  var lastEv=evs.length?evs[0]:null;
+  var firstName=c.name.split(' ')[0];
   var defaultSubject='Re: Your Inquiry — Groove Tech Rental';
-  var defaultBody='<p>Hi '+esc(c.name.split(' ')[0])+',</p>'+
-    '<p>Thank you for reaching out to Groove Tech Rental! We\'d love to help make your event unforgettable.</p>'+
-    '<p>Could you share a few more details so we can put together the perfect package for you?</p>'+
-    '<ul>'+
-    '<li>What is the date of your event?</li>'+
-    '<li>What type of event are you planning?</li>'+
-    '<li>Approximate guest count?</li>'+
-    '<li>What equipment or services are you interested in?</li>'+
-    '</ul>'+
-    '<p>We\'ll follow up with a custom quote once we have the details.</p>'+
-    '<p>Looking forward to working with you!</p>'+
-    '<p>— Groove Tech Rental<br>856-625-0855<br>groovetechrental.com</p>';
+  var defaultBody='Hi '+firstName+',\n\n'+
+    'Thank you for reaching out to Groove Tech Rental! We\'d love to help make your event unforgettable.\n\n'+
+    'Could you share a few more details so we can put together the perfect package for you?\n\n'+
+    '• What is the date of your event?\n'+
+    '• What type of event are you planning?\n'+
+    '• Approximate guest count?\n'+
+    '• What equipment or services are you interested in?\n\n'+
+    'We\'ll follow up with a custom quote once we have the details.\n\n'+
+    'Looking forward to working with you!\n\n'+
+    '— Groove Tech Rental\n856-625-0855\ngroovetechrental.com';
 
   openModal('Send Email to '+c.name,
     '<div class="form-group"><label>To</label><input id="replyTo" value="'+esc(c.email||'')+'" readonly style="color:var(--muted)"></div>'+
     '<div class="form-group"><label>Subject</label><input id="replySubject" value="'+esc(defaultSubject)+'"></div>'+
-    '<div class="form-group"><label>Message</label><textarea id="replyBody" style="min-height:220px;font-family:monospace;font-size:12px">'+defaultBody+'</textarea></div>'+
-    '<div style="font-size:11px;color:var(--muted);margin-top:-6px">HTML is supported. Edit the body above before sending.</div>',
+    '<div class="form-group"><label>Message</label><textarea id="replyBody" style="min-height:260px;line-height:1.6"></textarea></div>'+
+    '<div style="font-size:11px;color:var(--muted);margin-top:-6px">Edit the message above before sending.</div>',
     function(){sendCRMReply(customerId);},'Send Email'
   );
+  setTimeout(function(){
+    var ta=document.getElementById('replyBody');
+    if(ta){ta.value=defaultBody;}
+  },50);
 }
 
 async function sendCRMReply(customerId){
   var c=C.customers.find(function(x){return sid(x.id)===sid(customerId);});
   if(!c){showErr('Customer not found.');return;}
-  var to=gv('replyTo'),subject=gv('replySubject'),body=document.getElementById('replyBody').value;
+  var to=gv('replyTo'),subject=gv('replySubject');
+  var bodyText=document.getElementById('replyBody')?document.getElementById('replyBody').value:'';
   if(!to){showErr('No email address for this customer.');return;}
-  if(!subject||!body){showErr('Subject and message required.');return;}
+  if(!subject||!bodyText){showErr('Subject and message required.');return;}
+  // Convert plain text to HTML for email
+  var bodyHtml='<div style="font-family:Arial,sans-serif;font-size:14px;line-height:1.6;color:#1a1a2e">'+
+    bodyText.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\n/g,'<br>')+
+    '</div>';
 
   document.getElementById('msb').textContent='Sending...';
   document.getElementById('msb').disabled=true;
@@ -2482,7 +2488,7 @@ async function sendCRMReply(customerId){
         to_email:to,
         to_name:c.name,
         subject:subject,
-        body:body,
+        body:bodyHtml,
         customer_id:customerId
       })
     });
