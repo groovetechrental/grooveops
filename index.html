@@ -295,6 +295,7 @@ header{background:var(--surface);border-bottom:1px solid var(--border);padding:1
 <script>
 // ── CONSTANTS ─────────────────────────────────────────────────────────────────
 var MAKE_WEBHOOK='https://hook.us2.make.com/4khond9t4dm0sccbk88tsqr73du3kq5f';
+var MAKE_CRM_REPLY_WEBHOOK='https://hook.us2.make.com/1v8uwbzqqfcq0113gb1e97gh55j1vupq';
 var OWNER_RATE=40;
 var BUSINESS_START='2025-01-01';
 var MONTHS=['January','February','March','April','May','June','July','August','September','October','November','December'];
@@ -1516,24 +1517,6 @@ async function saveEv(id){
 }
 
 // ── CUSTOMER MODAL ────────────────────────────────────────────────────────────
-function openCuModal(id){
-  var c=id?C.customers.find(function(x){return sid(x.id)===sid(id);}):null;
-  openModal(c?'Edit Customer':'New Customer',
-    '<div class="form-group"><label>Name</label><input id="mCuName" value="'+esc(c?c.name:'')+'"></div>'+
-    '<div class="form-group"><label>Email</label><input type="email" id="mCuEmail" value="'+esc(c?c.email||'':'')+'"></div>'+
-    '<div class="form-group"><label>Phone</label><input id="mCuPhone" value="'+esc(c?c.phone||'':'')+'"></div>'+
-    '<div class="form-group"><label>Notes</label><textarea id="mCuNotes">'+esc(c?c.notes||'':'')+'</textarea></div>',
-    function(){saveCu(id);}
-  );
-}
-async function saveCu(id){
-  var name=gv('mCuName'),email=gv('mCuEmail'),phone=gv('mCuPhone'),notes=gv('mCuNotes');
-  if(!name){showErr('Name required.');return;}
-  var obj={name:name,email:email||null,phone:phone||null,notes:notes||null};
-  var r=id?await sb.from('customers').update(obj).eq('id',id):await sb.from('customers').insert(obj);
-  if(r.error){showErr(r.error.message);return;}
-  closeModal();await loadAll();showTab('customers');
-}
 async function quickAddCu(){
   var name=prompt('New customer name:');
   if(!name)return null;
@@ -2196,6 +2179,12 @@ async function sendQuote(id){
     }).catch(function(e){console.warn('Quote webhook failed:',e);});
   }
   await loadAll();
+  // Move CRM customer to proposal stage if we came from CRM
+  if(window._crmQuoteCustomerId){
+    await sb.from('customers').update({stage:'proposal'}).eq('id',window._crmQuoteCustomerId);
+    window._crmQuoteCustomerId=null;
+    await loadAll();
+  }
   showErr('\u2713 Quote sent'+(MAKE_QUOTE_WEBHOOK?' \u2014 email triggered via Make':''));
   renderQuotes();
 }
@@ -2447,8 +2436,97 @@ function renderCRM(){
 function setCrmFilter(s){crmStageFilter=s;renderCRM();}
 function setCrmView(v){crmView=v;renderCRM();}
 
+function openReplyModal(customerId){
+  var c=C.customers.find(function(x){return sid(x.id)===sid(customerId);});
+  if(!c){showErr('Customer not found.');return;}
+  var evs=C.events.filter(function(e){return sid(e.customer_id)===sid(customerId);});
+  var lastEv=evs.length?evs[0]:null;
+  var defaultSubject='Re: Your Inquiry — Groove Tech Rental';
+  var defaultBody='<p>Hi '+esc(c.name.split(' ')[0])+',</p>'+
+    '<p>Thank you for reaching out to Groove Tech Rental! We\'d love to help make your event unforgettable.</p>'+
+    '<p>Could you share a few more details so we can put together the perfect package for you?</p>'+
+    '<ul>'+
+    '<li>What is the date of your event?</li>'+
+    '<li>What type of event are you planning?</li>'+
+    '<li>Approximate guest count?</li>'+
+    '<li>What equipment or services are you interested in?</li>'+
+    '</ul>'+
+    '<p>We\'ll follow up with a custom quote once we have the details.</p>'+
+    '<p>Looking forward to working with you!</p>'+
+    '<p>— Groove Tech Rental<br>856-625-0855<br>groovetechrental.com</p>';
+
+  openModal('Send Email to '+c.name,
+    '<div class="form-group"><label>To</label><input id="replyTo" value="'+esc(c.email||'')+'" readonly style="color:var(--muted)"></div>'+
+    '<div class="form-group"><label>Subject</label><input id="replySubject" value="'+esc(defaultSubject)+'"></div>'+
+    '<div class="form-group"><label>Message</label><textarea id="replyBody" style="min-height:220px;font-family:monospace;font-size:12px">'+defaultBody+'</textarea></div>'+
+    '<div style="font-size:11px;color:var(--muted);margin-top:-6px">HTML is supported. Edit the body above before sending.</div>',
+    function(){sendCRMReply(customerId);},'Send Email'
+  );
+}
+
+async function sendCRMReply(customerId){
+  var c=C.customers.find(function(x){return sid(x.id)===sid(customerId);});
+  if(!c){showErr('Customer not found.');return;}
+  var to=gv('replyTo'),subject=gv('replySubject'),body=document.getElementById('replyBody').value;
+  if(!to){showErr('No email address for this customer.');return;}
+  if(!subject||!body){showErr('Subject and message required.');return;}
+
+  document.getElementById('msb').textContent='Sending...';
+  document.getElementById('msb').disabled=true;
+
+  try{
+    await fetch(MAKE_CRM_REPLY_WEBHOOK,{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({
+        to_email:to,
+        to_name:c.name,
+        subject:subject,
+        body:body,
+        customer_id:customerId
+      })
+    });
+  }catch(e){console.warn('Reply webhook error:',e);}
+
+  // Log interaction
+  var today=todayStr();
+  await sb.from('interactions').insert({
+    customer_id:customerId,
+    date:today,
+    type:'email',
+    direction:'outbound',
+    subject:subject,
+    notes:'Email sent: '+subject,
+    created_by:userEmail||'GT'
+  });
+
+  // Move to contacted if still in inquiry
+  if((c.stage||'inquiry')==='inquiry'){
+    await sb.from('customers').update({stage:'contacted',last_contact:today}).eq('id',customerId);
+  } else {
+    await sb.from('customers').update({last_contact:today}).eq('id',customerId);
+  }
+
+  closeModal();
+  await loadAll();
+  showErr('\u2713 Email sent and logged');
+  openCuCRM(customerId);
+}
+
+async function sendQuoteFromCRM(customerId){
+  var c=C.customers.find(function(x){return sid(x.id)===sid(customerId);});
+  if(!c)return;
+  closeModal();
+  openQuoteModal();
+  setTimeout(function(){
+    if(document.getElementById('qCuName'))document.getElementById('qCuName').value=c.name;
+    if(document.getElementById('qCuEmail'))document.getElementById('qCuEmail').value=c.email||'';
+    if(document.getElementById('qCuPhone'))document.getElementById('qCuPhone').value=c.phone||'';
+  },100);
+  window._crmQuoteCustomerId=customerId;
+}
+
 function openCuCRM(id){
-  var c=C.customers.find(function(x){return sid(x.id)===sid(id);});
   if(!c)return;
   var ints=C.interactions.filter(function(i){return sid(i.customer_id)===sid(id);}).sort(function(a,b){return b.date.localeCompare(a.date);});
   var evs=C.events.filter(function(e){return sid(e.customer_id)===sid(id);}).sort(function(a,b){return b.date.localeCompare(a.date);});
@@ -2465,8 +2543,9 @@ function openCuCRM(id){
       '<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">'+
         stageBadge(c.stage||'inquiry')+
         '<button class="btn btn-sm btn-outline" onclick="openCuModal(\''+sid(id)+'\')">Edit</button>'+
-        '<button class="btn btn-sm" onclick="openInteractionModal(\''+sid(id)+'\')">+ Log Interaction</button>'+
-        '<button class="btn btn-sm" onclick="openQuoteModal();document.getElementById(\'qCuName\').value=\''+esc(c.name)+'\';document.getElementById(\'qCuEmail\').value=\''+(c.email||'\'\'')+'\'">+ New Quote</button>'+
+        (c.email?'<button class="btn btn-sm btn-outline" onclick="openReplyModal(\''+sid(id)+'\')">✉ Reply</button>':'')+
+        ((c.stage==='qualified')?'<button class="btn btn-sm" style="background:var(--green);color:#000" onclick="sendQuoteFromCRM(\''+sid(id)+'\')">📋 Build Quote</button>':'')+
+        '<button class="btn btn-sm" onclick="openInteractionModal(\''+sid(id)+'\')">+ Log</button>'+
       '</div>'+
     '</div>'+
 
