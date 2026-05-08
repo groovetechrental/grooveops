@@ -1288,6 +1288,7 @@ function openModal(title,bodyHtml,saveFn,saveLabel){
   document.getElementById('mt').textContent=title;
   document.getElementById('mb').innerHTML=bodyHtml;
   document.getElementById('msb').textContent=saveLabel||'Save';
+  document.getElementById('msb').disabled=false;
   _modalSaveFn=saveFn;
   document.getElementById('mo').classList.add('open');
 }
@@ -2526,14 +2527,13 @@ async function sendCRMReply(customerId){
 async function sendQuoteFromCRM(customerId){
   var c=C.customers.find(function(x){return sid(x.id)===sid(customerId);});
   if(!c)return;
-  closeModal();
+  window._crmQuoteCustomerId=customerId;
   openQuoteModal();
   setTimeout(function(){
     if(document.getElementById('qCuName'))document.getElementById('qCuName').value=c.name;
     if(document.getElementById('qCuEmail'))document.getElementById('qCuEmail').value=c.email||'';
     if(document.getElementById('qCuPhone'))document.getElementById('qCuPhone').value=c.phone||'';
-  },100);
-  window._crmQuoteCustomerId=customerId;
+  },50);
 }
 
 function openCuCRM(id){
