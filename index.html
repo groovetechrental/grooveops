@@ -2492,31 +2492,35 @@ async function sendCRMReply(customerId){
         customer_id:customerId
       })
     });
-  }catch(e){console.warn('Reply webhook error:',e);}
 
-  // Log interaction
-  var today=todayStr();
-  await sb.from('interactions').insert({
-    customer_id:customerId,
-    date:today,
-    type:'email',
-    direction:'outbound',
-    subject:subject,
-    notes:'Email sent: '+subject,
-    created_by:userEmail||'GT'
-  });
+    var today=todayStr();
+    var loggedBy=typeof userEmail!=='undefined'&&userEmail?userEmail:'GT';
+    await sb.from('interactions').insert({
+      customer_id:customerId,
+      date:today,
+      type:'email',
+      direction:'outbound',
+      subject:subject,
+      notes:'Email sent: '+subject,
+      created_by:loggedBy
+    });
 
-  // Move to contacted if still in inquiry
-  if((c.stage||'inquiry')==='inquiry'){
-    await sb.from('customers').update({stage:'contacted',last_contact:today}).eq('id',customerId);
-  } else {
-    await sb.from('customers').update({last_contact:today}).eq('id',customerId);
+    if((c.stage||'inquiry')==='inquiry'){
+      await sb.from('customers').update({stage:'contacted',last_contact:today}).eq('id',customerId);
+    } else {
+      await sb.from('customers').update({last_contact:today}).eq('id',customerId);
+    }
+
+    closeModal();
+    await loadAll();
+    showErr('\u2713 Email sent and logged');
+    openCuCRM(customerId);
+  }catch(e){
+    console.error('Send error:',e);
+    showErr('Error sending: '+e.message);
+    var btn=document.getElementById('msb');
+    if(btn){btn.textContent='Send Email';btn.disabled=false;}
   }
-
-  closeModal();
-  await loadAll();
-  showErr('\u2713 Email sent and logged');
-  openCuCRM(customerId);
 }
 
 async function sendQuoteFromCRM(customerId){
