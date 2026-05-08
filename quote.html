@@ -222,6 +222,10 @@ async function doSign(){
     btn.textContent='Sign & Accept Quote';
     return;
   }
+  // Move customer to booked stage if email matches
+  if(q.customer_email){
+    await sb.from('customers').update({stage:'booked'}).eq('email',q.customer_email);
+  }
   document.getElementById('signWrap').innerHTML=
     '<div class="signed">&#10003; Signed by <strong>'+esc(name)+'</strong>. Thank you! We\'ll be in touch shortly to confirm your booking.</div>';
 }
