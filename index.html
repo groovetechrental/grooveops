@@ -2527,6 +2527,7 @@ async function sendQuoteFromCRM(customerId){
 }
 
 function openCuCRM(id){
+  var c=C.customers.find(function(x){return sid(x.id)===sid(id);});
   if(!c)return;
   var ints=C.interactions.filter(function(i){return sid(i.customer_id)===sid(id);}).sort(function(a,b){return b.date.localeCompare(a.date);});
   var evs=C.events.filter(function(e){return sid(e.customer_id)===sid(id);}).sort(function(a,b){return b.date.localeCompare(a.date);});
