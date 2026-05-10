@@ -931,7 +931,7 @@ function renderPayments(){
     periodSelector()+
     sh('Payments ('+filtered.length+')',exportBtn('exportPayments')+'<button class="btn btn-sm" onclick="openPayModal()">+ Record Payment</button>')+
     '<table class="tbl"><thead><tr>'+ths('Date','date')+ths('Customer','customer')+ths('Amount','amount')+ths('Method','method')+'<th>Event</th><th>Notes</th><th></th></tr></thead><tbody>'+
-    (sorted.map(function(p){return'<tr><td>'+fmtD(p.date)+'</td><td style="font-weight:500">'+cuName(p.customer_id)+'</td><td style="color:var(--green)">'+fmt(p.amount)+'</td><td>'+esc(p.method||'—')+'</td><td style="color:var(--muted)">'+(p.event_id?evName(p.event_id):'—')+'</td><td style="color:var(--muted)">'+esc(p.notes||'')+'</td><td><button class="btn btn-sm btn-danger" onclick="delRec(\'customer_payments\',\''+sid(p.id)+'\')">Del</button></td></tr>';}).join('')||'<tr><td colspan="7" class="empty">No payments in this period</td></tr>')+
+    (sorted.map(function(p){return'<tr><td>'+fmtD(p.date)+'</td><td style="font-weight:500">'+cuName(p.customer_id)+'</td><td style="color:var(--green)">'+fmt(p.amount)+'</td><td>'+esc(p.method||'—')+'</td><td style="color:var(--muted)">'+(p.event_id?evName(p.event_id):'—')+'</td><td style="color:var(--muted)">'+esc(p.notes||'')+'</td><td><div class="acts"><button class="btn btn-sm btn-outline" onclick="openEditPayModal(\''+sid(p.id)+'\')">Edit</button><button class="btn btn-sm btn-danger" onclick="delRec(\'customer_payments\',\''+sid(p.id)+'\')">Del</button></div></td></tr>';}).join('')||'<tr><td colspan="7" class="empty">No payments in this period</td></tr>')+
     '</tbody></table>';
 }
 function sortPay(col){if(paySort.col===col){paySort.dir*=-1;}else{paySort.col=col;paySort.dir=1;}renderPayments();}
@@ -1073,11 +1073,18 @@ function sortExp(col){if(expSort.col===col){expSort.dir*=-1;}else{expSort.col=co
 
 // ── EQUIPMENT CATALOG ─────────────────────────────────────────────────────────
 var openEqCardId=null;
+var eqSearchTerm='';
 
 function renderEquipment(){
+  var q=eqSearchTerm.toLowerCase().trim();
+  var items=q?C.equipItems.filter(function(item){
+    return item.name.toLowerCase().includes(q)||(item.category||'').toLowerCase().includes(q)||(item.description||'').toLowerCase().includes(q);
+  }):C.equipItems;
   document.getElementById('mc').innerHTML=
     sh('Equipment Catalog ('+C.equipItems.length+')','<button class="btn btn-sm" onclick="openEqItemModal()">+ Add Item</button>')+
-    (C.equipItems.length?C.equipItems.map(function(item){
+    '<div style="margin-bottom:14px"><input id="eqSearch" placeholder="🔍 Search equipment by name, category, or description…" value="'+esc(eqSearchTerm)+'" oninput="eqSearchTerm=this.value;renderEquipment()" style="max-width:420px"></div>'+
+    (q&&!items.length?'<div class="empty">No equipment matching "'+esc(eqSearchTerm)+'"</div>':
+    (items.length?items.map(function(item){
       var comps=C.equipComponents.filter(function(c){return c.equipment_item_id===item.id;}).sort(function(a,b){return(a.sort_order||0)-(b.sort_order||0);});
       var isOpen=openEqCardId===item.id;
       return'<div class="eq-card'+(isOpen?' open':'')+'" id="eqc-'+item.id+'">'+
@@ -1099,7 +1106,7 @@ function renderEquipment(){
           '</tbody></table>'+
         '</div>'+
       '</div>';
-    }).join(''):'<div class="empty">No equipment items yet. Add your first item to get started.</div>');
+    }).join(''):'<div class="empty">No equipment items yet. Add your first item to get started.</div>'));
 }
 function toggleEqCard(id){openEqCardId=(openEqCardId===id?null:id);renderEquipment();}
 
@@ -1528,22 +1535,28 @@ async function quickAddCu(){
 }
 
 // ── PAYMENT MODAL ─────────────────────────────────────────────────────────────
-function openPayModal(cuId,evId){
-  openModal('Add Payment',
-    '<div class="form-group"><label>Customer</label><select id="mPyCu">'+cuOpts(cuId)+'</select></div>'+
-    '<div class="form-group"><label>Event</label><select id="mPyEv"><option value="">— None —</option>'+C.events.map(function(e){return'<option value="'+sid(e.id)+'"'+(sid(e.id)===sid(evId)?' selected':'')+'>'+esc(e.name)+' ('+fmtD(e.date)+')</option>';}).join('')+'</select></div>'+
-    '<div class="form-group"><label>Amount</label><input type="number" id="mPyAmt"></div>'+
-    '<div class="form-group"><label>Date</label><input type="date" id="mPyDate" value="'+todayStr()+'"></div>'+
-    '<div class="form-group"><label>Method</label><select id="mPyMeth"><option value="">—</option><option>Cash</option><option>Check</option><option>Venmo</option><option>Zelle</option><option>Card</option><option>Other</option></select></div>'+
-    '<div class="form-group"><label>Notes</label><input id="mPyNotes"></div>',
-    savePay
-  );
+function payModalHtml(cuId,evId,p){
+  var methods=['Cash','Check','Venmo','Zelle','Card','Other'];
+  return '<div class="form-group"><label>Customer</label><select id="mPyCu">'+cuOpts(p?p.customer_id:cuId)+'</select></div>'+
+    '<div class="form-group"><label>Event</label><select id="mPyEv"><option value="">— None —</option>'+C.events.map(function(e){var sel=sid(e.id)===sid(p?p.event_id:evId);return'<option value="'+sid(e.id)+'"'+(sel?' selected':'')+'>'+esc(e.name)+' ('+fmtD(e.date)+')</option>';}).join('')+'</select></div>'+
+    '<div class="form-group"><label>Amount</label><input type="number" id="mPyAmt" value="'+(p?p.amount||'':'')+'"></div>'+
+    '<div class="form-group"><label>Date</label><input type="date" id="mPyDate" value="'+(p?p.date:todayStr())+'"></div>'+
+    '<div class="form-group"><label>Method</label><select id="mPyMeth"><option value="">—</option>'+methods.map(function(m){return'<option'+(p&&p.method===m?' selected':'')+'>'+m+'</option>';}).join('')+'</select></div>'+
+    '<div class="form-group"><label>Notes</label><input id="mPyNotes" value="'+esc(p?p.notes||'':'')+'"></div>';
 }
-async function savePay(){
+function openPayModal(cuId,evId){
+  openModal('Add Payment',payModalHtml(cuId,evId,null),function(){savePay(null);});
+}
+function openEditPayModal(id){
+  var p=C.payments.find(function(x){return sid(x.id)===sid(id);});
+  if(!p)return;
+  openModal('Edit Payment',payModalHtml(null,null,p),function(){savePay(id);});
+}
+async function savePay(id){
   var cu=gv('mPyCu'),ev=gv('mPyEv'),amt=gv('mPyAmt'),date=gv('mPyDate'),method=gv('mPyMeth'),notes=gv('mPyNotes');
   if(!amt||!date){showErr('Amount and date required.');return;}
   var obj={customer_id:cu||null,event_id:ev||null,amount:parseFloat(amt),date:date,method:method||null,notes:notes||null};
-  var r=await sb.from('customer_payments').insert(obj);
+  var r=id?await sb.from('customer_payments').update(obj).eq('id',id):await sb.from('customer_payments').insert(obj);
   if(r.error){showErr(r.error.message);return;}
   closeModal();await loadAll();showTab('customers');
 }
@@ -1562,8 +1575,14 @@ function openLabModal(evId){
 function openEditLaborModal(id){
   var l=C.labor.find(function(x){return sid(x.id)===sid(id);});
   if(!l)return;
+  var isOwner=l.person==='john'||l.person==='steve';
   openModal('Edit Labor',
-    '<div class="form-group"><label>Person</label><select id="mLbPer"><option value="john"'+(l.person==='john'?' selected':'')+'>John</option><option value="steve"'+(l.person==='steve'?' selected':'')+'>Steve</option><option value="'+esc(l.person)+'"'+(l.person!=='john'&&l.person!=='steve'?' selected':'')+'>'+esc(l.person)+'</option></select></div>'+
+    '<div class="form-group"><label>Person</label><select id="mLbPer">'+
+      '<option value="john"'+(l.person==='john'?' selected':'')+'>John</option>'+
+      '<option value="steve"'+(l.person==='steve'?' selected':'')+'>Steve</option>'+
+      (!isOwner?'<option value="'+esc(l.person)+'" selected>'+esc(l.person)+'</option>':'')+
+    '</select></div>'+
+    '<div class="form-group"><label>Event</label><select id="mLbEv"><option value="">— None —</option>'+C.events.map(function(e){return'<option value="'+sid(e.id)+'"'+(sid(e.id)===sid(l.event_id)?' selected':'')+'>'+esc(e.name)+' ('+fmtD(e.date)+')</option>';}).join('')+'</select></div>'+
     '<div class="form-group"><label>Hours</label><input type="number" step="0.25" id="mLbHrs" value="'+(l.hours||'')+'"></div>'+
     '<div class="form-group"><label>Rate</label><input type="number" id="mLbRate" value="'+(l.rate||'')+'"></div>'+
     '<div class="form-group"><label>Total Amount (overrides hrs×rate)</label><input type="number" id="mLbTotal" value="'+(l.total_amount||'')+'"></div>'+
@@ -1582,12 +1601,23 @@ async function saveLab(){
   closeModal();await loadAll();renderLabor();
 }
 async function saveLabEdit(id){
-  var per=gv('mLbPer'),hrs=gv('mLbHrs'),rate=gv('mLbRate'),total=gv('mLbTotal'),notes=gv('mLbNotes');
+  var per=gv('mLbPer'),evId=gv('mLbEv'),hrs=gv('mLbHrs'),rate=gv('mLbRate'),total=gv('mLbTotal'),notes=gv('mLbNotes');
   var h=parseFloat(hrs)||null,r2=parseFloat(rate)||null,t=total?parseFloat(total):h&&r2?h*r2:null;
   var existing=C.labor.find(function(l){return sid(l.id)===sid(id);});
-  var r=await sb.from('labor').update({person:per,hours:h,rate:r2,total_amount:t,notes:notes||null}).eq('id',id);
+  var oldEventId=existing?existing.event_id:null;
+  var newEventId=evId||null;
+  var r=await sb.from('labor').update({person:per,event_id:newEventId,hours:h,rate:r2,total_amount:t,notes:notes||null}).eq('id',id);
   if(r.error){showErr(r.error.message);return;}
-  if(existing&&existing.event_id)await syncLaborToEventCrew(existing.event_id,per,h);
+  // Sync updated hours into the (possibly new) event's crew JSON
+  if(newEventId)await syncLaborToEventCrew(newEventId,per,h);
+  // If event changed, remove person from old event's crew JSON
+  if(oldEventId&&oldEventId!==newEventId){
+    var oldEv=C.events.find(function(e){return sid(e.id)===sid(oldEventId);});
+    if(oldEv){
+      var crew=(oldEv.labor||[]).filter(function(c){return(c.name||'').toLowerCase()!==per.toLowerCase();});
+      await sb.from('events').update({labor:crew}).eq('id',oldEventId);
+    }
+  }
   closeModal();await loadAll();renderLabor();
 }
 
@@ -1609,6 +1639,8 @@ async function saveHelperLab(){
   var obj={person:per.toLowerCase(),event_id:ev||null,hours:h,rate:r2||null,total_amount:h*r2,paid:false,notes:notes||null};
   var r=await sb.from('labor').insert(obj);
   if(r.error){showErr(r.error.message);return;}
+  // Sync helper to event crew so they appear on the event
+  if(ev)await syncLaborToEventCrew(ev,per.toLowerCase(),h);
   closeModal();await loadAll();renderLabor();
 }
 function openHelperPayModal(laborId){
