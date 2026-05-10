@@ -1075,40 +1075,47 @@ function sortExp(col){if(expSort.col===col){expSort.dir*=-1;}else{expSort.col=co
 var openEqCardId=null;
 var eqSearchTerm='';
 
-function renderEquipment(){
+function eqItemHtml(item){
+  var comps=C.equipComponents.filter(function(c){return c.equipment_item_id===item.id;}).sort(function(a,b){return(a.sort_order||0)-(b.sort_order||0);});
+  var isOpen=openEqCardId===item.id;
+  return'<div class="eq-card'+(isOpen?' open':'')+'" id="eqc-'+item.id+'">'+
+    '<div class="eq-card-head" onclick="toggleEqCard(\''+item.id+'\')">'+
+      '<div><div class="eq-card-name">'+esc(item.name)+'</div>'+
+      (item.category?'<div style="font-size:11px;color:var(--muted)">'+esc(item.category)+'</div>':'')+
+      '<div style="font-size:11px;color:var(--muted);margin-top:2px">'+comps.length+' component'+(comps.length!==1?'s':'')+(item.price?' · '+fmt(item.price)+'/unit':'')+'</div></div>'+
+      '<div style="display:flex;align-items:center;gap:8px">'+
+      (item.photo_url?'<img src="'+esc(item.photo_url)+'" style="width:36px;height:36px;object-fit:cover;border-radius:6px;border:1px solid var(--border)">':'')+
+        '<button class="btn btn-sm btn-outline" onclick="event.stopPropagation();openEqItemModal(\''+item.id+'\')">Edit</button>'+
+        '<button class="btn btn-sm btn-danger" onclick="event.stopPropagation();delRec(\'equipment_items\',\''+item.id+'\')">Del</button>'+
+        '<span class="expand-arrow">▼</span>'+
+      '</div>'+
+    '</div>'+
+    '<div class="eq-card-body">'+
+      sh('Components','<button class="btn btn-sm" onclick="openEqCompModal(\''+item.id+'\')">+ Add Component</button>')+
+      '<table class="tbl"><thead><tr><th>Component</th><th>Qty</th><th>Unit</th><th>Order</th><th></th></tr></thead><tbody>'+
+      (comps.map(function(c){return'<tr><td style="font-weight:500">'+esc(c.name)+'</td><td>'+(c.quantity||'—')+'</td><td style="color:var(--muted)">'+esc(c.unit||'—')+'</td><td style="color:var(--muted)">'+(c.sort_order||0)+'</td><td><div class="acts"><button class="btn btn-sm btn-outline" onclick="openEqCompModal(\''+item.id+'\',\''+c.id+'\')">Edit</button><button class="btn btn-sm btn-danger" onclick="delRec(\'equipment_components\',\''+c.id+'\')">Del</button></div></td></tr>';}).join('')||'<tr><td colspan="5" class="empty">No components yet — click + Add Component above</td></tr>')+
+      '</tbody></table>'+
+    '</div>'+
+  '</div>';
+}
+function renderEqResults(){
   var q=eqSearchTerm.toLowerCase().trim();
   var items=q?C.equipItems.filter(function(item){
     return item.name.toLowerCase().includes(q)||(item.category||'').toLowerCase().includes(q)||(item.description||'').toLowerCase().includes(q);
   }):C.equipItems;
+  var wrap=document.getElementById('eqResults');
+  if(!wrap)return;
+  if(q&&!items.length){wrap.innerHTML='<div class="empty">No equipment matching "'+esc(eqSearchTerm)+'"</div>';return;}
+  wrap.innerHTML=items.length?items.map(eqItemHtml).join(''):'<div class="empty">No equipment items yet. Add your first item to get started.</div>';
+}
+function renderEquipment(){
   document.getElementById('mc').innerHTML=
     sh('Equipment Catalog ('+C.equipItems.length+')','<button class="btn btn-sm" onclick="openEqItemModal()">+ Add Item</button>')+
-    '<div style="margin-bottom:14px"><input id="eqSearch" placeholder="🔍 Search equipment by name, category, or description…" value="'+esc(eqSearchTerm)+'" oninput="eqSearchTerm=this.value;renderEquipment()" style="max-width:420px"></div>'+
-    (q&&!items.length?'<div class="empty">No equipment matching "'+esc(eqSearchTerm)+'"</div>':
-    (items.length?items.map(function(item){
-      var comps=C.equipComponents.filter(function(c){return c.equipment_item_id===item.id;}).sort(function(a,b){return(a.sort_order||0)-(b.sort_order||0);});
-      var isOpen=openEqCardId===item.id;
-      return'<div class="eq-card'+(isOpen?' open':'')+'" id="eqc-'+item.id+'">'+
-        '<div class="eq-card-head" onclick="toggleEqCard(\''+item.id+'\')">'+
-          '<div><div class="eq-card-name">'+esc(item.name)+'</div>'+
-          (item.category?'<div style="font-size:11px;color:var(--muted)">'+esc(item.category)+'</div>':'')+
-          '<div style="font-size:11px;color:var(--muted);margin-top:2px">'+comps.length+' component'+(comps.length!==1?'s':'')+(item.price?' · '+fmt(item.price)+'/unit':'')+'</div></div>'+
-          '<div style="display:flex;align-items:center;gap:8px">'+
-          (item.photo_url?'<img src="'+esc(item.photo_url)+'" style="width:36px;height:36px;object-fit:cover;border-radius:6px;border:1px solid var(--border)">':'')+
-            '<button class="btn btn-sm btn-outline" onclick="event.stopPropagation();openEqItemModal(\''+item.id+'\')">Edit</button>'+
-            '<button class="btn btn-sm btn-danger" onclick="event.stopPropagation();delRec(\'equipment_items\',\''+item.id+'\')">Del</button>'+
-            '<span class="expand-arrow">▼</span>'+
-          '</div>'+
-        '</div>'+
-        '<div class="eq-card-body">'+
-          sh('Components','<button class="btn btn-sm" onclick="openEqCompModal(\''+item.id+'\')">+ Add Component</button>')+
-          '<table class="tbl"><thead><tr><th>Component</th><th>Qty</th><th>Unit</th><th>Order</th><th></th></tr></thead><tbody>'+
-          (comps.map(function(c){return'<tr><td style="font-weight:500">'+esc(c.name)+'</td><td>'+(c.quantity||'—')+'</td><td style="color:var(--muted)">'+esc(c.unit||'—')+'</td><td style="color:var(--muted)">'+(c.sort_order||0)+'</td><td><div class="acts"><button class="btn btn-sm btn-outline" onclick="openEqCompModal(\''+item.id+'\',\''+c.id+'\')">Edit</button><button class="btn btn-sm btn-danger" onclick="delRec(\'equipment_components\',\''+c.id+'\')">Del</button></div></td></tr>';}).join('')||'<tr><td colspan="5" class="empty">No components yet — click + Add Component above</td></tr>')+
-          '</tbody></table>'+
-        '</div>'+
-      '</div>';
-    }).join(''):'<div class="empty">No equipment items yet. Add your first item to get started.</div>'));
+    '<div style="margin-bottom:14px"><input id="eqSearch" placeholder="🔍 Search by name, category, or description…" value="'+esc(eqSearchTerm)+'" oninput="eqSearchTerm=this.value;renderEqResults()" style="max-width:420px" autofocus></div>'+
+    '<div id="eqResults"></div>';
+  renderEqResults();
 }
-function toggleEqCard(id){openEqCardId=(openEqCardId===id?null:id);renderEquipment();}
+function toggleEqCard(id){openEqCardId=(openEqCardId===id?null:id);renderEqResults();}
 
 // ── PACKING LIST ──────────────────────────────────────────────────────────────
 function hasPackingList(e){
@@ -1427,6 +1434,20 @@ function evEquipHtml(wrapId,items,label,emoji){
 function openEvModal(id,dateStr){
   var ev=id?C.events.find(function(e){return sid(e.id)===sid(id);}):null;
   var d=ev?ev.date:(dateStr||todayStr());
+  // Build crew: prefer ev.labor JSON, but if empty fall back to labor table records for this event
+  var crewForModal=[];
+  if(ev){
+    var evLabor=ev.labor||[];
+    if(evLabor.filter(function(c){return c.name;}).length){
+      crewForModal=evLabor;
+    } else {
+      // Reconstruct from labor table so edits made in Labor tab show up here
+      var laborRows=C.labor.filter(function(l){return sid(l.event_id)===sid(ev.id);});
+      crewForModal=laborRows.map(function(l){
+        return{name:l.person.charAt(0).toUpperCase()+l.person.slice(1),qty:l.hours||null,confirmed:true};
+      });
+    }
+  }
   openModal(ev?'Edit Event':'New Event',
     '<div class="form-group"><label>Event Name</label><input id="mEvName" value="'+esc(ev?ev.name:'')+'"></div>'+
     typeToggleHtml(ev?ev.type:'gt')+
@@ -1435,7 +1456,7 @@ function openEvModal(id,dateStr){
       '<div class="form-group"><label>Time</label><input id="mEvTime" value="'+esc(ev?ev.time||'':'')+'"></div>'+
     '</div>'+
     '<div class="form-group"><label>Venue</label><input id="mEvVenue" value="'+esc(ev?ev.venue||'':'')+'"></div>'+
-    evCrewHtml(ev?ev.labor:[])+
+    evCrewHtml(crewForModal)+
     '<div style="background:var(--surface2);border-radius:10px;padding:14px;margin-bottom:12px">'+
       evEquipHtml('mainEquipWrap',ev?ev.main_equip:[],'Main Equipment','🎛')+
     '</div>'+
