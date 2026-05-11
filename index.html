@@ -861,7 +861,7 @@ function openEvDetail(id,returnTab){
     '<table class="tbl"><thead><tr><th>Person</th><th>Hours</th><th>Rate/Amount</th><th>Earned</th><th>Status</th><th></th></tr></thead><tbody>'+
     (eL.map(function(l){var isOwner=l.person==='john'||l.person==='steve';var earned=parseFloat(l.total_amount)||((parseFloat(l.hours)||0)*(parseFloat(l.rate)||OWNER_RATE));
       return'<tr><td style="text-transform:capitalize;font-weight:500">'+esc(l.person)+'</td><td>'+(l.hours||'—')+'</td><td>'+(isOwner?(l.rate?fmt(l.rate)+'/hr':'$'+OWNER_RATE+'/hr'):(l.total_amount?fmt(l.total_amount)+' flat':'—'))+'</td><td style="color:var(--green)">'+fmt(earned)+'</td><td>'+(isOwner?'<span class="badge bb">Owner</span>':'<span class="badge '+(l.paid?'bg':'ba')+'">'+(l.paid?'Paid':'Unpaid')+'</span>')+'</td>'+
-      '<td><div class="acts">'+(!isOwner&&!l.paid?'<button class="btn btn-sm btn-outline" onclick="markHelperPaid(\''+sid(l.id)+'\')">✓ Pay</button>':'')+'<button class="btn btn-sm btn-outline" onclick="openEditLaborModal(\''+sid(l.id)+'\')">Edit</button><button class="btn btn-sm btn-danger" onclick="delRec(\'labor\',\''+sid(l.id)+'\',function(){openEvDetail(\''+sid(id)+'\',\''+prevTab+'\');})">Del</button></div></td></tr>';
+      '<td><div class="acts">'+(!isOwner&&!l.paid?'<button class="btn btn-sm btn-outline" onclick="openHelperPayModal(\''+sid(l.id)+'\')">✓ Pay</button>':'')+'<button class="btn btn-sm btn-outline" onclick="openEditLaborModal(\''+sid(l.id)+'\')">Edit</button><button class="btn btn-sm btn-danger" onclick="delRec(\'labor\',\''+sid(l.id)+'\',function(){openEvDetail(\''+sid(id)+'\',\''+prevTab+'\');})">Del</button></div></td></tr>';
     }).join('')||'<tr><td colspan="6" class="empty">No labor recorded</td></tr>')+
     '</tbody></table>'+
     sh('Expenses','<button class="btn btn-sm" onclick="openExpModal(\''+sid(e.id)+'\')">+ Add Expense</button>')+
@@ -1463,12 +1463,7 @@ function openEvModal(id,dateStr){
     '<div style="background:var(--surface2);border-radius:10px;padding:14px;margin-bottom:12px">'+
       evEquipHtml('secEquipWrap',ev?ev.sec_equip:[],'Secondary Equipment','📦')+
     '</div>'+
-    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">'+
-      '<div class="form-group"><label>Status</label><select id="mEvStatus">'+
-        ['upcoming','confirmed','completed','cancelled'].map(function(s){return'<option value="'+s+'"'+(ev&&ev.status===s?' selected':(!ev&&s==='upcoming'?' selected':''))+'>'+s.charAt(0).toUpperCase()+s.slice(1)+'</option>';}).join('')+
-      '</select></div>'+
-      '<div class="form-group"><label>Invoice Amount ($)</label><input type="number" id="mEvInv" value="'+(ev&&ev.invoice_amount!=null?ev.invoice_amount:'')+'"></div>'+
-    '</div>'+
+    '<div class="form-group"><label>Invoice Amount ($)</label><input type="number" id="mEvInv" value="'+(ev&&ev.invoice_amount!=null?ev.invoice_amount:'')+'"></div>'+
     '<div class="form-group" style="display:flex;align-items:center;gap:10px;margin-bottom:14px">'+
       '<label style="margin:0;cursor:pointer;display:flex;align-items:center;gap:8px">'+
         '<input type="checkbox" id="mEvHoursNA" style="width:16px;height:16px;accent-color:var(--accent)"'+(ev&&ev.hours_na?' checked':'')+'>'+
@@ -1529,11 +1524,12 @@ async function syncLaborToEventCrew(eventId, person, hours){
   await sb.from('events').update({labor:crew}).eq('id',eventId);
 }
 async function saveEv(id){
-  var name=gv('mEvName'),date=gv('mEvDate'),time=gv('mEvTime'),venue=gv('mEvVenue'),type=gv('mEvType'),status=gv('mEvStatus'),cuRaw=gv('mEvCu'),inv=gv('mEvInv'),notes=gv('mEvNotes');
+  var name=gv('mEvName'),date=gv('mEvDate'),time=gv('mEvTime'),venue=gv('mEvVenue'),type=gv('mEvType'),cuRaw=gv('mEvCu'),inv=gv('mEvInv'),notes=gv('mEvNotes');
   var hoursNA=document.getElementById('mEvHoursNA')?document.getElementById('mEvHoursNA').checked:false;
   if(!name||!date){showErr('Name and date required.');return;}
   var cuId=cuRaw==='__new__'?await quickAddCu():cuRaw||null;
-  var obj={name:name,date:date,time:time||null,venue:venue||null,type:type,status:status,customer_id:cuId,invoice_amount:inv?parseFloat(inv):null,notes:notes||null,hours_na:hoursNA,
+  var existingEv=id?C.events.find(function(e){return sid(e.id)===sid(id);}):null;
+  var obj={name:name,date:date,time:time||null,venue:venue||null,type:type,status:existingEv?existingEv.status:'upcoming',customer_id:cuId,invoice_amount:inv?parseFloat(inv):null,notes:notes||null,hours_na:hoursNA,
     labor:collectCrew(),main_equip:collectEquip('mainEquipWrap'),sec_equip:collectEquip('secEquipWrap')};
   var r=id?await sb.from('events').update(obj).eq('id',id):await sb.from('events').insert(obj);
   if(r.error){showErr(r.error.message);return;}
