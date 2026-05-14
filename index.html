@@ -2436,9 +2436,11 @@ function renderCRM(){
           var lastEv=C.events.filter(function(e){return sid(e.customer_id)===sid(c.id);}).sort(function(a,b){return b.date.localeCompare(a.date);})[0];
           return'<div class="pipeline-card" onclick="openCuCRM(\''+sid(c.id)+'\')">'+
             '<div class="pipeline-card-name">'+esc(c.name)+'</div>'+
+            (c.label?'<div style="display:inline-block;background:var(--accent);color:#fff;font-size:10px;font-weight:700;padding:2px 8px;border-radius:20px;margin-bottom:4px;letter-spacing:.3px">'+esc(c.label)+'</div><br>':'')+
             '<div class="pipeline-card-meta">'+(c.event_type_interest?esc(c.event_type_interest)+'<br>':'')+(lastInt?'Last: '+fmtD(lastInt.date):lastEv?'Event: '+fmtD(lastEv.date):'No contact yet')+'</div>'+
             (c.budget_min||c.budget_max?'<div class="pipeline-card-meta" style="margin-top:4px;color:var(--green)">$'+(c.budget_min||0)+' – $'+(c.budget_max||'?')+'</div>':'')+
-            '<div onclick="event.stopPropagation()" style="margin-top:8px;text-align:right">'+
+            '<div onclick="event.stopPropagation()" style="margin-top:8px;display:flex;gap:6px;align-items:center">'+
+              '<input placeholder="Add label…" value="'+esc(c.label||'')+'" style="flex:1;font-size:11px;padding:3px 7px;border-radius:6px;border:1px solid var(--border);background:var(--surface2);color:var(--text)" onchange="quickSaveLabel(\''+sid(c.id)+'\',this.value)" onclick="event.stopPropagation()">'+
               '<button class="btn btn-sm btn-danger" onclick="delRec(\'customers\',\''+sid(c.id)+'\')">Del</button>'+
             '</div>'+
           '</div>';
@@ -2456,7 +2458,7 @@ function renderCRM(){
       var db=lastB?lastB.date:(b.last_contact||b.inquiry_date||'');
       return db.localeCompare(da);
     });
-    body='<table class="tbl"><thead><tr><th>Name</th><th>Stage</th><th>Source</th><th>Interest</th><th>Budget</th><th>Last Contact</th><th>Interactions</th><th></th></tr></thead><tbody>'+
+    body='<table class="tbl"><thead><tr><th>Name</th><th>Label</th><th>Stage</th><th>Source</th><th>Interest</th><th>Budget</th><th>Last Contact</th><th>Interactions</th><th></th></tr></thead><tbody>'+
     (sorted.map(function(c){
       var ints=C.interactions.filter(function(i){return sid(i.customer_id)===sid(c.id);});
       var lastInt=ints.sort(function(a,b){return b.date.localeCompare(a.date);})[0];
@@ -2464,6 +2466,7 @@ function renderCRM(){
       var colorCls=lastDate?lastContactColor(lastDate):'last-contact-red';
       return'<tr style="cursor:pointer" onclick="openCuCRM(\''+sid(c.id)+'\')">'+
         '<td style="font-weight:500">'+esc(c.name)+'<br><span style="font-size:11px;color:var(--muted)">'+esc(c.email||'')+'</span></td>'+
+        '<td onclick="event.stopPropagation()"><input value="'+esc(c.label||'')+'" placeholder="—" style="width:100px;font-size:11px;padding:3px 7px;border-radius:6px;border:1px solid var(--border);background:var(--surface2);color:var(--text)" onchange="quickSaveLabel(\''+sid(c.id)+'\',this.value)"></td>'+
         '<td>'+stageBadge(c.stage||'inquiry')+'</td>'+
         '<td style="font-size:12px;color:var(--muted);text-transform:capitalize">'+esc(c.source||'—')+'</td>'+
         '<td style="font-size:12px">'+esc(c.event_type_interest||'—')+'</td>'+
@@ -2476,7 +2479,7 @@ function renderCRM(){
           '<button class="btn btn-sm btn-danger" onclick="delRec(\'customers\',\''+sid(c.id)+'\')">Del</button>'+
         '</div></td>'+
       '</tr>';
-    }).join('')||'<tr><td colspan="8" class="empty">No customers</td></tr>')+
+    }).join('')||'<tr><td colspan="9" class="empty">No customers</td></tr>')+
     '</tbody></table>';
   }
 
@@ -2489,6 +2492,15 @@ function renderCRM(){
 
 function setCrmFilter(s){crmStageFilter=s;renderCRM();}
 function setCrmView(v){crmView=v;renderCRM();}
+
+async function quickSaveLabel(id, val){
+  var r=await sb.from('customers').update({label:val||null}).eq('id',id);
+  if(r.error){showErr(r.error.message);return;}
+  var c=C.customers.find(function(x){return sid(x.id)===sid(id);});
+  if(c)c.label=val||null;
+  // Refresh label badge on pipeline card without full re-render
+  if(crmView==='pipeline')renderCRM();
+}
 
 function openReplyModal(customerId){
   var c=C.customers.find(function(x){return sid(x.id)===sid(customerId);});
@@ -2741,6 +2753,7 @@ function openCuModal(id){
       '</select></div>'+
     '</div>'+
     '<div style="font-size:11px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:.8px;margin:14px 0 10px">Event Interest</div>'+
+    '<div class="form-group"><label>Label <span style="font-size:11px;color:var(--muted);font-weight:400">— short tag shown on pipeline card (e.g. "Dance Floor", "DJ + Lighting")</span></label><input id="mCuLabel" placeholder="e.g. Dance Floor" value="'+esc(c?c.label||'':'')+'"></div>'+
     '<div class="form-group"><label>Event Type</label><input id="mCuEvType" placeholder="e.g. Wedding, Corporate, Birthday" value="'+esc(c?c.event_type_interest||'':'')+'"></div>'+
     '<div class="g2">'+
       '<div class="form-group"><label>Budget Min ($)</label><input type="number" id="mCuBudMin" value="'+(c?c.budget_min||'':'')+'"></div>'+
@@ -2756,11 +2769,11 @@ function openCuModal(id){
 async function saveCu(id){
   var name=gv('mCuName'),email=gv('mCuEmail'),phone=gv('mCuPhone');
   var stage=gv('mCuStage'),source=gv('mCuSource'),inqDate=gv('mCuInqDate'),prefCon=gv('mCuPrefCon');
-  var evType=gv('mCuEvType'),budMin=gv('mCuBudMin'),budMax=gv('mCuBudMax'),head=gv('mCuHead'),ref=gv('mCuRef'),notes=gv('mCuNotes');
+  var label=gv('mCuLabel'),evType=gv('mCuEvType'),budMin=gv('mCuBudMin'),budMax=gv('mCuBudMax'),head=gv('mCuHead'),ref=gv('mCuRef'),notes=gv('mCuNotes');
   if(!name){showErr('Name required.');return;}
   var obj={name:name,email:email||null,phone:phone||null,notes:notes||null,
     stage:stage||'inquiry',source:source||null,inquiry_date:inqDate||null,preferred_contact:prefCon||null,
-    event_type_interest:evType||null,budget_min:budMin?parseInt(budMin):null,budget_max:budMax?parseInt(budMax):null,
+    label:label||null,event_type_interest:evType||null,budget_min:budMin?parseInt(budMin):null,budget_max:budMax?parseInt(budMax):null,
     headcount:head?parseInt(head):null,referral_source:ref||null};
   var r=id?await sb.from('customers').update(obj).eq('id',id):await sb.from('customers').insert(obj);
   if(r.error){showErr(r.error.message);return;}
