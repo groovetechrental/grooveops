@@ -1001,13 +1001,53 @@ function ownerStats(person){
   var psTotal=ps.reduce(function(s,p){return s+(parseFloat(p.amount)||0);},0);
   return{laborEarned:laborEarned,laborPaid:laborPaid,laborOwed:laborEarned-laborPaid,expPaid:expPaid,expReimb:expReimb,expOwed:expPaid-expReimb,psTotal:psTotal};
 }
+// ── OWNER FINANCES ────────────────────────────────────────────────────────────
+var ofLabPaySort={col:'date',dir:-1};
+var ofPSSort={col:'date',dir:-1};
+var ofLabSort={col:'date',dir:-1};
+function sortOFLabPay(col){if(ofLabPaySort.col===col){ofLabPaySort.dir*=-1;}else{ofLabPaySort.col=col;ofLabPaySort.dir=-1;}renderOwnerFinances();}
+function sortOFPS(col){if(ofPSSort.col===col){ofPSSort.dir*=-1;}else{ofPSSort.col=col;ofPSSort.dir=-1;}renderOwnerFinances();}
+function sortOFLab(col){if(ofLabSort.col===col){ofLabSort.dir*=-1;}else{ofLabSort.col=col;ofLabSort.dir=-1;}renderOwnerFinances();}
+
 function renderOwnerFinances(){
   var john=ownerStats('john'),steve=ownerStats('steve');
   function personCard(name,s){
     var label=name.charAt(0).toUpperCase()+name.slice(1);
-    var ps=filterByPeriod(C.profitShare,'date').filter(function(p){return p.person===name;}).sort(function(a,b){return b.date.localeCompare(a.date);});
-    var lp=filterByPeriod(C.laborPayments,'date').filter(function(p){return p.person===name;}).sort(function(a,b){return b.date.localeCompare(a.date);});
+    var ps=filterByPeriod(C.profitShare,'date').filter(function(p){return p.person===name;});
+    var lp=filterByPeriod(C.laborPayments,'date').filter(function(p){return p.person===name;});
     var labRows=filterLaborByPeriod(C.labor).filter(function(l){return l.person===name;});
+
+    // Sort labor payments
+    lp=lp.slice().sort(function(a,b){var av,bv;
+      if(ofLabPaySort.col==='date'){av=a.date||'';bv=b.date||'';}
+      else if(ofLabPaySort.col==='amount'){av=parseFloat(a.amount)||0;bv=parseFloat(b.amount)||0;}
+      else if(ofLabPaySort.col==='method'){av=(a.method||'').toLowerCase();bv=(b.method||'').toLowerCase();}
+      else{av='';bv='';}
+      if(av<bv)return-1*ofLabPaySort.dir;if(av>bv)return 1*ofLabPaySort.dir;return 0;
+    });
+    // Sort profit share
+    ps=ps.slice().sort(function(a,b){var av,bv;
+      if(ofPSSort.col==='date'){av=a.date||'';bv=b.date||'';}
+      else if(ofPSSort.col==='amount'){av=parseFloat(a.amount)||0;bv=parseFloat(b.amount)||0;}
+      else if(ofPSSort.col==='method'){av=(a.method||'').toLowerCase();bv=(b.method||'').toLowerCase();}
+      else if(ofPSSort.col==='event'){av=evName(a.event_id).toLowerCase();bv=evName(b.event_id).toLowerCase();}
+      else{av='';bv='';}
+      if(av<bv)return-1*ofPSSort.dir;if(av>bv)return 1*ofPSSort.dir;return 0;
+    });
+    // Sort labor detail
+    labRows=labRows.slice().sort(function(a,b){var av,bv;
+      if(ofLabSort.col==='date'){var ea=findEv(a.event_id),eb=findEv(b.event_id);av=ea?ea.date||'':'';bv=eb?eb.date||'':'';}
+      else if(ofLabSort.col==='event'){av=evName(a.event_id).toLowerCase();bv=evName(b.event_id).toLowerCase();}
+      else if(ofLabSort.col==='hours'){av=parseFloat(a.hours)||0;bv=parseFloat(b.hours)||0;}
+      else if(ofLabSort.col==='earned'){av=parseFloat(a.total_amount)||((parseFloat(a.hours)||0)*(parseFloat(a.rate)||OWNER_RATE));bv=parseFloat(b.total_amount)||((parseFloat(b.hours)||0)*(parseFloat(b.rate)||OWNER_RATE));}
+      else{av='';bv='';}
+      if(av<bv)return-1*ofLabSort.dir;if(av>bv)return 1*ofLabSort.dir;return 0;
+    });
+
+    function lpth(lbl,col){var arrow=ofLabPaySort.col===col?(ofLabPaySort.dir===1?' ↑':' ↓'):'';return'<th style="cursor:pointer;user-select:none" onclick="sortOFLabPay(\''+col+'\')">'+lbl+arrow+'</th>';}
+    function psth(lbl,col){var arrow=ofPSSort.col===col?(ofPSSort.dir===1?' ↑':' ↓'):'';return'<th style="cursor:pointer;user-select:none" onclick="sortOFPS(\''+col+'\')">'+lbl+arrow+'</th>';}
+    function lbth(lbl,col){var arrow=ofLabSort.col===col?(ofLabSort.dir===1?' ↑':' ↓'):'';return'<th style="cursor:pointer;user-select:none" onclick="sortOFLab(\''+col+'\')">'+lbl+arrow+'</th>';}
+
     return'<div style="margin-bottom:24px">'+
       '<div class="section-title" style="margin-bottom:12px">'+label+'</div>'+
       '<div class="stat-grid" style="margin-bottom:16px">'+
@@ -1021,7 +1061,7 @@ function renderOwnerFinances(){
         sc('Total Owed',fmt(s.laborOwed+s.expOwed),s.laborOwed+s.expOwed>0?'amber':'')+
       '</div>'+
       sh('Labor Payments — '+label,'<button class="btn btn-sm btn-outline" onclick="exportOwnerFinances(\''+name+'\')">⬇ CSV</button><button class="btn btn-sm" onclick="openLaborPayModal(\''+name+'\')">+ Add Labor Payment</button>')+
-      '<table class="tbl"><thead><tr><th>Date</th><th>Amount</th><th>Method</th><th>Notes</th><th></th></tr></thead><tbody>'+
+      '<table class="tbl"><thead><tr>'+lpth('Date','date')+lpth('Amount','amount')+lpth('Method','method')+'<th>Notes</th><th></th></tr></thead><tbody>'+
       (lp.map(function(p){return'<tr>'+
         '<td>'+fmtD(p.date)+'</td>'+
         '<td style="color:var(--green)">'+fmt(p.amount)+'</td>'+
@@ -1031,11 +1071,11 @@ function renderOwnerFinances(){
       '</tr>';}).join('')||'<tr><td colspan="5" class="empty">No labor payments recorded</td></tr>')+
       '</tbody></table>'+
       sh('Profit Share — '+label,'<button class="btn btn-sm" onclick="openPSModal(\''+name+'\')">+ Add Distribution</button>')+
-      '<table class="tbl"><thead><tr><th>Date</th><th>Amount</th><th>Method</th><th>Event</th><th>Notes</th><th></th></tr></thead><tbody>'+
+      '<table class="tbl"><thead><tr>'+psth('Date','date')+psth('Amount','amount')+psth('Method','method')+psth('Event','event')+'<th>Notes</th><th></th></tr></thead><tbody>'+
       (ps.map(function(p){return'<tr><td>'+fmtD(p.date)+'</td><td style="color:var(--green)">'+fmt(p.amount)+'</td><td>'+esc(p.method||'—')+'</td><td style="color:var(--muted)">'+(p.event_id?evName(p.event_id):'—')+'</td><td style="color:var(--muted)">'+esc(p.notes||'')+'</td><td><button class="btn btn-sm btn-danger" onclick="delRec(\'profit_share\',\''+sid(p.id)+'\')">Del</button></td></tr>';}).join('')||'<tr><td colspan="6" class="empty">No profit share distributions yet</td></tr>')+
       '</tbody></table>'+
       sh('Labor Detail — '+label)+
-      '<table class="tbl"><thead><tr><th>Event</th><th>Date</th><th>Hours</th><th>Earned</th><th>Notes</th><th></th></tr></thead><tbody>'+
+      '<table class="tbl"><thead><tr>'+lbth('Event','event')+lbth('Date','date')+lbth('Hours','hours')+lbth('Earned','earned')+'<th>Notes</th><th></th></tr></thead><tbody>'+
       (labRows.map(function(l){var ev=findEv(l.event_id);var earned=parseFloat(l.total_amount)||((parseFloat(l.hours)||0)*(parseFloat(l.rate)||OWNER_RATE));
         return'<tr><td style="font-weight:500">'+evName(l.event_id)+'</td><td>'+(ev?fmtD(ev.date):'—')+'</td><td>'+(l.hours||'—')+'</td><td style="color:var(--green)">'+fmt(earned)+'</td><td style="color:var(--muted)">'+esc(l.notes||'')+'</td>'+
         '<td><div class="acts"><button class="btn btn-sm btn-outline" onclick="openEditLaborModal(\''+sid(l.id)+'\')">Edit</button></div></td></tr>';}).join('')||'<tr><td colspan="6" class="empty">No labor records</td></tr>')+
@@ -2388,7 +2428,7 @@ var CRM_STAGE_EMOJI={inquiry:'🔵',contacted:'🟡',qualified:'🟠',proposal:'
 var CRM_SOURCES=['email','instagram','facebook','referral','website','phone','walk-in','other'];
 var CRM_INT_TYPES=['email','call','text','meeting','note','quote','other'];
 var CRM_INT_ICONS={email:'✉',call:'📞',text:'💬',meeting:'🤝',note:'📝',quote:'📋',other:'•'};
-var crmView='table';
+var crmView='pipeline';
 var crmStageFilter='all';
 
 function stageBadge(s){return'<span class="badge stage-'+(s||'inquiry')+'">'+(CRM_STAGE_LABELS[s]||s||'inquiry')+'</span>';}
@@ -2399,8 +2439,10 @@ function lastContactColor(dateStr){
   return days<=7?'last-contact-green':days<=14?'last-contact-amber':'last-contact-red';
 }
 
+var crmSort={col:'last_contact',dir:-1};
+function sortCRM(col){if(crmSort.col===col){crmSort.dir*=-1;}else{crmSort.col=col;crmSort.dir=-1;}renderCRM();}
+
 function renderCRM(){
-  var cuSort2={col:'last_contact',dir:-1};
   var customers=C.customers.slice();
 
   // Stage counts
@@ -2454,11 +2496,20 @@ function renderCRM(){
     var sorted=filtered.slice().sort(function(a,b){
       var lastA=C.interactions.filter(function(i){return sid(i.customer_id)===sid(a.id);}).sort(function(x,y){return y.date.localeCompare(x.date);})[0];
       var lastB=C.interactions.filter(function(i){return sid(i.customer_id)===sid(b.id);}).sort(function(x,y){return y.date.localeCompare(x.date);})[0];
-      var da=lastA?lastA.date:(a.last_contact||a.inquiry_date||'');
-      var db=lastB?lastB.date:(b.last_contact||b.inquiry_date||'');
-      return db.localeCompare(da);
+      var av,bv;
+      if(crmSort.col==='last_contact'){av=lastA?lastA.date:(a.last_contact||a.inquiry_date||'');bv=lastB?lastB.date:(b.last_contact||b.inquiry_date||'');}
+      else if(crmSort.col==='name'){av=(a.name||'').toLowerCase();bv=(b.name||'').toLowerCase();}
+      else if(crmSort.col==='label'){av=(a.label||'').toLowerCase();bv=(b.label||'').toLowerCase();}
+      else if(crmSort.col==='stage'){av=a.stage||'';bv=b.stage||'';}
+      else if(crmSort.col==='source'){av=(a.source||'').toLowerCase();bv=(b.source||'').toLowerCase();}
+      else if(crmSort.col==='interest'){av=(a.event_type_interest||'').toLowerCase();bv=(b.event_type_interest||'').toLowerCase();}
+      else if(crmSort.col==='budget'){av=parseFloat(a.budget_max)||0;bv=parseFloat(b.budget_max)||0;}
+      else if(crmSort.col==='interactions'){av=C.interactions.filter(function(i){return sid(i.customer_id)===sid(a.id);}).length;bv=C.interactions.filter(function(i){return sid(i.customer_id)===sid(b.id);}).length;}
+      else{av='';bv='';}
+      if(av<bv)return-1*crmSort.dir;if(av>bv)return 1*crmSort.dir;return 0;
     });
-    body='<table class="tbl"><thead><tr><th>Name</th><th>Label</th><th>Stage</th><th>Source</th><th>Interest</th><th>Budget</th><th>Last Contact</th><th>Interactions</th><th></th></tr></thead><tbody>'+
+    function cth(lbl,col){var arrow=crmSort.col===col?(crmSort.dir===1?' ↑':' ↓'):'';return'<th style="cursor:pointer;user-select:none" onclick="sortCRM(\''+col+'\')">'+lbl+arrow+'</th>';}
+    body='<table class="tbl"><thead><tr>'+cth('Name','name')+cth('Label','label')+cth('Stage','stage')+cth('Source','source')+cth('Interest','interest')+cth('Budget','budget')+cth('Last Contact','last_contact')+cth('Interactions','interactions')+'<th></th></tr></thead><tbody>'+
     (sorted.map(function(c){
       var ints=C.interactions.filter(function(i){return sid(i.customer_id)===sid(c.id);});
       var lastInt=ints.sort(function(a,b){return b.date.localeCompare(a.date);})[0];
