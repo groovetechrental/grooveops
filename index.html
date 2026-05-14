@@ -2438,6 +2438,9 @@ function renderCRM(){
             '<div class="pipeline-card-name">'+esc(c.name)+'</div>'+
             '<div class="pipeline-card-meta">'+(c.event_type_interest?esc(c.event_type_interest)+'<br>':'')+(lastInt?'Last: '+fmtD(lastInt.date):lastEv?'Event: '+fmtD(lastEv.date):'No contact yet')+'</div>'+
             (c.budget_min||c.budget_max?'<div class="pipeline-card-meta" style="margin-top:4px;color:var(--green)">$'+(c.budget_min||0)+' – $'+(c.budget_max||'?')+'</div>':'')+
+            '<div onclick="event.stopPropagation()" style="margin-top:8px;text-align:right">'+
+              '<button class="btn btn-sm btn-danger" onclick="delRec(\'customers\',\''+sid(c.id)+'\')">Del</button>'+
+            '</div>'+
           '</div>';
         }).join('')+
         (stageCu.length===0?'<div style="text-align:center;padding:16px;color:var(--muted);font-size:12px">Empty</div>':'')+
@@ -2470,6 +2473,7 @@ function renderCRM(){
         '<td onclick="event.stopPropagation()"><div class="acts">'+
           '<button class="btn btn-sm btn-outline" onclick="openCuCRM(\''+sid(c.id)+'\')">View</button>'+
           '<button class="btn btn-sm" onclick="openInteractionModal(\''+sid(c.id)+'\')">+ Log</button>'+
+          '<button class="btn btn-sm btn-danger" onclick="delRec(\'customers\',\''+sid(c.id)+'\')">Del</button>'+
         '</div></td>'+
       '</tr>';
     }).join('')||'<tr><td colspan="8" class="empty">No customers</td></tr>')+
