@@ -429,7 +429,12 @@ function init(){
       document.getElementById('app').style.display='block';
       document.getElementById('uc').textContent=session.user.email;
       setTimeout(hideLoader,8000);
-      loadAll().then(function(){hideLoader();showTab('dashboard');}).catch(function(err){hideLoader();showErr('Failed to load data: '+(err.message||String(err)));showTab('dashboard');});
+      loadAll().then(function(){
+        hideLoader();
+        var hash=window.location.hash.replace('#','');
+        var validTabs=['dashboard','calendar','events','customers','crm','payments','labor','ownerfinances','expenses','equipment','quotes'];
+        showTab(validTabs.indexOf(hash)!==-1?hash:'dashboard');
+      }).catch(function(err){hideLoader();showErr('Failed to load data: '+(err.message||String(err)));showTab('dashboard');});
     } else {
       document.getElementById('loginScreen').style.display='flex';
       document.getElementById('app').style.display='none';
@@ -642,6 +647,7 @@ function exportOwnerFinances(person){
 // ── NAV ───────────────────────────────────────────────────────────────────────
 function showTab(tab){
   currentTab=tab;
+  window.location.hash=tab;
   document.querySelectorAll('.nav-tab').forEach(function(t){t.classList.toggle('active',t.textContent.toLowerCase().replace(/\s/g,'')===tab.replace(/\s/g,''));});
   if(tab==='dashboard')renderDash();
   else if(tab==='calendar')renderCalendar();
@@ -1587,7 +1593,7 @@ async function saveEv(id){
   await loadAll();
   if(savedId)await syncCrewToLabor(savedId,obj.labor||[]);
   syncToGCal(obj,!!id);
-  closeModal();await loadAll();showTab('events');
+  closeModal();await loadAll();showTab(currentTab);
 }
 
 // ── CUSTOMER MODAL ────────────────────────────────────────────────────────────
@@ -1624,7 +1630,7 @@ async function savePay(id){
   var obj={customer_id:cu||null,event_id:ev||null,amount:parseFloat(amt),date:date,method:method||null,notes:notes||null};
   var r=id?await sb.from('customer_payments').update(obj).eq('id',id):await sb.from('customer_payments').insert(obj);
   if(r.error){showErr(r.error.message);return;}
-  closeModal();await loadAll();showTab('customers');
+  closeModal();await loadAll();showTab(currentTab);
 }
 
 // ── OWNER LABOR MODAL ─────────────────────────────────────────────────────────
@@ -1789,7 +1795,7 @@ async function saveExp(xId){
   var obj={date:date,event_id:eid2||null,person:per,category:cat,description:desc||null,amount:parseFloat(amt),notes:nts||null};
   var r=xId?await sb.from('expenses').update(obj).eq('id',xId):await sb.from('expenses').insert(Object.assign({},obj,{reimbursed:false}));
   if(r.error){console.error('Expense error:',JSON.stringify(r.error));showErr(r.error.message+' — '+JSON.stringify(r.error.details||r.error.hint||''));return;}
-  closeModal();await loadAll();showTab('expenses');
+  closeModal();await loadAll();showTab(currentTab);
 }
 
 // ── LABOR PAYMENT MODAL ───────────────────────────────────────────────────────
@@ -1897,7 +1903,7 @@ async function saveEqItem(id){
   var obj={name:name,category:cat||null,description:desc||null,price:price?parseFloat(price):null,photo_url:photoUrl||null,notes:notes||null};
   var r=id?await sb.from('equipment_items').update(obj).eq('id',id):await sb.from('equipment_items').insert(obj);
   if(r.error){showErr(r.error.message);return;}
-  closeModal();await loadAll();showTab('equipment');
+  closeModal();await loadAll();showTab(currentTab);
 }
 function openEqCompModal(itemId,compId){
   var comp=compId?C.equipComponents.find(function(x){return sid(x.id)===sid(compId);}):null;
@@ -1916,7 +1922,7 @@ async function saveEqComp(itemId,compId){
   var obj={equipment_item_id:itemId,name:name,quantity:qty?parseFloat(qty):null,unit:unit||null,sort_order:sort?parseInt(sort):null};
   var r=compId?await sb.from('equipment_components').update(obj).eq('id',compId):await sb.from('equipment_components').insert(obj);
   if(r.error){showErr(r.error.message);return;}
-  closeModal();await loadAll();showTab('equipment');
+  closeModal();await loadAll();showTab(currentTab);
 }
 
 // ── DELETE ────────────────────────────────────────────────────────────────────
@@ -1928,12 +1934,8 @@ async function delRec(table,id,cb){
   if(cb)cb();
   else if(table==='labor')renderLabor();
   else if(table==='profit_share'||table==='labor_payments')renderOwnerFinances();
-  else if(table==='expenses')renderExpenses();
-  else if(table==='customer_payments')showTab('customers');
-  else if(table==='events')showTab('events');
-  else if(table==='customers')showTab('customers');
-  else if(table==='equipment_items'||table==='equipment_components')showTab('equipment');
   else if(table==='interactions')renderCRM();
+  else showTab(currentTab);
 }
 
 
