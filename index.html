@@ -921,8 +921,8 @@ function openCuDetail(id){
       '<div class="dp"><div class="dp-title">Account Balance</div><div class="dr"><span class="l">Total Invoiced</span><span class="v">'+fmt(b.inv)+'</span></div><div class="dr"><span class="l">Total Paid</span><span class="v" style="color:var(--green)">'+fmt(b.paid)+'</span></div><div class="dr"><span class="l">Balance Owing</span><span class="v"><span class="badge '+(b.bal>0?'ba':'bg')+'">'+fmt(b.bal)+'</span></span></div></div>'+
     '</div>'+
     sh('Events','<button class="btn btn-sm" onclick="openPayModal(\''+sid(c.id)+'\')">+ Record Payment</button>')+
-    '<table class="tbl"><thead><tr><th>Event</th><th>Date</th><th>Invoice</th><th>Status</th></tr></thead><tbody>'+
-    (cEv.map(function(e){return'<tr style="cursor:pointer" onclick="openEvDetail(\''+sid(e.id)+'\',\'customers\')"><td style="font-weight:500">'+esc(e.name)+'</td><td>'+fmtD(e.date)+'</td><td>'+(e.invoice_amount?fmt(e.invoice_amount):'—')+'</td><td>'+statusBadge(e.status)+'</td></tr>';}).join('')||'<tr><td colspan="4" class="empty">No events</td></tr>')+
+    '<table class="tbl"><thead><tr><th>Event</th><th>Date</th><th>Invoice</th><th>Notes</th></tr></thead><tbody>'+
+    (cEv.map(function(e){return'<tr style="cursor:pointer" onclick="openEvDetail(\''+sid(e.id)+'\',\'customers\')"><td style="font-weight:500">'+esc(e.name)+'</td><td>'+fmtD(e.date)+'</td><td>'+(e.invoice_amount?fmt(e.invoice_amount):'—')+'</td><td style="color:var(--muted);font-size:12px">'+esc(e.notes||'—')+'</td></tr>';}).join('')||'<tr><td colspan="4" class="empty">No events</td></tr>')+
     '</tbody></table>'+
     sh('Payment History')+
     '<table class="tbl"><thead><tr><th>Date</th><th>Amount</th><th>Method</th><th>Event</th><th>Notes</th></tr></thead><tbody>'+
