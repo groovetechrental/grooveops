@@ -2867,13 +2867,14 @@ function renderDanceFloor(){
     // Powered Edges: based on width tile count
     // 1 powered edge per 2 tiles; odd tile count gets a single powered edge
     var poweredEdges=Math.ceil(tW/2);
+    var poweredHasSingle=tW%2===1;
 
     // Standard Edges: same calculation, but for 1 row of width + 2 lengths
-    // 1 row width = same as powered (tW tiles)
-    // 2 lengths = tL tiles each
     var stdEdgesWidth=Math.ceil(tW/2);
     var stdEdgesLength=Math.ceil(tL/2);
     var standardEdges=stdEdgesWidth+(2*stdEdgesLength);
+    var stdWidthHasSingle=tW%2===1;
+    var stdLengthHasSingle=tL%2===1;
 
     // Power supplies = number of powered edges
     var powerSupplies=poweredEdges;
@@ -2881,7 +2882,7 @@ function renderDanceFloor(){
     // Software controllers: 4 inputs each; <=4 powered edges = 1, >4 = 2
     var controllers=poweredEdges<=4?1:2;
 
-    return{tL,tW,totalTiles,cases,extras,poweredEdges,standardEdges,powerSupplies,controllers};
+    return{tL,tW,totalTiles,cases,extras,poweredEdges,poweredHasSingle,standardEdges,stdWidthHasSingle,stdLengthHasSingle,powerSupplies,controllers};
   }
 
   var r=calcResults(lengthSel,widthSel);
@@ -2915,8 +2916,10 @@ function renderDanceFloor(){
     dfCard('🟪','Total Tiles',r.totalTiles+' tiles','var(--accent)')+
     dfCard('📦','Cases Needed',r.cases+' cases','var(--blue)',
       r.extras>0?r.extras+' extra tile'+(r.extras===1?'':'s')+' included':'No extras')+
-    dfCard('⚡','Powered Edges',r.poweredEdges+' edges','var(--gt)','= '+r.powerSupplies+' power suppl'+(r.powerSupplies===1?'y':'ies'))+
-    dfCard('➖','Standard Edges',r.standardEdges+' edges','var(--muted)','1 width row + 2 length rows')+
+    dfCard('⚡','Powered Edges',r.poweredEdges+' edges','var(--gt)',(r.poweredHasSingle?'⚠ Includes 1 single edge · ':'')+r.powerSupplies+' power suppl'+(r.powerSupplies===1?'y':'ies'))+
+    dfCard('➖','Standard Edges',r.standardEdges+' edges','var(--muted)',
+      (r.stdWidthHasSingle||r.stdLengthHasSingle?'⚠ Includes single edge'+(r.stdWidthHasSingle&&r.stdLengthHasSingle?' (width + length)':r.stdWidthHasSingle?' (width)':' (length)')+' · ':'')+
+      '1 width row + 2 length rows')+
     dfCard('🔌','Power Supplies',r.powerSupplies+' supplies','#4caf50','1 per powered edge')+
     dfCard('🖥️','Software Controllers',r.controllers+' controller'+(r.controllers===1?'':'s'),'var(--neon)',
       r.poweredEdges<=4?r.poweredEdges+' powered edges → 1 controller':r.poweredEdges+' powered edges → 2 controllers')+
