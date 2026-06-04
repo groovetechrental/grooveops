@@ -462,7 +462,6 @@ function init(){
       document.getElementById('loginScreen').style.display='none';
       document.getElementById('app').style.display='block';
       document.getElementById('uc').textContent=session.user.email;
-      setTimeout(hideLoader,8000);
       loadAll().then(function(){
         hideLoader();
         var hash=window.location.hash.replace('#','');
@@ -492,9 +491,11 @@ function doLogout(){sb.auth.signOut();}
 function showLErr(m){var el=document.getElementById('lerr');el.textContent='⚠ '+m;el.classList.add('show');}
 document.getElementById('lPass').addEventListener('keydown',function(e){if(e.key==='Enter')doLogin();});
 
-// ── DATA ──────────────────────────────────────────────────────────────────────
+function safeQuery(promise){return promise.catch(function(e){console.warn('Query failed:',e);return{data:[],error:e};});}
+
 function loadAll(){
-  return Promise.all([
+  var timeout=new Promise(function(_,rej){setTimeout(function(){rej(new Error('loadAll timeout'));},15000);});
+  var load=Promise.all([
     sb.from('events').select('*').order('date',{ascending:false}),
     sb.from('customers').select('*').order('name'),
     sb.from('customer_payments').select('*').order('date',{ascending:false}),
@@ -508,9 +509,9 @@ function loadAll(){
     sb.from('quotes').select('*').order('created_at',{ascending:false}),
     sb.from('quote_line_items').select('*').order('sort_order'),
     sb.from('interactions').select('*').order('date',{ascending:false}),
-    sb.from('halloween_items').select('*').order('name'),
-    sb.from('halloween_categories').select('*').order('name'),
-    sb.from('halloween_scenes').select('*').order('name')
+    safeQuery(sb.from('halloween_items').select('*').order('name')),
+    safeQuery(sb.from('halloween_categories').select('*').order('name')),
+    safeQuery(sb.from('halloween_scenes').select('*').order('name'))
   ]).then(function(r){
     var errs=r.filter(function(x){return x.error;}).map(function(x){return x.error.message;});
     if(errs.length)console.warn('loadAll partial errors:',errs.join('; '));
@@ -521,6 +522,7 @@ function loadAll(){
     C.interactions=r[12].data||[];
     C.hwItems=r[13].data||[];C.hwCategories=r[14].data||[];C.hwScenes=r[15].data||[];
   });
+  return Promise.race([load,timeout]);
 }
 
 // ── MAKE WEBHOOK ──────────────────────────────────────────────────────────────
