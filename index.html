@@ -457,7 +457,10 @@ function init(){
     'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJidHpjc3dub3VubXlidW1xYnd1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYyOTI3OTgsImV4cCI6MjA5MTg2ODc5OH0.d_CSDndGJcuBve_EtHo8RDcHG8dxQVn22gpUjQ7FGNY',
     {auth:{storageKey:'grooveops-auth'}}
   );
-  sb.auth.onAuthStateChange(function(event,session){
+  var _authHandled=false;
+  function handleSession(session){
+    if(_authHandled&&!session)return;
+    _authHandled=true;
     if(session){
       document.getElementById('loginScreen').style.display='none';
       document.getElementById('app').style.display='block';
@@ -473,7 +476,9 @@ function init(){
       document.getElementById('app').style.display='none';
       hideLoader();
     }
-  });
+  }
+  sb.auth.onAuthStateChange(function(event,session){handleSession(session);});
+  sb.auth.getSession().then(function(r){handleSession(r.data&&r.data.session?r.data.session:null);});
 }
 
 // ── AUTH ──────────────────────────────────────────────────────────────────────
