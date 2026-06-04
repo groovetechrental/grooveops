@@ -496,7 +496,7 @@ function doLogout(){sb.auth.signOut();}
 function showLErr(m){var el=document.getElementById('lerr');el.textContent='⚠ '+m;el.classList.add('show');}
 document.getElementById('lPass').addEventListener('keydown',function(e){if(e.key==='Enter')doLogin();});
 
-function safeQuery(promise){return promise.catch(function(e){console.warn('Query failed:',e);return{data:[],error:e};});}
+function safeQuery(q){return Promise.resolve(q).catch(function(e){console.warn('Query failed:',e);return{data:[],error:e};});}
 
 function loadAll(){
   var timeout=new Promise(function(_,rej){setTimeout(function(){rej(new Error('loadAll timeout'));},15000);});
