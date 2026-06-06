@@ -2921,22 +2921,22 @@ function hwImgTag(url,cls,ph){
 function renderHwCatalog(){
   var cats=C.hwCategories.slice().sort(function(a,b){return a.name.localeCompare(b.name);});
   var items=C.hwItems.slice();
-  if(hwSearch){var q=hwSearch.toLowerCase();items=items.filter(function(i){return(i.name||'').toLowerCase().indexOf(q)!==-1||(i.description||'').toLowerCase().indexOf(q)!==-1||(i.storage_location||'').toLowerCase().indexOf(q)!==-1;});}
+  if(hwSearch){var q=hwSearch.toLowerCase();items=items.filter(function(i){return(i.name||'').toLowerCase().indexOf(q)!==-1||(i.description||'').toLowerCase().indexOf(q)!==-1||(i.storage_location||'').toLowerCase().indexOf(q)!==-1||((i.categories||[]).join(' ')).toLowerCase().indexOf(q)!==-1||(i.movement||'').toLowerCase().indexOf(q)!==-1||(i.placement||'').toLowerCase().indexOf(q)!==-1;});}
 
-  var catFilter='<select id="hwCatFilter" onchange="hwCatFilterVal=this.value;renderHalloween()" style="width:auto;padding:6px 10px;font-size:13px;margin-left:8px">'+
+  var catFilter='<select id="hwCatFilter" onchange="hwCatFilterVal=this.value;hwFilterCatalog()" style="width:auto;padding:6px 10px;font-size:13px;margin-left:8px">'+
     '<option value="">All Categories</option>'+cats.map(function(c){return'<option value="'+esc(c.name)+'"'+(typeof hwCatFilterVal!=='undefined'&&hwCatFilterVal===c.name?' selected':'')+'>'+esc(c.name)+'</option>';}).join('')+
   '</select>';
   if(typeof hwCatFilterVal!=='undefined'&&hwCatFilterVal){items=items.filter(function(i){var cs=i.categories||[];return cs.indexOf(hwCatFilterVal)!==-1;});}
 
   var html='<div style="display:flex;gap:8px;align-items:center;margin-bottom:14px;flex-wrap:wrap">'+
-    '<input id="hwSearchBox" placeholder="🔍 Search items…" value="'+esc(hwSearch)+'" oninput="hwSearch=this.value;renderHalloween()" style="width:220px;padding:7px 12px;font-size:13px">'+
+    '<input id="hwSearchBox" placeholder="🔍 Search items…" value="'+esc(hwSearch)+'" oninput="hwSearch=this.value;hwFilterCatalog()" style="width:220px;padding:7px 12px;font-size:13px">'+
     catFilter+
     '<button class="btn btn-sm btn-outline" onclick="openHwCatManager()">⚙ Categories</button>'+
   '</div>';
 
-  if(!items.length){return html+'<div class="empty">No items found. Add your first Halloween item!</div>';}
+  if(!items.length){return html+'<div id="hwCatalogList"><div class="empty">No items found. Add your first Halloween item!</div></div>';}
 
-  html+=items.map(function(it){
+  html+='<div id="hwCatalogList">'+items.map(function(it){
     var cats=(it.categories||[]).map(function(c){return'<span class="hw-cat-chip">'+esc(c)+'</span>';}).join('');
     var sceneCount=C.hwScenes.filter(function(s){var si=s.items||[];return si.some(function(x){return sid(x.item_id)===sid(it.id);});}).length;
     return'<div class="hw-item-card" id="hwic-'+sid(it.id)+'">'+
@@ -2978,8 +2978,60 @@ function renderHwCatalog(){
         '</div>'+
       '</div>'+
     '</div>';
-  }).join('');
+  }).join('')+'</div>';
   return html;
+}
+
+function hwFilterCatalog(){
+  var listEl=document.getElementById('hwCatalogList');
+  if(!listEl){renderHalloween();return;}
+  var items=C.hwItems.slice();
+  if(hwSearch){var q=hwSearch.toLowerCase();items=items.filter(function(i){return(i.name||'').toLowerCase().indexOf(q)!==-1||(i.description||'').toLowerCase().indexOf(q)!==-1||(i.storage_location||'').toLowerCase().indexOf(q)!==-1||((i.categories||[]).join(' ')).toLowerCase().indexOf(q)!==-1||(i.movement||'').toLowerCase().indexOf(q)!==-1||(i.placement||'').toLowerCase().indexOf(q)!==-1;});}
+  if(hwCatFilterVal){items=items.filter(function(i){return(i.categories||[]).indexOf(hwCatFilterVal)!==-1;});}
+  if(!items.length){listEl.innerHTML='<div class="empty">No items match your search.</div>';return;}
+  listEl.innerHTML=items.map(function(it){
+    var cats=(it.categories||[]).map(function(c){return'<span class="hw-cat-chip">'+esc(c)+'</span>';}).join('');
+    var sceneCount=C.hwScenes.filter(function(s){return(s.items||[]).some(function(x){return sid(x.item_id)===sid(it.id);});}).length;
+    return'<div class="hw-item-card" id="hwic-'+sid(it.id)+'">'+
+      '<div class="hw-item-head" onclick="document.getElementById(\'hwic-'+sid(it.id)+'\').classList.toggle(\'open\')">'+
+        (it.photo_url?'<img class="hw-item-thumb" src="'+esc(it.photo_url)+'" onerror="this.style.display=\'none\'" alt="">':'<div class="hw-item-thumb-ph">🎃</div>')+
+        '<div class="hw-item-info">'+
+          '<div class="hw-item-name">'+esc(it.name)+'</div>'+
+          '<div class="hw-item-meta">'+
+            (it.storage_location?'📦 '+esc(it.storage_location)+' &nbsp;':'')+
+            'Qty: '+esc(String(it.quantity||0))+
+            (sceneCount?' &nbsp;<span style="color:#ff8c00;font-weight:600">🏚️ '+sceneCount+' scene'+(sceneCount!==1?'s':'')+'</span>':'')+
+          '</div>'+
+          '<div style="margin-top:4px">'+
+            (it.movement?'<span class="hw-movement-badge'+(it.movement==='Animatronic'?' animatronic':'')+'" style="margin-right:4px">'+esc(it.movement)+'</span>':'')+
+            (it.placement?'<span class="hw-placement-badge" style="margin-right:4px">'+esc(it.placement)+'</span>':'')+
+            cats+
+          '</div>'+
+        '</div>'+
+        '<div style="display:flex;align-items:center;gap:8px;flex-shrink:0">'+
+          '<div style="text-align:center"><div style="font-size:18px;font-weight:700;color:var(--text)">'+esc(String(it.quantity||0))+'</div><div style="font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px">qty</div></div>'+
+          '<span class="expand-arrow" style="color:var(--muted);font-size:11px">▼</span>'+
+        '</div>'+
+      '</div>'+
+      '<div class="hw-item-body">'+
+        (it.description?'<div style="font-size:13px;color:var(--muted);margin-bottom:12px;background:var(--surface2);padding:8px 10px;border-radius:6px">'+esc(it.description)+'</div>':'')+
+        (it.photo_url?'<div style="margin-bottom:12px"><img src="'+esc(it.photo_url)+'" style="max-width:220px;max-height:160px;border-radius:8px;border:1px solid var(--border)" onerror="this.style.display=\'none\'" alt="Photo"></div>':'')+
+        '<div class="g2" style="margin-bottom:12px">'+
+          '<div><div style="font-size:10px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.8px;margin-bottom:4px">Movement</div><div>'+esc(it.movement||'—')+'</div></div>'+
+          '<div><div style="font-size:10px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.8px;margin-bottom:4px">Placement</div><div>'+esc(it.placement||'—')+'</div></div>'+
+          '<div><div style="font-size:10px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.8px;margin-bottom:4px">Storage</div><div>'+esc(it.storage_location||'—')+'</div></div>'+
+          '<div><div style="font-size:10px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.8px;margin-bottom:4px">Quantity</div><div>'+esc(String(it.quantity||0))+'</div></div>'+
+        '</div>'+
+        (sceneCount?'<div style="margin-bottom:12px;font-size:12px;color:#ff8c00">🏚️ Used in '+sceneCount+' scene'+(sceneCount!==1?'s':'')+': '+
+          C.hwScenes.filter(function(s){return(s.items||[]).some(function(x){return sid(x.item_id)===sid(it.id);});}).map(function(s){return'<strong>'+esc(s.name)+'</strong>';}).join(', ')+'</div>':'')+
+        '<div style="display:flex;gap:8px;flex-wrap:wrap">'+
+          '<button class="btn btn-sm btn-outline" onclick="openHwItemModal(\''+sid(it.id)+'\')">✏️ Edit</button>'+
+          (C.hwScenes.length?'<button class="btn btn-sm btn-outline" style="border-color:rgba(255,140,0,.5);color:#ff8c00" onclick="openAddItemToSceneFromCatalog(\''+sid(it.id)+'\')">🏚️ Add to Scene</button>':'')+
+          '<button class="btn btn-sm btn-danger" onclick="delHwItem(\''+sid(it.id)+'\')">🗑 Delete</button>'+
+        '</div>'+
+      '</div>'+
+    '</div>';
+  }).join('');
 }
 
 function renderHwScenes(){
