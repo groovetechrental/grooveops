@@ -3182,43 +3182,72 @@ async function delHwScene(id){
 }
 
 // ── ADD ITEM TO SCENE ─────────────────────────────────────────────────────────
+// Returns total qty of itemId already committed across all scenes
+function hwQtyAllocated(itemId){
+  return C.hwScenes.reduce(function(sum,s){
+    var si=(s.items||[]).find(function(x){return sid(x.item_id)===sid(itemId);});
+    return sum+(si?si.qty:0);
+  },0);
+}
+// Returns qty remaining for itemId
+function hwQtyAvailable(itemId){
+  var it=C.hwItems.find(function(x){return sid(x.id)===sid(itemId);});
+  if(!it)return 0;
+  return Math.max(0,(it.quantity||0)-hwQtyAllocated(itemId));
+}
+
 function openAddItemToSceneFromCatalog(itemId){
   var it=C.hwItems.find(function(x){return sid(x.id)===sid(itemId);});
   if(!it)return;
-  // Which scenes already have this item
-  var alreadyIn=C.hwScenes.filter(function(s){return(s.items||[]).some(function(x){return sid(x.item_id)===sid(itemId);});}).map(function(s){return sid(s.id);});
-  var available=C.hwScenes.filter(function(s){return alreadyIn.indexOf(sid(s.id))===-1;});
-  if(!available.length){
+  var remaining=hwQtyAvailable(itemId);
+  if(remaining<=0){
     openModal('Add to Scene',
-      '<div style="color:var(--muted);font-size:13px">'+(C.hwScenes.length?'<strong>'+esc(it.name)+'</strong> is already in all existing scenes.':'No scenes exist yet — create one first from the Scenes view.')+'</div>',
+      '<div style="color:var(--muted);font-size:13px">All '+esc(String(it.quantity||0))+' of <strong>'+esc(it.name)+'</strong> are already allocated across scenes. Remove it from a scene first to free up quantity.</div>',
       null
     );
     document.getElementById('msb').style.display='none';
     return;
   }
+  if(!C.hwScenes.length){
+    openModal('Add to Scene','<div style="color:var(--muted);font-size:13px">No scenes exist yet — create one first from the Scenes view.</div>',null);
+    document.getElementById('msb').style.display='none';
+    return;
+  }
   openModal('Add "'+it.name+'" to Scene',
-    '<div style="font-size:12px;color:var(--muted);margin-bottom:10px">Item: <strong>'+esc(it.name)+'</strong></div>'+
+    '<div style="font-size:12px;color:var(--muted);margin-bottom:10px">Item: <strong>'+esc(it.name)+'</strong> &nbsp;·&nbsp; <span style="color:#ff8c00;font-weight:600">'+remaining+' available</span></div>'+
     '<div class="form-group"><label>Scene</label><select id="hwCatSceneSel">'+
       '<option value="">— Select Scene —</option>'+
-      available.map(function(s){return'<option value="'+sid(s.id)+'">'+esc(s.name)+(s.venue?' — '+esc(s.venue):'')+'</option>';}).join('')+
+      C.hwScenes.map(function(s){return'<option value="'+sid(s.id)+'">'+esc(s.name)+(s.venue?' — '+esc(s.venue):'')+'</option>';}).join('')+
     '</select></div>'+
-    '<div class="form-group"><label>Quantity</label><input type="number" id="hwCatSceneQty" min="1" value="1"></div>',
-    function(){addItemToSceneFromCatalog(itemId);}
+    '<div class="form-group"><label>Quantity <span style="font-weight:400;color:var(--muted)">(max '+remaining+')</span></label>'+
+      '<input type="number" id="hwCatSceneQty" min="1" max="'+remaining+'" value="1"></div>',
+    function(){addItemToSceneFromCatalog(itemId,remaining);}
   );
 }
 
-async function addItemToSceneFromCatalog(itemId){
+async function addItemToSceneFromCatalog(itemId,remaining){
   var sceneId=document.getElementById('hwCatSceneSel').value;
   var qty=parseInt(document.getElementById('hwCatSceneQty').value)||1;
   if(!sceneId){showErr('Please select a scene.');return;}
+  if(qty<1){showErr('Quantity must be at least 1.');return;}
+  if(qty>remaining){showErr('Only '+remaining+' available.');return;}
   var sc=C.hwScenes.find(function(x){return sid(x.id)===sid(sceneId);});
   if(!sc){showErr('Scene not found.');return;}
+  // If item already in this scene, add to its qty
   var items=(sc.items||[]).slice();
-  items.push({item_id:itemId,qty:qty});
+  var existing=items.find(function(x){return sid(x.item_id)===sid(itemId);});
+  if(existing){
+    var newQty=existing.qty+qty;
+    var it=C.hwItems.find(function(x){return sid(x.id)===sid(itemId);});
+    var totalAllocatedElsewhere=hwQtyAllocated(itemId)-existing.qty;
+    if(newQty>(it.quantity||0)-totalAllocatedElsewhere){showErr('Not enough quantity available.');return;}
+    existing.qty=newQty;
+  } else {
+    items.push({item_id:itemId,qty:qty});
+  }
   var r=await sb.from('halloween_scenes').update({items:items}).eq('id',sceneId);
   if(r.error){showErr(r.error.message);return;}
   closeModal();await loadAll();renderHalloween();
-  // Re-open the item card so user sees the updated scene count
   setTimeout(function(){var el=document.getElementById('hwic-'+sid(itemId));if(el)el.classList.add('open');},50);
 }
 
@@ -3226,20 +3255,44 @@ function openAddItemToScene(sceneId){
   var sc=C.hwScenes.find(function(x){return sid(x.id)===sid(sceneId);});
   if(!sc)return;
   var usedIds=(sc.items||[]).map(function(x){return sid(x.item_id);});
-  var available=C.hwItems.filter(function(i){return usedIds.indexOf(sid(i.id))===-1;});
+  // Only show items with available quantity (not fully allocated)
+  var available=C.hwItems.filter(function(i){
+    var remaining=hwQtyAvailable(sid(i.id));
+    // If already in this scene, the qty allocated to this scene doesn't count against availability
+    var inThisScene=(sc.items||[]).find(function(x){return sid(x.item_id)===sid(i.id);});
+    var effectiveRemaining=remaining+(inThisScene?inThisScene.qty:0);
+    return effectiveRemaining>0 && usedIds.indexOf(sid(i.id))===-1;
+  });
+  if(!available.length){
+    openModal('Add Item to Scene','<div style="color:var(--muted);font-size:13px">No items with available quantity. Add more inventory or free up items from other scenes.</div>',null);
+    document.getElementById('msb').style.display='none';
+    return;
+  }
   var body='<div style="font-size:12px;color:var(--muted);margin-bottom:10px">Scene: <strong>'+esc(sc.name)+'</strong></div>'+
-    '<div class="form-group"><label>Item</label><select id="hwAddItemSel">'+
+    '<div class="form-group"><label>Item</label><select id="hwAddItemSel" onchange="hwUpdateMaxQty(this.value)">'+
       '<option value="">— Select Item —</option>'+
-      available.map(function(i){return'<option value="'+sid(i.id)+'">'+esc(i.name)+(i.quantity?' (Qty: '+i.quantity+')':'')+'</option>';}).join('')+
+      available.map(function(i){
+        var rem=hwQtyAvailable(sid(i.id));
+        return'<option value="'+sid(i.id)+'" data-max="'+rem+'">'+esc(i.name)+' ('+rem+' available)</option>';
+      }).join('')+
     '</select></div>'+
     '<div class="form-group"><label>Quantity for Scene</label><input type="number" id="hwAddItemQty" min="1" value="1"></div>';
   openModal('Add Item to Scene',body,function(){addItemToScene(sceneId);});
+}
+
+function hwUpdateMaxQty(itemId){
+  if(!itemId)return;
+  var rem=hwQtyAvailable(itemId);
+  var inp=document.getElementById('hwAddItemQty');
+  if(inp){inp.max=rem;if(parseInt(inp.value)>rem)inp.value=rem;}
 }
 
 async function addItemToScene(sceneId){
   var itemId=document.getElementById('hwAddItemSel').value;
   var qty=parseInt(document.getElementById('hwAddItemQty').value)||1;
   if(!itemId){showErr('Please select an item.');return;}
+  var remaining=hwQtyAvailable(itemId);
+  if(qty>remaining){showErr('Only '+remaining+' of this item available.');return;}
   var sc=C.hwScenes.find(function(x){return sid(x.id)===sid(sceneId);});
   if(!sc){showErr('Scene not found.');return;}
   var items=(sc.items||[]).slice();
@@ -3247,9 +3300,9 @@ async function addItemToScene(sceneId){
   var r=await sb.from('halloween_scenes').update({items:items}).eq('id',sceneId);
   if(r.error){showErr(r.error.message);return;}
   closeModal();await loadAll();hwView='scenes';renderHalloween();
-  // Re-expand the scene card
   setTimeout(function(){var el=document.getElementById('hwsc-'+sid(sceneId));if(el)el.classList.add('open');},50);
 }
+
 
 async function removeItemFromScene(sceneId,itemId){
   var sc=C.hwScenes.find(function(x){return sid(x.id)===sid(sceneId);});
