@@ -617,12 +617,13 @@ function exportCustomerHTML(cid){
       '</div>'+
       (evs.length?
         '<div class="stitle">Events</div>'+
-        '<table><thead><tr><th>Event</th><th>Date</th><th>Venue</th><th>Invoice</th></tr></thead><tbody>'+
+        '<table><thead><tr><th>Event</th><th>Date</th><th>Venue</th><th>Invoice</th><th>Notes</th></tr></thead><tbody>'+
         evs.map(function(e){return'<tr>'+
           '<td><strong>'+esc(e.name)+'</strong></td>'+
           '<td style="white-space:nowrap">'+fmtD(e.date)+'</td>'+
           '<td style="color:#888">'+esc(e.venue||'—')+'</td>'+
           '<td>'+(e.invoice_amount?fmt(e.invoice_amount):'—')+'</td>'+
+          '<td style="color:#888">'+esc(e.notes||'')+'</td>'+
         '</tr>';}).join('')+
         '</tbody></table>':'')+
       (pms.length?
