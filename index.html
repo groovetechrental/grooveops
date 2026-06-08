@@ -208,39 +208,6 @@ header{background:var(--surface);border-bottom:1px solid var(--border);padding:1
 .pack-bar{height:8px;background:var(--green);border-radius:4px;transition:width .3s;}
 .pack-pct{font-size:13px;font-weight:600;color:var(--green);flex-shrink:0;}
 /* EQUIPMENT CATALOG */
-/* HALLOWEEN */
-.hw-cat-chip{display:inline-flex;align-items:center;gap:4px;background:rgba(255,140,0,.12);border:1px solid rgba(255,140,0,.35);color:#ff8c00;border-radius:20px;font-size:10px;font-weight:700;padding:2px 8px;margin:2px;}
-.hw-item-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);margin-bottom:10px;overflow:hidden;}
-.hw-item-head{display:flex;align-items:center;gap:12px;padding:12px 14px;cursor:pointer;}
-.hw-item-head:hover{background:var(--surface2);}
-.hw-item-thumb{width:48px;height:48px;border-radius:8px;object-fit:cover;flex-shrink:0;background:var(--surface2);border:1px solid var(--border);}
-.hw-item-thumb-ph{width:48px;height:48px;border-radius:8px;flex-shrink:0;background:var(--surface2);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:22px;}
-.hw-item-info{flex:1;min-width:0;}
-.hw-item-name{font-weight:600;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-.hw-item-meta{font-size:11px;color:var(--muted);margin-top:2px;}
-.hw-item-body{display:none;border-top:1px solid var(--border);padding:12px 14px;}
-.hw-item-card.open .hw-item-body{display:block;}
-.hw-item-card.open .expand-arrow{transform:rotate(180deg);}
-.hw-scene-card{background:var(--surface);border:1px solid var(--border);border-left:4px solid #ff8c00;border-radius:var(--radius);margin-bottom:10px;overflow:hidden;}
-.hw-scene-head{display:flex;align-items:center;justify-content:space-between;padding:12px 14px;cursor:pointer;}
-.hw-scene-head:hover{background:var(--surface2);}
-.hw-scene-body{display:none;border-top:1px solid var(--border);padding:12px 14px;}
-.hw-scene-card.open .hw-scene-body{display:block;}
-.hw-scene-card.open .expand-arrow{transform:rotate(180deg);}
-.hw-view-toggle{display:flex;gap:6px;margin-bottom:16px;}
-.hw-view-btn{padding:6px 14px;border-radius:6px;border:1px solid var(--border);background:transparent;color:var(--muted);cursor:pointer;font-size:12px;font-weight:600;}
-.hw-view-btn.active{background:#ff8c00;color:#000;border-color:#ff8c00;}
-.hw-scene-item-row{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border);}
-.hw-scene-item-row:last-child{border-bottom:none;}
-.hw-scene-item-thumb{width:36px;height:36px;border-radius:6px;object-fit:cover;flex-shrink:0;background:var(--surface2);border:1px solid var(--border);}
-.hw-scene-item-ph{width:36px;height:36px;border-radius:6px;flex-shrink:0;background:var(--surface2);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:16px;}
-.hw-cat-checkbox{display:inline-flex;align-items:center;gap:5px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:5px 10px;cursor:pointer;font-size:12px;margin:3px;transition:all .15s;}
-.hw-cat-checkbox.selected{background:rgba(255,140,0,.15);border-color:#ff8c00;color:#ff8c00;}
-.hw-item-in-scene{opacity:.5;}
-.hw-placement-badge{display:inline-block;font-size:10px;font-weight:700;border-radius:20px;padding:2px 8px;background:rgba(79,195,247,.12);color:var(--blue);border:1px solid rgba(79,195,247,.3);}
-.hw-movement-badge{display:inline-block;font-size:10px;font-weight:700;border-radius:20px;padding:2px 8px;background:rgba(156,111,228,.15);color:var(--accent);border:1px solid rgba(156,111,228,.3);}
-.hw-movement-badge.animatronic{background:rgba(76,175,80,.15);color:var(--green);border:1px solid rgba(76,175,80,.3);}
-
 .eq-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);margin-bottom:12px;overflow:hidden;}
 .eq-card-head{display:flex;align-items:center;justify-content:space-between;padding:12px 14px;cursor:pointer;}
 .eq-card-head:hover{background:var(--surface2);}
@@ -291,7 +258,7 @@ header{background:var(--surface);border-bottom:1px solid var(--border);padding:1
     <div class="nav-tab" onclick="showTab('expenses')">Expenses</div>
     <div class="nav-tab" onclick="showTab('equipment')">Equipment</div>
     <div class="nav-tab" onclick="showTab('quotes')">Quotes</div>
-    <div class="nav-tab" onclick="showTab('halloween')">🎃 Halloween</div>
+    <div class="nav-tab" onclick="showTab('dancefloor')">Dance Floor</div>
   </div>
   <div class="content" id="mc"></div>
 </div>
@@ -348,7 +315,7 @@ var expSort={col:'date',dir:-1};
 var paySort={col:'date',dir:-1};
 var quoteSort={col:'created_at',dir:-1};
 var currentPackEventId=null;
-var C={events:[],customers:[],payments:[],labor:[],expenses:[],profitShare:[],equipItems:[],equipComponents:[],packChecks:[],laborPayments:[],quotes:[],quoteItems:[],interactions:[],hwItems:[],hwCategories:[],hwScenes:[]};
+var C={events:[],customers:[],payments:[],labor:[],expenses:[],profitShare:[],equipItems:[],equipComponents:[],packChecks:[],laborPayments:[],quotes:[],quoteItems:[],interactions:[]};
 
 // ── HELPERS ───────────────────────────────────────────────────────────────────
 function sid(x){return String(x==null?'':x);}
@@ -457,18 +424,16 @@ function init(){
     'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJidHpjc3dub3VubXlidW1xYnd1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYyOTI3OTgsImV4cCI6MjA5MTg2ODc5OH0.d_CSDndGJcuBve_EtHo8RDcHG8dxQVn22gpUjQ7FGNY',
     {auth:{storageKey:'grooveops-auth'}}
   );
-  var _authHandled=false;
-  function handleSession(session){
-    if(_authHandled&&!session)return;
-    _authHandled=true;
+  sb.auth.onAuthStateChange(function(event,session){
     if(session){
       document.getElementById('loginScreen').style.display='none';
       document.getElementById('app').style.display='block';
       document.getElementById('uc').textContent=session.user.email;
+      setTimeout(hideLoader,8000);
       loadAll().then(function(){
         hideLoader();
         var hash=window.location.hash.replace('#','');
-        var validTabs=['dashboard','calendar','events','customers','crm','payments','labor','ownerfinances','expenses','equipment','quotes','halloween'];
+        var validTabs=['dashboard','calendar','events','customers','crm','payments','labor','ownerfinances','expenses','equipment','quotes','dancefloor'];
         showTab(validTabs.indexOf(hash)!==-1?hash:'dashboard');
       }).catch(function(err){hideLoader();showErr('Failed to load data: '+(err.message||String(err)));showTab('dashboard');});
     } else {
@@ -476,9 +441,7 @@ function init(){
       document.getElementById('app').style.display='none';
       hideLoader();
     }
-  }
-  sb.auth.onAuthStateChange(function(event,session){handleSession(session);});
-  sb.auth.getSession().then(function(r){handleSession(r.data&&r.data.session?r.data.session:null);});
+  });
 }
 
 // ── AUTH ──────────────────────────────────────────────────────────────────────
@@ -496,11 +459,9 @@ function doLogout(){sb.auth.signOut();}
 function showLErr(m){var el=document.getElementById('lerr');el.textContent='⚠ '+m;el.classList.add('show');}
 document.getElementById('lPass').addEventListener('keydown',function(e){if(e.key==='Enter')doLogin();});
 
-function safeQuery(q){return Promise.resolve(q).catch(function(e){console.warn('Query failed:',e);return{data:[],error:e};});}
-
+// ── DATA ──────────────────────────────────────────────────────────────────────
 function loadAll(){
-  var timeout=new Promise(function(_,rej){setTimeout(function(){rej(new Error('loadAll timeout'));},15000);});
-  var load=Promise.all([
+  return Promise.all([
     sb.from('events').select('*').order('date',{ascending:false}),
     sb.from('customers').select('*').order('name'),
     sb.from('customer_payments').select('*').order('date',{ascending:false}),
@@ -513,10 +474,7 @@ function loadAll(){
     sb.from('labor_payments').select('*').order('date',{ascending:false}),
     sb.from('quotes').select('*').order('created_at',{ascending:false}),
     sb.from('quote_line_items').select('*').order('sort_order'),
-    sb.from('interactions').select('*').order('date',{ascending:false}),
-    safeQuery(sb.from('halloween_items').select('*').order('name')),
-    safeQuery(sb.from('halloween_categories').select('*').order('name')),
-    safeQuery(sb.from('halloween_scenes').select('*').order('name'))
+    sb.from('interactions').select('*').order('date',{ascending:false})
   ]).then(function(r){
     var errs=r.filter(function(x){return x.error;}).map(function(x){return x.error.message;});
     if(errs.length)console.warn('loadAll partial errors:',errs.join('; '));
@@ -525,9 +483,7 @@ function loadAll(){
     C.equipItems=r[6].data||[];C.equipComponents=r[7].data||[];C.packChecks=r[8].data||[];
     C.laborPayments=r[9].data||[];C.quotes=r[10].data||[];C.quoteItems=r[11].data||[];
     C.interactions=r[12].data||[];
-    C.hwItems=r[13].data||[];C.hwCategories=r[14].data||[];C.hwScenes=r[15].data||[];
   });
-  return Promise.race([load,timeout]);
 }
 
 // ── MAKE WEBHOOK ──────────────────────────────────────────────────────────────
@@ -705,7 +661,7 @@ function showTab(tab){
   else if(tab==='equipment')renderEquipment();
   else if(tab==='quotes')renderQuotes();
   else if(tab==='crm')renderCRM();
-  else if(tab==='halloween')renderHalloween();
+  else if(tab==='dancefloor')renderDanceFloor();
 }
 
 // ── DASHBOARD ─────────────────────────────────────────────────────────────────
@@ -2890,541 +2846,94 @@ async function saveCu(id){
 }
 
 
-// ── HALLOWEEN ─────────────────────────────────────────────────────────────────
-var hwView='catalog';
-var hwSearch='';
-
-function renderHalloween(){
-  var html='<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">'+
-    '<div style="font-family:\'Bebas Neue\',sans-serif;font-size:26px;letter-spacing:2px;color:#ff8c00">🎃 Halloween</div>'+
-    '<div style="display:flex;gap:8px">'+
-      (hwView==='catalog'?'<button class="btn btn-sm" style="background:#ff8c00;color:#000" onclick="openHwItemModal()">+ Add Item</button>':'<button class="btn btn-sm" style="background:#ff8c00;color:#000" onclick="openHwSceneModal()">+ New Scene</button>')+
-    '</div>'+
-  '</div>'+
-  '<div class="hw-view-toggle">'+
-    '<button class="hw-view-btn'+(hwView==='catalog'?' active':'')+'" onclick="hwView=\'catalog\';renderHalloween()">📦 Catalog ('+C.hwItems.length+')</button>'+
-    '<button class="hw-view-btn'+(hwView==='scenes'?' active':'')+'" onclick="hwView=\'scenes\';renderHalloween()">🏚️ Scenes ('+C.hwScenes.length+')</button>'+
-  '</div>';
-  if(hwView==='catalog'){
-    html+=renderHwCatalog();
-  } else {
-    html+=renderHwScenes();
-  }
-  document.getElementById('mc').innerHTML=html;
-}
-
-function hwImgTag(url,cls,ph){
-  if(url){return'<img class="'+cls+'" src="'+esc(url)+'" onerror="this.style.display=\'none\';this.nextSibling.style.display=\'flex\'" alt=""><div class="'+cls.replace('img','ph')+'" style="display:none">'+ph+'</div>';}
-  return'<div class="'+cls.replace('img','ph')+'">'+ph+'</div>';
-}
-
-function renderHwCatalog(){
-  var cats=C.hwCategories.slice().sort(function(a,b){return a.name.localeCompare(b.name);});
-  var items=C.hwItems.slice();
-  if(hwSearch){var q=hwSearch.toLowerCase();items=items.filter(function(i){return(i.name||'').toLowerCase().indexOf(q)!==-1||(i.description||'').toLowerCase().indexOf(q)!==-1||(i.storage_location||'').toLowerCase().indexOf(q)!==-1||((i.categories||[]).join(' ')).toLowerCase().indexOf(q)!==-1||(i.movement||'').toLowerCase().indexOf(q)!==-1||(i.placement||'').toLowerCase().indexOf(q)!==-1;});}
-
-  var catFilter='<select id="hwCatFilter" onchange="hwCatFilterVal=this.value;hwFilterCatalog()" style="width:auto;padding:6px 10px;font-size:13px;margin-left:8px">'+
-    '<option value="">All Categories</option>'+cats.map(function(c){return'<option value="'+esc(c.name)+'"'+(typeof hwCatFilterVal!=='undefined'&&hwCatFilterVal===c.name?' selected':'')+'>'+esc(c.name)+'</option>';}).join('')+
-  '</select>';
-  if(typeof hwCatFilterVal!=='undefined'&&hwCatFilterVal){items=items.filter(function(i){var cs=i.categories||[];return cs.indexOf(hwCatFilterVal)!==-1;});}
-
-  var html='<div style="display:flex;gap:8px;align-items:center;margin-bottom:14px;flex-wrap:wrap">'+
-    '<input id="hwSearchBox" placeholder="🔍 Search items…" value="'+esc(hwSearch)+'" oninput="hwSearch=this.value;hwFilterCatalog()" style="width:220px;padding:7px 12px;font-size:13px">'+
-    catFilter+
-    '<button class="btn btn-sm btn-outline" onclick="openHwCatManager()">⚙ Categories</button>'+
-  '</div>';
-
-  if(!items.length){return html+'<div id="hwCatalogList"><div class="empty">No items found. Add your first Halloween item!</div></div>';}
-
-  html+='<div id="hwCatalogList">'+items.map(function(it){
-    var cats=(it.categories||[]).map(function(c){return'<span class="hw-cat-chip">'+esc(c)+'</span>';}).join('');
-    var sceneCount=C.hwScenes.filter(function(s){var si=s.items||[];return si.some(function(x){return sid(x.item_id)===sid(it.id);});}).length;
-    return'<div class="hw-item-card" id="hwic-'+sid(it.id)+'">'+
-      '<div class="hw-item-head" onclick="document.getElementById(\'hwic-'+sid(it.id)+'\').classList.toggle(\'open\')">'+
-        (it.photo_url?'<img class="hw-item-thumb" src="'+esc(it.photo_url)+'" onerror="this.style.display=\'none\'" alt="">':'<div class="hw-item-thumb-ph">🎃</div>')+
-        '<div class="hw-item-info">'+
-          '<div class="hw-item-name">'+esc(it.name)+'</div>'+
-          '<div class="hw-item-meta">'+
-            (it.storage_location?'📦 '+esc(it.storage_location)+' &nbsp;':'')+
-            'Qty: '+esc(String(it.quantity||0))+
-            (sceneCount?' &nbsp;<span style="color:#ff8c00;font-weight:600">🏚️ '+sceneCount+' scene'+(sceneCount!==1?'s':'')+'</span>':'')+
-          '</div>'+
-          '<div style="margin-top:4px">'+
-            (it.movement?'<span class="hw-movement-badge'+(it.movement==='Animatronic'?' animatronic':'')+'" style="margin-right:4px">'+esc(it.movement)+'</span>':'')+
-            (it.placement?'<span class="hw-placement-badge" style="margin-right:4px">'+esc(it.placement)+'</span>':'')+
-            cats+
-          '</div>'+
-        '</div>'+
-        '<div style="display:flex;align-items:center;gap:8px;flex-shrink:0">'+
-          '<div style="text-align:center"><div style="font-size:18px;font-weight:700;color:var(--text)">'+esc(String(it.quantity||0))+'</div><div style="font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px">qty</div></div>'+
-          '<span class="expand-arrow" style="color:var(--muted);font-size:11px">▼</span>'+
-        '</div>'+
-      '</div>'+
-      '<div class="hw-item-body">'+
-        (it.description?'<div style="font-size:13px;color:var(--muted);margin-bottom:12px;background:var(--surface2);padding:8px 10px;border-radius:6px">'+esc(it.description)+'</div>':'')+
-        (it.photo_url?'<div style="margin-bottom:12px"><img src="'+esc(it.photo_url)+'" style="max-width:220px;max-height:160px;border-radius:8px;border:1px solid var(--border)" onerror="this.style.display=\'none\'" alt="Photo"></div>':'')+
-        '<div class="g2" style="margin-bottom:12px">'+
-          '<div><div style="font-size:10px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.8px;margin-bottom:4px">Movement</div><div>'+esc(it.movement||'—')+'</div></div>'+
-          '<div><div style="font-size:10px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.8px;margin-bottom:4px">Placement</div><div>'+esc(it.placement||'—')+'</div></div>'+
-          '<div><div style="font-size:10px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.8px;margin-bottom:4px">Storage</div><div>'+esc(it.storage_location||'—')+'</div></div>'+
-          '<div><div style="font-size:10px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.8px;margin-bottom:4px">Quantity</div><div>'+esc(String(it.quantity||0))+'</div></div>'+
-        '</div>'+
-        (sceneCount?'<div style="margin-bottom:12px;font-size:12px;color:#ff8c00">🏚️ Used in '+sceneCount+' scene'+(sceneCount!==1?'s':'')+': '+
-          C.hwScenes.filter(function(s){return(s.items||[]).some(function(x){return sid(x.item_id)===sid(it.id);});}).map(function(s){return'<strong>'+esc(s.name)+'</strong>';}).join(', ')+'</div>':'')+
-        '<div style="display:flex;gap:8px;flex-wrap:wrap">'+
-          '<button class="btn btn-sm btn-outline" onclick="openHwItemModal(\''+sid(it.id)+'\')">✏️ Edit</button>'+
-          (C.hwScenes.length?'<button class="btn btn-sm btn-outline" style="border-color:rgba(255,140,0,.5);color:#ff8c00" onclick="openAddItemToSceneFromCatalog(\''+sid(it.id)+'\')">🏚️ Add to Scene</button>':'')+
-          '<button class="btn btn-sm btn-danger" onclick="delHwItem(\''+sid(it.id)+'\')">🗑 Delete</button>'+
-        '</div>'+
-      '</div>'+
-    '</div>';
-  }).join('')+'</div>';
-  return html;
-}
-
-function hwFilterCatalog(){
-  var listEl=document.getElementById('hwCatalogList');
-  if(!listEl){renderHalloween();return;}
-  var items=C.hwItems.slice();
-  if(hwSearch){var q=hwSearch.toLowerCase();items=items.filter(function(i){return(i.name||'').toLowerCase().indexOf(q)!==-1||(i.description||'').toLowerCase().indexOf(q)!==-1||(i.storage_location||'').toLowerCase().indexOf(q)!==-1||((i.categories||[]).join(' ')).toLowerCase().indexOf(q)!==-1||(i.movement||'').toLowerCase().indexOf(q)!==-1||(i.placement||'').toLowerCase().indexOf(q)!==-1;});}
-  if(hwCatFilterVal){items=items.filter(function(i){return(i.categories||[]).indexOf(hwCatFilterVal)!==-1;});}
-  if(!items.length){listEl.innerHTML='<div class="empty">No items match your search.</div>';return;}
-  listEl.innerHTML=items.map(function(it){
-    var cats=(it.categories||[]).map(function(c){return'<span class="hw-cat-chip">'+esc(c)+'</span>';}).join('');
-    var sceneCount=C.hwScenes.filter(function(s){return(s.items||[]).some(function(x){return sid(x.item_id)===sid(it.id);});}).length;
-    return'<div class="hw-item-card" id="hwic-'+sid(it.id)+'">'+
-      '<div class="hw-item-head" onclick="document.getElementById(\'hwic-'+sid(it.id)+'\').classList.toggle(\'open\')">'+
-        (it.photo_url?'<img class="hw-item-thumb" src="'+esc(it.photo_url)+'" onerror="this.style.display=\'none\'" alt="">':'<div class="hw-item-thumb-ph">🎃</div>')+
-        '<div class="hw-item-info">'+
-          '<div class="hw-item-name">'+esc(it.name)+'</div>'+
-          '<div class="hw-item-meta">'+
-            (it.storage_location?'📦 '+esc(it.storage_location)+' &nbsp;':'')+
-            'Qty: '+esc(String(it.quantity||0))+
-            (sceneCount?' &nbsp;<span style="color:#ff8c00;font-weight:600">🏚️ '+sceneCount+' scene'+(sceneCount!==1?'s':'')+'</span>':'')+
-          '</div>'+
-          '<div style="margin-top:4px">'+
-            (it.movement?'<span class="hw-movement-badge'+(it.movement==='Animatronic'?' animatronic':'')+'" style="margin-right:4px">'+esc(it.movement)+'</span>':'')+
-            (it.placement?'<span class="hw-placement-badge" style="margin-right:4px">'+esc(it.placement)+'</span>':'')+
-            cats+
-          '</div>'+
-        '</div>'+
-        '<div style="display:flex;align-items:center;gap:8px;flex-shrink:0">'+
-          '<div style="text-align:center"><div style="font-size:18px;font-weight:700;color:var(--text)">'+esc(String(it.quantity||0))+'</div><div style="font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px">qty</div></div>'+
-          '<span class="expand-arrow" style="color:var(--muted);font-size:11px">▼</span>'+
-        '</div>'+
-      '</div>'+
-      '<div class="hw-item-body">'+
-        (it.description?'<div style="font-size:13px;color:var(--muted);margin-bottom:12px;background:var(--surface2);padding:8px 10px;border-radius:6px">'+esc(it.description)+'</div>':'')+
-        (it.photo_url?'<div style="margin-bottom:12px"><img src="'+esc(it.photo_url)+'" style="max-width:220px;max-height:160px;border-radius:8px;border:1px solid var(--border)" onerror="this.style.display=\'none\'" alt="Photo"></div>':'')+
-        '<div class="g2" style="margin-bottom:12px">'+
-          '<div><div style="font-size:10px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.8px;margin-bottom:4px">Movement</div><div>'+esc(it.movement||'—')+'</div></div>'+
-          '<div><div style="font-size:10px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.8px;margin-bottom:4px">Placement</div><div>'+esc(it.placement||'—')+'</div></div>'+
-          '<div><div style="font-size:10px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.8px;margin-bottom:4px">Storage</div><div>'+esc(it.storage_location||'—')+'</div></div>'+
-          '<div><div style="font-size:10px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.8px;margin-bottom:4px">Quantity</div><div>'+esc(String(it.quantity||0))+'</div></div>'+
-        '</div>'+
-        (sceneCount?'<div style="margin-bottom:12px;font-size:12px;color:#ff8c00">🏚️ Used in '+sceneCount+' scene'+(sceneCount!==1?'s':'')+': '+
-          C.hwScenes.filter(function(s){return(s.items||[]).some(function(x){return sid(x.item_id)===sid(it.id);});}).map(function(s){return'<strong>'+esc(s.name)+'</strong>';}).join(', ')+'</div>':'')+
-        '<div style="display:flex;gap:8px;flex-wrap:wrap">'+
-          '<button class="btn btn-sm btn-outline" onclick="openHwItemModal(\''+sid(it.id)+'\')">✏️ Edit</button>'+
-          (C.hwScenes.length?'<button class="btn btn-sm btn-outline" style="border-color:rgba(255,140,0,.5);color:#ff8c00" onclick="openAddItemToSceneFromCatalog(\''+sid(it.id)+'\')">🏚️ Add to Scene</button>':'')+
-          '<button class="btn btn-sm btn-danger" onclick="delHwItem(\''+sid(it.id)+'\')">🗑 Delete</button>'+
-        '</div>'+
-      '</div>'+
-    '</div>';
-  }).join('');
-}
-
-function renderHwScenes(){
-  if(!C.hwScenes.length)return'<div class="empty">No scenes yet. Create your first Halloween scene!</div>';
-  return C.hwScenes.map(function(sc){
-    var items=sc.items||[];
-    var itemDetails=items.map(function(si){
-      var it=C.hwItems.find(function(x){return sid(x.id)===sid(si.item_id);});
-      return{si:si,it:it};
-    });
-    return'<div class="hw-scene-card" id="hwsc-'+sid(sc.id)+'">'+
-      '<div class="hw-scene-head" onclick="document.getElementById(\'hwsc-'+sid(sc.id)+'\').classList.toggle(\'open\')">'+
-        '<div>'+
-          '<div style="font-weight:600;font-size:15px">'+esc(sc.name)+'</div>'+
-          '<div style="font-size:11px;color:var(--muted);margin-top:2px">'+esc(sc.venue||'—')+' &nbsp;·&nbsp; '+items.length+' item'+(items.length!==1?'s':'')+'</div>'+
-        '</div>'+
-        '<div style="display:flex;align-items:center;gap:8px;flex-shrink:0">'+
-          '<span class="badge" style="background:rgba(255,140,0,.15);color:#ff8c00;border:1px solid rgba(255,140,0,.4)">🏚️ '+items.length+' items</span>'+
-          '<span class="expand-arrow" style="color:var(--muted);font-size:11px">▼</span>'+
-        '</div>'+
-      '</div>'+
-      '<div class="hw-scene-body">'+
-        (sc.description?'<div style="font-size:13px;color:var(--muted);margin-bottom:12px;background:var(--surface2);padding:8px 10px;border-radius:6px">'+esc(sc.description)+'</div>':'')+
-        (items.length?
-          '<div style="margin-bottom:12px">'+
-            itemDetails.map(function(d){
-              var it=d.it;
-              if(!it)return'<div style="padding:6px 0;font-size:12px;color:var(--muted)">Unknown item</div>';
-              return'<div class="hw-scene-item-row">'+
-                (it.photo_url?'<img class="hw-scene-item-thumb" src="'+esc(it.photo_url)+'" onerror="this.style.display=\'none\'" alt="">':'<div class="hw-scene-item-ph">🎃</div>')+
-                '<div style="flex:1;min-width:0">'+
-                  '<div style="font-weight:500;font-size:13px">'+esc(it.name)+'</div>'+
-                  '<div style="font-size:11px;color:var(--muted)">'+
-                    (it.movement?'<span class="hw-movement-badge'+(it.movement==='Animatronic'?' animatronic':'')+'" style="margin-right:4px;font-size:9px">'+esc(it.movement)+'</span>':'')+
-                    (it.placement?'<span class="hw-placement-badge" style="font-size:9px">'+esc(it.placement)+'</span>':'')+
-                  '</div>'+
-                '</div>'+
-                '<div style="font-size:12px;color:var(--muted);flex-shrink:0">Qty: '+esc(String(d.si.qty||1))+'</div>'+
-                '<button onclick="removeItemFromScene(\''+sid(sc.id)+'\',\''+sid(it.id)+'\')" class="row-remove" title="Remove from scene">×</button>'+
-              '</div>';
-            }).join('')+
-          '</div>':
-          '<div style="color:var(--muted);font-size:13px;margin-bottom:12px">No items in this scene yet.</div>')+
-        '<div style="display:flex;gap:8px;flex-wrap:wrap">'+
-          '<button class="btn btn-sm" style="background:#ff8c00;color:#000" onclick="openAddItemToScene(\''+sid(sc.id)+'\')">+ Add Item</button>'+
-          '<button class="btn btn-sm btn-outline" onclick="openHwSceneModal(\''+sid(sc.id)+'\')">✏️ Edit</button>'+
-          '<button class="btn btn-sm btn-danger" onclick="delHwScene(\''+sid(sc.id)+'\')">🗑 Delete</button>'+
-        '</div>'+
-      '</div>'+
-    '</div>';
-  }).join('');
-}
-
-// ── HW ITEM MODAL ─────────────────────────────────────────────────────────────
-var hwCatFilterVal='';
-
-function hwCatCheckboxes(selected){
-  var cats=C.hwCategories.slice().sort(function(a,b){return a.name.localeCompare(b.name);});
-  return cats.map(function(c){
-    var sel=selected&&selected.indexOf(c.name)!==-1;
-    return'<span class="hw-cat-checkbox'+(sel?' selected':'')+'" onclick="hwToggleCat(this,\''+esc(c.name)+'\')">'+esc(c.name)+'</span>';
-  }).join('');
-}
-function hwToggleCat(el,name){el.classList.toggle('selected');}
-
-function openHwItemModal(id){
-  var it=id?C.hwItems.find(function(x){return sid(x.id)===sid(id);}):null;
-  var sel=it?it.categories||[]:[];
-  openModal(it?'Edit Halloween Item':'New Halloween Item',
-    '<div class="form-group"><label>Name *</label><input id="hwName" value="'+esc(it?it.name||'':'')+'"></div>'+
-    '<div class="form-group"><label>Description</label><textarea id="hwDesc">'+esc(it?it.description||'':'')+'</textarea></div>'+
-    '<div class="g2">'+
-      '<div class="form-group"><label>Storage Location</label><input id="hwStorage" placeholder="e.g. Garage Shelf B" value="'+esc(it?it.storage_location||'':'')+'"></div>'+
-      '<div class="form-group"><label>Quantity</label><input type="number" id="hwQty" min="0" value="'+(it?it.quantity||0:1)+'"></div>'+
-    '</div>'+
-    '<div class="g2">'+
-      '<div class="form-group"><label>Movement</label><select id="hwMovement">'+
-        ['','Static','Animatronic'].map(function(v){return'<option value="'+v+'"'+(it&&it.movement===v?' selected':(!it&&v===''?' selected':''))+'>'+( v||'— Select —')+'</option>';}).join('')+
-      '</select></div>'+
-      '<div class="form-group"><label>Placement</label><select id="hwPlacement">'+
-        ['','Free Standing','Hanging'].map(function(v){return'<option value="'+v+'"'+(it&&it.placement===v?' selected':(!it&&v===''?' selected':''))+'>'+( v||'— Select —')+'</option>';}).join('')+
-      '</select></div>'+
-    '</div>'+
-    '<div class="form-group"><label>Categories <span style="font-size:10px;color:var(--muted);font-weight:400">(select one or more)</span></label>'+
-      '<div id="hwCatPicker" style="display:flex;flex-wrap:wrap;gap:2px;margin-bottom:8px">'+hwCatCheckboxes(sel)+'</div>'+
-      '<div style="display:flex;gap:6px"><input id="hwNewCat" placeholder="Add new category…" style="flex:1;font-size:13px"><button class="btn btn-sm btn-outline" onclick="addNewHwCategory()">+ Add</button></div>'+
-    '</div>'+
-    '<div class="form-group"><label>Photo</label>'+
-      '<div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">'+
-        '<input id="hwPhotoUrl" placeholder="Paste image URL…" value="'+esc(it?it.photo_url||'':'')+'" style="flex:1;min-width:140px" oninput="hwPreviewUrl()">'+
-        '<span style="font-size:11px;color:var(--muted)">or</span>'+
-        '<label class="btn btn-sm btn-outline" style="cursor:pointer;margin-bottom:0">📁 Upload<input type="file" accept="image/*" id="hwPhotoFile" style="display:none" onchange="hwHandleFileUpload(this)"></label>'+
-      '</div>'+
-      '<div id="hwPhotoPreview" style="margin-top:8px">'+(it&&it.photo_url?'<img src="'+esc(it.photo_url)+'" style="max-width:200px;max-height:140px;border-radius:8px;border:1px solid var(--border)" onerror="this.style.display=\'none\'" alt="Preview">':'')+'</div>'+
-    '</div>',
-    function(){saveHwItem(id);}
-  );
-}
-
-function hwPreviewUrl(){
-  var url=document.getElementById('hwPhotoUrl').value.trim();
-  var prev=document.getElementById('hwPhotoPreview');
-  if(url){prev.innerHTML='<img src="'+esc(url)+'" style="max-width:200px;max-height:140px;border-radius:8px;border:1px solid var(--border)" onerror="this.innerHTML=\'<span style=color:var(--accent2)>Could not load image</span>\'" alt="Preview">';}
-  else{prev.innerHTML='';}
-}
-
-function hwHandleFileUpload(input){
-  var file=input.files&&input.files[0];
-  if(!file)return;
-  var reader=new FileReader();
-  reader.onload=function(e){
-    document.getElementById('hwPhotoUrl').value=e.target.result;
-    var prev=document.getElementById('hwPhotoPreview');
-    prev.innerHTML='<img src="'+e.target.result+'" style="max-width:200px;max-height:140px;border-radius:8px;border:1px solid var(--border)" alt="Preview"><div style="font-size:10px;color:var(--muted);margin-top:4px">Stored as base64 — consider using an image URL for smaller file size</div>';
-  };
-  reader.readAsDataURL(file);
-}
-
-async function addNewHwCategory(){
-  var name=(document.getElementById('hwNewCat').value||'').trim();
-  if(!name)return;
-  if(C.hwCategories.some(function(c){return c.name.toLowerCase()===name.toLowerCase();})){
-    document.getElementById('hwNewCat').value='';
-    return;
-  }
-  var r=await sb.from('halloween_categories').insert({name:name});
-  if(r.error){showErr(r.error.message);return;}
-  document.getElementById('hwNewCat').value='';
-  await sb.from('halloween_categories').select('*').order('name').then(function(res){C.hwCategories=res.data||[];});
-  var sel=Array.from(document.querySelectorAll('#hwCatPicker .hw-cat-checkbox.selected')).map(function(el){return el.textContent;});
-  sel.push(name);
-  document.getElementById('hwCatPicker').innerHTML=hwCatCheckboxes(sel);
-}
-
-async function saveHwItem(id){
-  var name=(document.getElementById('hwName').value||'').trim();
-  if(!name){showErr('Name is required.');return;}
-  var cats=Array.from(document.querySelectorAll('#hwCatPicker .hw-cat-checkbox.selected')).map(function(el){return el.textContent;});
-  var obj={
-    name:name,
-    description:(document.getElementById('hwDesc').value||'').trim()||null,
-    storage_location:(document.getElementById('hwStorage').value||'').trim()||null,
-    quantity:parseInt(document.getElementById('hwQty').value)||0,
-    movement:document.getElementById('hwMovement').value||null,
-    placement:document.getElementById('hwPlacement').value||null,
-    categories:cats,
-    photo_url:(document.getElementById('hwPhotoUrl').value||'').trim()||null
-  };
-  var r=id?await sb.from('halloween_items').update(obj).eq('id',id):await sb.from('halloween_items').insert(obj);
-  if(r.error){showErr(r.error.message);return;}
-  closeModal();await loadAll();renderHalloween();
-}
-
-async function delHwItem(id){
-  if(!confirm('Delete this item? It will also be removed from any scenes.'))return;
-  // Remove from all scenes
-  for(var i=0;i<C.hwScenes.length;i++){
-    var sc=C.hwScenes[i];
-    var items=(sc.items||[]).filter(function(x){return sid(x.item_id)!==sid(id);});
-    if(items.length!==(sc.items||[]).length){
-      await sb.from('halloween_scenes').update({items:items}).eq('id',sc.id);
-    }
-  }
-  var r=await sb.from('halloween_items').delete().eq('id',id);
-  if(r.error){showErr(r.error.message);return;}
-  await loadAll();renderHalloween();
-}
-
-// ── HW SCENE MODAL ────────────────────────────────────────────────────────────
-function openHwSceneModal(id){
-  var sc=id?C.hwScenes.find(function(x){return sid(x.id)===sid(id);}):null;
-  openModal(sc?'Edit Scene':'New Halloween Scene',
-    '<div class="form-group"><label>Scene Name *</label><input id="hwScName" value="'+esc(sc?sc.name||'':'')+'"></div>'+
-    '<div class="form-group"><label>Venue / Location</label><input id="hwScVenue" placeholder="e.g. Front Yard, Haunted Barn" value="'+esc(sc?sc.venue||'':'')+'"></div>'+
-    '<div class="form-group"><label>Description / Notes</label><textarea id="hwScDesc">'+esc(sc?sc.description||'':'')+'</textarea></div>',
-    function(){saveHwScene(id);}
-  );
-}
-
-async function saveHwScene(id){
-  var name=(document.getElementById('hwScName').value||'').trim();
-  if(!name){showErr('Scene name is required.');return;}
-  var obj={
-    name:name,
-    venue:(document.getElementById('hwScVenue').value||'').trim()||null,
-    description:(document.getElementById('hwScDesc').value||'').trim()||null
-  };
-  if(!id){obj.items=[];}
-  var r=id?await sb.from('halloween_scenes').update(obj).eq('id',id):await sb.from('halloween_scenes').insert(obj);
-  if(r.error){showErr(r.error.message);return;}
-  closeModal();await loadAll();hwView='scenes';renderHalloween();
-}
-
-async function delHwScene(id){
-  if(!confirm('Delete this scene?'))return;
-  // Return items to catalog (items live in catalog already; scene just references them)
-  var r=await sb.from('halloween_scenes').delete().eq('id',id);
-  if(r.error){showErr(r.error.message);return;}
-  await loadAll();renderHalloween();
-}
-
-// ── ADD ITEM TO SCENE ─────────────────────────────────────────────────────────
-// Returns total qty of itemId already committed across all scenes
-function hwQtyAllocated(itemId){
-  return C.hwScenes.reduce(function(sum,s){
-    var si=(s.items||[]).find(function(x){return sid(x.item_id)===sid(itemId);});
-    return sum+(si?si.qty:0);
-  },0);
-}
-// Returns qty remaining for itemId
-function hwQtyAvailable(itemId){
-  var it=C.hwItems.find(function(x){return sid(x.id)===sid(itemId);});
-  if(!it)return 0;
-  return Math.max(0,(it.quantity||0)-hwQtyAllocated(itemId));
-}
-
-function openAddItemToSceneFromCatalog(itemId){
-  var it=C.hwItems.find(function(x){return sid(x.id)===sid(itemId);});
-  if(!it)return;
-  var remaining=hwQtyAvailable(itemId);
-  if(remaining<=0){
-    openModal('Add to Scene',
-      '<div style="color:var(--muted);font-size:13px">All '+esc(String(it.quantity||0))+' of <strong>'+esc(it.name)+'</strong> are already allocated across scenes. Remove it from a scene first to free up quantity.</div>',
-      null
-    );
-    document.getElementById('msb').style.display='none';
-    return;
-  }
-  if(!C.hwScenes.length){
-    openModal('Add to Scene','<div style="color:var(--muted);font-size:13px">No scenes exist yet — create one first from the Scenes view.</div>',null);
-    document.getElementById('msb').style.display='none';
-    return;
-  }
-  openModal('Add "'+it.name+'" to Scene',
-    '<div style="font-size:12px;color:var(--muted);margin-bottom:10px">Item: <strong>'+esc(it.name)+'</strong> &nbsp;·&nbsp; <span style="color:#ff8c00;font-weight:600">'+remaining+' available</span></div>'+
-    '<div class="form-group"><label>Scene</label><select id="hwCatSceneSel">'+
-      '<option value="">— Select Scene —</option>'+
-      C.hwScenes.map(function(s){return'<option value="'+sid(s.id)+'">'+esc(s.name)+(s.venue?' — '+esc(s.venue):'')+'</option>';}).join('')+
-    '</select></div>'+
-    '<div class="form-group"><label>Quantity <span style="font-weight:400;color:var(--muted)">(max '+remaining+')</span></label>'+
-      '<input type="number" id="hwCatSceneQty" min="1" max="'+remaining+'" value="1"></div>',
-    function(){addItemToSceneFromCatalog(itemId,remaining);}
-  );
-}
-
-async function addItemToSceneFromCatalog(itemId,remaining){
-  var sceneId=document.getElementById('hwCatSceneSel').value;
-  var qty=parseInt(document.getElementById('hwCatSceneQty').value)||1;
-  if(!sceneId){showErr('Please select a scene.');return;}
-  if(qty<1){showErr('Quantity must be at least 1.');return;}
-  if(qty>remaining){showErr('Only '+remaining+' available.');return;}
-  var sc=C.hwScenes.find(function(x){return sid(x.id)===sid(sceneId);});
-  if(!sc){showErr('Scene not found.');return;}
-  // If item already in this scene, add to its qty
-  var items=(sc.items||[]).slice();
-  var existing=items.find(function(x){return sid(x.item_id)===sid(itemId);});
-  if(existing){
-    var newQty=existing.qty+qty;
-    var it=C.hwItems.find(function(x){return sid(x.id)===sid(itemId);});
-    var totalAllocatedElsewhere=hwQtyAllocated(itemId)-existing.qty;
-    if(newQty>(it.quantity||0)-totalAllocatedElsewhere){showErr('Not enough quantity available.');return;}
-    existing.qty=newQty;
-  } else {
-    items.push({item_id:itemId,qty:qty});
-  }
-  var r=await sb.from('halloween_scenes').update({items:items}).eq('id',sceneId);
-  if(r.error){showErr(r.error.message);return;}
-  closeModal();await loadAll();renderHalloween();
-  setTimeout(function(){var el=document.getElementById('hwic-'+sid(itemId));if(el)el.classList.add('open');},50);
-}
-
-function openAddItemToScene(sceneId){
-  var sc=C.hwScenes.find(function(x){return sid(x.id)===sid(sceneId);});
-  if(!sc)return;
-  var usedIds=(sc.items||[]).map(function(x){return sid(x.item_id);});
-  // Only show items with available quantity (not fully allocated)
-  var available=C.hwItems.filter(function(i){
-    var remaining=hwQtyAvailable(sid(i.id));
-    // If already in this scene, the qty allocated to this scene doesn't count against availability
-    var inThisScene=(sc.items||[]).find(function(x){return sid(x.item_id)===sid(i.id);});
-    var effectiveRemaining=remaining+(inThisScene?inThisScene.qty:0);
-    return effectiveRemaining>0 && usedIds.indexOf(sid(i.id))===-1;
-  });
-  if(!available.length){
-    openModal('Add Item to Scene','<div style="color:var(--muted);font-size:13px">No items with available quantity. Add more inventory or free up items from other scenes.</div>',null);
-    document.getElementById('msb').style.display='none';
-    return;
-  }
-  var body='<div style="font-size:12px;color:var(--muted);margin-bottom:10px">Scene: <strong>'+esc(sc.name)+'</strong></div>'+
-    '<div class="form-group"><label>Item</label><select id="hwAddItemSel" onchange="hwUpdateMaxQty(this.value)">'+
-      '<option value="">— Select Item —</option>'+
-      available.map(function(i){
-        var rem=hwQtyAvailable(sid(i.id));
-        return'<option value="'+sid(i.id)+'" data-max="'+rem+'">'+esc(i.name)+' ('+rem+' available)</option>';
-      }).join('')+
-    '</select></div>'+
-    '<div class="form-group"><label>Quantity for Scene</label><input type="number" id="hwAddItemQty" min="1" value="1"></div>';
-  openModal('Add Item to Scene',body,function(){addItemToScene(sceneId);});
-}
-
-function hwUpdateMaxQty(itemId){
-  if(!itemId)return;
-  var rem=hwQtyAvailable(itemId);
-  var inp=document.getElementById('hwAddItemQty');
-  if(inp){inp.max=rem;if(parseInt(inp.value)>rem)inp.value=rem;}
-}
-
-async function addItemToScene(sceneId){
-  var itemId=document.getElementById('hwAddItemSel').value;
-  var qty=parseInt(document.getElementById('hwAddItemQty').value)||1;
-  if(!itemId){showErr('Please select an item.');return;}
-  var remaining=hwQtyAvailable(itemId);
-  if(qty>remaining){showErr('Only '+remaining+' of this item available.');return;}
-  var sc=C.hwScenes.find(function(x){return sid(x.id)===sid(sceneId);});
-  if(!sc){showErr('Scene not found.');return;}
-  var items=(sc.items||[]).slice();
-  items.push({item_id:itemId,qty:qty});
-  var r=await sb.from('halloween_scenes').update({items:items}).eq('id',sceneId);
-  if(r.error){showErr(r.error.message);return;}
-  closeModal();await loadAll();hwView='scenes';renderHalloween();
-  setTimeout(function(){var el=document.getElementById('hwsc-'+sid(sceneId));if(el)el.classList.add('open');},50);
-}
-
-
-async function removeItemFromScene(sceneId,itemId){
-  var sc=C.hwScenes.find(function(x){return sid(x.id)===sid(sceneId);});
-  if(!sc)return;
-  var items=(sc.items||[]).filter(function(x){return sid(x.item_id)!==sid(itemId);});
-  var r=await sb.from('halloween_scenes').update({items:items}).eq('id',sceneId);
-  if(r.error){showErr(r.error.message);return;}
-  await loadAll();hwView='scenes';renderHalloween();
-  setTimeout(function(){var el=document.getElementById('hwsc-'+sid(sceneId));if(el)el.classList.add('open');},50);
-}
-
-// ── CATEGORY MANAGER ──────────────────────────────────────────────────────────
-function openHwCatManager(){
-  var cats=C.hwCategories.slice().sort(function(a,b){return a.name.localeCompare(b.name);});
-  openModal('Manage Categories',
-    '<div id="hwCatList">'+
-      (cats.length?cats.map(function(c){
-        return'<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border)">'+
-          '<span style="font-size:13px">'+esc(c.name)+'</span>'+
-          '<button class="btn btn-sm btn-danger" onclick="delHwCategory(\''+sid(c.id)+'\',\''+esc(c.name)+'\')">Delete</button>'+
-        '</div>';
-      }).join(''):'<div style="color:var(--muted);font-size:13px">No categories yet.</div>')+
-    '</div>'+
-    '<div style="display:flex;gap:6px;margin-top:14px">'+
-      '<input id="hwCatMgrInput" placeholder="New category name…" style="flex:1">'+
-      '<button class="btn btn-sm" style="background:#ff8c00;color:#000" onclick="addHwCategoryFromManager()">Add</button>'+
-    '</div>',
-    null
-  );
-  document.getElementById('msb').style.display='none';
-}
-
-async function addHwCategoryFromManager(){
-  var name=(document.getElementById('hwCatMgrInput').value||'').trim();
-  if(!name)return;
-  if(C.hwCategories.some(function(c){return c.name.toLowerCase()===name.toLowerCase();})){document.getElementById('hwCatMgrInput').value='';return;}
-  var r=await sb.from('halloween_categories').insert({name:name});
-  if(r.error){showErr(r.error.message);return;}
-  document.getElementById('hwCatMgrInput').value='';
-  await sb.from('halloween_categories').select('*').order('name').then(function(res){C.hwCategories=res.data||[];});
-  var cats=C.hwCategories.slice().sort(function(a,b){return a.name.localeCompare(b.name);});
-  document.getElementById('hwCatList').innerHTML=cats.map(function(c){
-    return'<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border)">'+
-      '<span style="font-size:13px">'+esc(c.name)+'</span>'+
-      '<button class="btn btn-sm btn-danger" onclick="delHwCategory(\''+sid(c.id)+'\',\''+esc(c.name)+'\')">Delete</button>'+
-    '</div>';
-  }).join('');
-}
-
-async function delHwCategory(id,name){
-  if(!confirm('Delete category "'+name+'"? It will be removed from all items.'))return;
-  var r=await sb.from('halloween_categories').delete().eq('id',id);
-  if(r.error){showErr(r.error.message);return;}
-  // Strip from items
-  var affected=C.hwItems.filter(function(i){return(i.categories||[]).indexOf(name)!==-1;});
-  for(var i=0;i<affected.length;i++){
-    var cats=(affected[i].categories||[]).filter(function(c){return c!==name;});
-    await sb.from('halloween_items').update({categories:cats}).eq('id',affected[i].id);
-  }
-  await loadAll();
-  var newCats=C.hwCategories.slice().sort(function(a,b){return a.name.localeCompare(b.name);});
-  document.getElementById('hwCatList').innerHTML=newCats.length?newCats.map(function(c){
-    return'<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border)">'+
-      '<span style="font-size:13px">'+esc(c.name)+'</span>'+
-      '<button class="btn btn-sm btn-danger" onclick="delHwCategory(\''+sid(c.id)+'\',\''+esc(c.name)+'\')">Delete</button>'+
-    '</div>';
-  }).join(''):'<div style="color:var(--muted);font-size:13px">No categories yet.</div>';
-}
-
 init();
+
+// ── DANCE FLOOR CALCULATOR ────────────────────────────────────────────────────
+function renderDanceFloor(){
+  // Tile count mapping: dimension (ft) -> tile count
+  var tileMap={10:6,11:7,13:8,14:9,16:10,18:11,20:12,21:13,22:14};
+  var dims=[10,11,13,14,16,18,20,21,22];
+  var mc=document.getElementById('mc');
+
+  // Read current selections if they exist
+  var selL=mc.querySelector('#dfLength')?parseInt(mc.querySelector('#dfLength').value)||10:10;
+  var selW=mc.querySelector('#dfWidth')?parseInt(mc.querySelector('#dfWidth').value)||10:10;
+
+  function calc(lenFt,widFt){
+    var lt=tileMap[lenFt],wt=tileMap[widFt];
+    var totalTiles=lt*wt;
+    var casesNeeded=Math.ceil(totalTiles/8);
+    var extras=(casesNeeded*8)-totalTiles;
+    // Powered edges: ceil(widthTiles/2), flag if odd
+    var pwOdd=(wt%2!==0);
+    var poweredEdges=Math.ceil(wt/2);
+    // Standard edges: 1 row of width + 2 rows of length
+    var seW=Math.ceil(wt/2);
+    var seL=Math.ceil(lt/2);
+    var seWOdd=(wt%2!==0);
+    var seLOdd=(lt%2!==0);
+    var standardEdges=seW+(2*seL);
+    // Power supplies = powered edges
+    var powerSupplies=poweredEdges;
+    // Controllers: <=4 powered edges = 1, >4 = 2
+    var controllers=poweredEdges<=4?1:2;
+    // Physical size in feet (1.6 ft per tile)
+    var physL=(lt*1.6).toFixed(1);
+    var physW=(wt*1.6).toFixed(1);
+    return{lt,wt,totalTiles,casesNeeded,extras,poweredEdges,pwOdd,standardEdges,seWOdd,seLOdd,powerSupplies,controllers,physL,physW};
+  }
+
+  function dropOpts(sel){
+    return dims.map(function(d){return'<option value="'+d+'"'+(d===sel?' selected':'')+'>'+d+"'</option>";}).join('');
+  }
+
+  function badge(label,val,note,warn){
+    return'<div style="background:var(--surface2,#f5f5f5);border:1px solid var(--border);border-radius:8px;padding:16px 20px;min-width:160px;flex:1;">'+
+      '<div style="font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;">'+label+'</div>'+
+      '<div style="font-size:28px;font-weight:700;color:var(--text);">'+val+'</div>'+
+      (note?'<div style="font-size:12px;color:'+(warn?'var(--amber,#f59e0b)':'var(--muted)')+'margin-top:4px;">'+note+'</div>':'')+
+    '</div>';
+  }
+
+  function render(lenFt,widFt){
+    var r=calc(lenFt,widFt);
+    mc.innerHTML=
+      '<div style="max-width:700px;margin:0 auto;padding:20px;">'+
+      '<h2 style="margin-bottom:20px;">Dance Floor Calculator</h2>'+
+      '<div style="display:flex;gap:20px;align-items:flex-end;margin-bottom:28px;flex-wrap:wrap;">'+
+        '<div class="form-group" style="margin:0;min-width:130px;">'+
+          '<label>Length (ft)</label>'+
+          '<select id="dfLength" onchange="dfUpdate()" style="font-size:15px;">'+dropOpts(lenFt)+'</select>'+
+        '</div>'+
+        '<div class="form-group" style="margin:0;min-width:130px;">'+
+          '<label>Width (ft)</label>'+
+          '<select id="dfWidth" onchange="dfUpdate()" style="font-size:15px;">'+dropOpts(widFt)+'</select>'+
+        '</div>'+
+      '</div>'+
+      '<div style="background:var(--surface2,#f0f0f0);border-radius:8px;padding:14px 18px;margin-bottom:24px;display:inline-block;">'+
+        '<span style="font-size:13px;color:var(--muted);font-weight:600;">TILE GRID</span>&nbsp;&nbsp;'+
+        '<span style="font-size:18px;font-weight:700;">'+r.lt+' &times; '+r.wt+' = '+r.totalTiles+' tiles</span>&nbsp;&nbsp;'+
+        '<span style="font-size:13px;color:var(--muted);">Physical size: '+r.physL+"' &times; "+r.physW+"'</span>"+
+      '</div>'+
+      '<div style="display:flex;flex-wrap:wrap;gap:14px;margin-bottom:24px;">'+
+        badge('Tiles Needed',r.totalTiles)+
+        badge('Cases',r.casesNeeded,'('+r.extras+' extra tile'+(r.extras!==1?'s':'')+')')+
+        badge('Powered Edges',r.poweredEdges,r.pwOdd?'Odd width — 1 single powered edge needed':null,r.pwOdd)+
+        badge('Standard Edges',r.standardEdges,(r.seWOdd||r.seLOdd)?'Single edge needed on '+(r.seWOdd&&r.seLOdd?'width & length':r.seWOdd?'width':'length'):null,r.seWOdd||r.seLOdd)+
+        badge('Power Supplies',r.powerSupplies)+
+        badge('Controllers',r.controllers,r.poweredEdges+' powered edge'+(r.poweredEdges!==1?'s':''))+
+      '</div>'+
+      '</div>';
+  }
+
+  window.dfUpdate=function(){
+    var l=parseInt(document.getElementById('dfLength').value);
+    var w=parseInt(document.getElementById('dfWidth').value);
+    render(l,w);
+  };
+
+  render(selL,selW);
+}
 </script>
 </body>
 </html>
