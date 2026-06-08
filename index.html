@@ -2857,57 +2857,120 @@ async function saveCu(id){
 init();
 
 // ── DANCE FLOOR CALCULATOR ────────────────────────────────────────────────────
-var dfLengthSel=10,dfWidthSel=10;
 function renderDanceFloor(){
+  var pane=document.getElementById('mc');
+
+  // Tile mapping: dimension (feet) -> tile count per side
   var tileMap={10:6,11:7,13:8,14:9,16:10,18:11,20:12,21:13,22:14};
   var dims=[10,11,13,14,16,18,20,21,22];
-  var tL=tileMap[dfLengthSel],tW=tileMap[dfWidthSel];
-  var totalTiles=tL*tW;
-  var cases=Math.ceil(totalTiles/8);
-  var extras=(cases*8)-totalTiles;
-  var poweredEdges=Math.ceil(tW/2);
-  var pwOdd=(tW%2!==0);
-  var stdEdgesWidth=Math.ceil(tW/2);
-  var stdEdgesLen=Math.ceil(tL/2);
-  var seWOdd=(tW%2!==0),seLOdd=(tL%2!==0);
-  var standardEdges=stdEdgesWidth+(2*stdEdgesLen);
-  var powerSupplies=poweredEdges;
-  var controllers=poweredEdges<=4?1:2;
-  var physL=(tL*1.6).toFixed(1),physW=(tW*1.6).toFixed(1);
-  function dimOpts(sel){return dims.map(function(d){return'<option value="'+d+'"'+(d===sel?' selected':'')+'>'+(d)+"'</option>";}).join('');}
-  function row(label,val,note,warn){
-    return'<tr>'+
-      '<td style="padding:10px 14px;font-weight:600;color:var(--muted);font-size:13px;white-space:nowrap;">'+label+'</td>'+
-      '<td style="padding:10px 14px;font-size:22px;font-weight:700;">'+val+'</td>'+
-      '<td style="padding:10px 14px;font-size:12px;color:'+(warn?'var(--amber,#f59e0b)':'var(--muted)')+'">'+( note||'')+'</td>'+
-    '</tr>';
+
+  var lengthSel=dfLength||dims[0];
+  var widthSel=dfWidth||dims[0];
+
+  function calcResults(len,wid){
+    var tL=tileMap[len];
+    var tW=tileMap[wid];
+    var totalTiles=tL*tW;
+    var cases=Math.ceil(totalTiles/8);
+    var extras=(cases*8)-totalTiles;
+
+    // Powered Edges: based on width tile count
+    // 1 powered edge per 2 tiles; odd tile count gets a single powered edge
+    var poweredEdges=Math.ceil(tW/2);
+    var poweredHasSingle=tW%2===1;
+
+    // Standard Edges: same calculation, but for 1 row of width + 2 lengths
+    var stdEdgesWidth=Math.ceil(tW/2);
+    var stdEdgesLength=Math.ceil(tL/2);
+    var standardEdges=stdEdgesWidth+(2*stdEdgesLength);
+    var stdWidthHasSingle=tW%2===1;
+    var stdLengthHasSingle=tL%2===1;
+
+    // Power supplies = number of powered edges
+    var powerSupplies=poweredEdges;
+
+    // Software controllers: 4 inputs each; <=4 powered edges = 1, >4 = 2
+    var controllers=poweredEdges<=4?1:2;
+
+    return{tL,tW,totalTiles,cases,extras,poweredEdges,poweredHasSingle,standardEdges,stdWidthHasSingle,stdLengthHasSingle,powerSupplies,controllers};
   }
-  document.getElementById('mc').innerHTML=
-    sh('Dance Floor Calculator','')+
-    '<div style="display:flex;gap:20px;align-items:flex-end;margin-bottom:24px;flex-wrap:wrap;">'+
-      '<div class="form-group" style="margin:0;">'+
-        '<label>Length</label>'+
-        '<select id="dfLength" onchange="dfLengthSel=parseInt(this.value);renderDanceFloor()" style="min-width:110px;">'+dimOpts(dfLengthSel)+'</select>'+
-      '</div>'+
-      '<div class="form-group" style="margin:0;">'+
-        '<label>Width</label>'+
-        '<select id="dfWidth" onchange="dfWidthSel=parseInt(this.value);renderDanceFloor()" style="min-width:110px;">'+dimOpts(dfWidthSel)+'</select>'+
-      '</div>'+
+
+  var r=calcResults(lengthSel,widthSel);
+
+  var dimOpts=dims.map(function(d){return'<option value="'+d+'"'+(d===lengthSel?' selected':'')+'>'+d+' ft</option>';}).join('');
+  var widOpts=dims.map(function(d){return'<option value="'+d+'"'+(d===widthSel?' selected':'')+'>'+d+' ft</option>';}).join('');
+
+  pane.innerHTML=
+    '<div style="max-width:640px;margin:0 auto;padding:20px 16px;">'+
+    '<h2 style="font-family:\'Bebas Neue\',sans-serif;font-size:28px;letter-spacing:2px;color:var(--accent);margin-bottom:4px;">Dance Floor Calculator</h2>'+
+    '<p style="color:var(--muted);font-size:13px;margin-bottom:24px;">Select floor dimensions to calculate tiles and components needed.</p>'+
+
+    '<div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:20px;margin-bottom:20px;">'+
+    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">'+
+    '<div class="form-group" style="margin:0;">'+
+    '<label>Length (feet)</label>'+
+    '<select onchange="dfLength=+this.value;renderDanceFloor()">'+dimOpts+'</select>'+
     '</div>'+
-    '<div style="margin-bottom:18px;padding:12px 16px;background:var(--surface2,#f5f5f5);border:1px solid var(--border);border-radius:8px;display:inline-block;">'+
-      '<span style="font-size:13px;font-weight:600;color:var(--muted);">Tile Grid:&nbsp;</span>'+
-      '<span style="font-size:17px;font-weight:700;">'+tL+' &times; '+tW+' = '+totalTiles+' tiles</span>'+
-      '<span style="font-size:13px;color:var(--muted);margin-left:14px;">Physical size: '+physL+"' &times; "+physW+"'</span>"+
+    '<div class="form-group" style="margin:0;">'+
+    '<label>Width (feet)</label>'+
+    '<select onchange="dfWidth=+this.value;renderDanceFloor()">'+widOpts+'</select>'+
     '</div>'+
-    '<table class="tbl" style="max-width:600px;"><tbody>'+
-      row('Tiles Needed',totalTiles)+
-      row('Cases',cases,'Provides '+extras+' extra tile'+(extras!==1?'s':''))+
-      row('Powered Edges',poweredEdges,pwOdd?'⚠ Odd width — 1 single powered edge needed':'',pwOdd)+
-      row('Standard Edges',standardEdges,(seWOdd||seLOdd)?'⚠ Single edge needed on '+(seWOdd&&seLOdd?'width & length':seWOdd?'width':'length'):'',seWOdd||seLOdd)+
-      row('Power Supplies',powerSupplies)+
-      row('Controllers',controllers,poweredEdges+' powered edge'+(poweredEdges!==1?'s':', 1 controller handles up to 4'))+
-    '</tbody></table>';
+    '</div>'+
+    '<p style="color:var(--muted);font-size:12px;margin-top:12px;text-align:center;">'+
+    r.tL+' \xd7 '+r.tW+' tile grid</p>'+
+    '<p style="color:var(--text);font-size:13px;margin-top:4px;text-align:center;font-weight:600;">'+
+    'Actual size: '+(r.tL*1.6).toFixed(1)+"'" +' x '+(r.tW*1.6).toFixed(1)+"'</p>"+
+    '</div>'+
+
+    // Results grid
+    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">'+
+
+    dfCard('\ud83d\udfe5','Total Tiles',r.totalTiles+' tiles','var(--accent)')+
+    dfCard('\ud83d\udce6','Cases Needed',r.cases+' cases','var(--blue)',
+      r.extras>0?r.extras+' extra tile'+(r.extras===1?'':'s')+' included':'No extras')+
+    dfCard('\u26a1','Powered Edges',r.poweredEdges+' edges','var(--gt)',(r.poweredHasSingle?'\u26a0 Includes 1 single edge \xb7 ':'')+r.powerSupplies+' power suppl'+(r.powerSupplies===1?'y':'ies'))+
+    dfCard('\u2796','Standard Edges',r.standardEdges+' edges','var(--muted)',
+      (r.stdWidthHasSingle||r.stdLengthHasSingle?'\u26a0 Includes single edge'+(r.stdWidthHasSingle&&r.stdLengthHasSingle?' (width + length)':r.stdWidthHasSingle?' (width)':' (length)')+' \xb7 ':'')+
+      '1 width row + 2 length rows')+
+    dfCard('\ud83d\udd0c','Power Supplies',r.powerSupplies+' supplies','#4caf50','1 per powered edge')+
+    dfCard('\ud83d\udda5\ufe0f','Software Controllers',r.controllers+' controller'+(r.controllers===1?'':'s'),'var(--neon)',
+      r.poweredEdges<=4?r.poweredEdges+' powered edges \u2192 1 controller':r.poweredEdges+' powered edges \u2192 2 controllers')+
+
+    '</div>'+
+
+    // Summary box
+    '<div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px;margin-top:16px;">'+
+    '<div style="font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:10px;">Summary</div>'+
+    '<div style="display:grid;gap:6px;font-size:14px;">'+
+    dfRow('Floor Size',lengthSel+'\' \xd7 '+widthSel+'\'')+
+    dfRow('Tile Grid',r.tL+' \xd7 '+r.tW+' = '+r.totalTiles+' tiles')+
+    dfRow('Cases',r.cases+' cases of 8 ('+r.extras+' extra tile'+(r.extras===1?'':'s')+')')+
+    dfRow('Powered Edges',r.poweredEdges)+
+    dfRow('Standard Edges',r.standardEdges)+
+    dfRow('Power Supplies',r.powerSupplies)+
+    dfRow('Controllers',r.controllers)+
+    '</div>'+
+    '</div>'+
+
+    '</div>';
 }
+
+function dfCard(icon,label,value,color,sub){
+  return '<div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px;">'+
+    '<div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;">'+icon+' '+label+'</div>'+
+    '<div style="font-size:22px;font-weight:700;color:'+(color||'var(--text)')+';margin-bottom:4px;">'+value+'</div>'+
+    (sub?'<div style="font-size:11px;color:var(--muted);">'+sub+'</div>':'')+
+    '</div>';
+}
+
+function dfRow(label,val){
+  return '<div style="display:flex;justify-content:space-between;align-items:center;padding:4px 0;border-bottom:1px solid var(--border);">'+
+    '<span style="color:var(--muted);font-size:13px;">'+label+'</span>'+
+    '<span style="font-weight:600;font-size:13px;">'+val+'</span>'+
+    '</div>';
+}
+
+var dfLength=10,dfWidth=10;
 
 // ── HALLOWEEN ─────────────────────────────────────────────────────────────────
 var hwView='catalog',hwSearch='',hwCatFilter='';
