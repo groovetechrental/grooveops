@@ -52,6 +52,8 @@ header{background:var(--surface);border-bottom:1px solid var(--border);padding:1
 .nav-tab{padding:8px 14px;font-size:13px;font-weight:600;color:var(--muted);cursor:pointer;border-bottom:2px solid transparent;transition:all .15s;white-space:nowrap;}
 .nav-tab:hover{color:var(--text);}
 .nav-tab.active{color:var(--accent);border-bottom-color:var(--accent);}
+.hw-vtab{padding:7px 16px;font-size:13px;font-weight:600;border-radius:6px;border:1px solid var(--border);background:var(--surface);color:var(--muted);cursor:pointer;}
+.hw-vtab.active{background:#ff8c00;border-color:#ff8c00;color:#000;}
 .content{padding:16px;max-width:960px;margin:0 auto;}
 .stat-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin-bottom:20px;}
 .stat-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:14px 16px;}
@@ -259,6 +261,7 @@ header{background:var(--surface);border-bottom:1px solid var(--border);padding:1
     <div class="nav-tab" onclick="showTab('equipment')">Equipment</div>
     <div class="nav-tab" onclick="showTab('quotes')">Quotes</div>
     <div class="nav-tab" onclick="showTab('dancefloor')">Dance Floor</div>
+    <div class="nav-tab" onclick="showTab('halloween')" style="color:#ff8c00">🎃 Halloween</div>
   </div>
   <div class="content" id="mc"></div>
 </div>
@@ -433,7 +436,7 @@ function init(){
       loadAll().then(function(){
         hideLoader();
         var hash=window.location.hash.replace('#','');
-        var validTabs=['dashboard','calendar','events','customers','crm','payments','labor','ownerfinances','expenses','equipment','quotes','dancefloor'];
+        var validTabs=['dashboard','calendar','events','customers','crm','payments','labor','ownerfinances','expenses','equipment','quotes','dancefloor','halloween'];
         showTab(validTabs.indexOf(hash)!==-1?hash:'dashboard');
       }).catch(function(err){hideLoader();showErr('Failed to load data: '+(err.message||String(err)));showTab('dashboard');});
     } else {
@@ -474,7 +477,10 @@ function loadAll(){
     sb.from('labor_payments').select('*').order('date',{ascending:false}),
     sb.from('quotes').select('*').order('created_at',{ascending:false}),
     sb.from('quote_line_items').select('*').order('sort_order'),
-    sb.from('interactions').select('*').order('date',{ascending:false})
+    sb.from('interactions').select('*').order('date',{ascending:false}),
+    sb.from('halloween_items').select('*').order('name'),
+    sb.from('halloween_categories').select('*').order('name'),
+    sb.from('halloween_scenes').select('*').order('name')
   ]).then(function(r){
     var errs=r.filter(function(x){return x.error;}).map(function(x){return x.error.message;});
     if(errs.length)console.warn('loadAll partial errors:',errs.join('; '));
@@ -483,6 +489,7 @@ function loadAll(){
     C.equipItems=r[6].data||[];C.equipComponents=r[7].data||[];C.packChecks=r[8].data||[];
     C.laborPayments=r[9].data||[];C.quotes=r[10].data||[];C.quoteItems=r[11].data||[];
     C.interactions=r[12].data||[];
+    C.hwItems=r[13].data||[];C.hwCategories=r[14].data||[];C.hwScenes=r[15].data||[];
   });
 }
 
@@ -662,6 +669,7 @@ function showTab(tab){
   else if(tab==='quotes')renderQuotes();
   else if(tab==='crm')renderCRM();
   else if(tab==='dancefloor')renderDanceFloor();
+  else if(tab==='halloween')renderHalloween();
 }
 
 // ── DASHBOARD ─────────────────────────────────────────────────────────────────
@@ -2849,90 +2857,269 @@ async function saveCu(id){
 init();
 
 // ── DANCE FLOOR CALCULATOR ────────────────────────────────────────────────────
+var dfLengthSel=10,dfWidthSel=10;
 function renderDanceFloor(){
-  // Tile count mapping: dimension (ft) -> tile count
   var tileMap={10:6,11:7,13:8,14:9,16:10,18:11,20:12,21:13,22:14};
   var dims=[10,11,13,14,16,18,20,21,22];
+  var tL=tileMap[dfLengthSel],tW=tileMap[dfWidthSel];
+  var totalTiles=tL*tW;
+  var cases=Math.ceil(totalTiles/8);
+  var extras=(cases*8)-totalTiles;
+  var poweredEdges=Math.ceil(tW/2);
+  var pwOdd=(tW%2!==0);
+  var stdEdgesWidth=Math.ceil(tW/2);
+  var stdEdgesLen=Math.ceil(tL/2);
+  var seWOdd=(tW%2!==0),seLOdd=(tL%2!==0);
+  var standardEdges=stdEdgesWidth+(2*stdEdgesLen);
+  var powerSupplies=poweredEdges;
+  var controllers=poweredEdges<=4?1:2;
+  var physL=(tL*1.6).toFixed(1),physW=(tW*1.6).toFixed(1);
+  function dimOpts(sel){return dims.map(function(d){return'<option value="'+d+'"'+(d===sel?' selected':'')+'>'+(d)+"'</option>";}).join('');}
+  function row(label,val,note,warn){
+    return'<tr>'+
+      '<td style="padding:10px 14px;font-weight:600;color:var(--muted);font-size:13px;white-space:nowrap;">'+label+'</td>'+
+      '<td style="padding:10px 14px;font-size:22px;font-weight:700;">'+val+'</td>'+
+      '<td style="padding:10px 14px;font-size:12px;color:'+(warn?'var(--amber,#f59e0b)':'var(--muted)')+'">'+( note||'')+'</td>'+
+    '</tr>';
+  }
+  document.getElementById('mc').innerHTML=
+    sh('Dance Floor Calculator','')+
+    '<div style="display:flex;gap:20px;align-items:flex-end;margin-bottom:24px;flex-wrap:wrap;">'+
+      '<div class="form-group" style="margin:0;">'+
+        '<label>Length</label>'+
+        '<select id="dfLength" onchange="dfLengthSel=parseInt(this.value);renderDanceFloor()" style="min-width:110px;">'+dimOpts(dfLengthSel)+'</select>'+
+      '</div>'+
+      '<div class="form-group" style="margin:0;">'+
+        '<label>Width</label>'+
+        '<select id="dfWidth" onchange="dfWidthSel=parseInt(this.value);renderDanceFloor()" style="min-width:110px;">'+dimOpts(dfWidthSel)+'</select>'+
+      '</div>'+
+    '</div>'+
+    '<div style="margin-bottom:18px;padding:12px 16px;background:var(--surface2,#f5f5f5);border:1px solid var(--border);border-radius:8px;display:inline-block;">'+
+      '<span style="font-size:13px;font-weight:600;color:var(--muted);">Tile Grid:&nbsp;</span>'+
+      '<span style="font-size:17px;font-weight:700;">'+tL+' &times; '+tW+' = '+totalTiles+' tiles</span>'+
+      '<span style="font-size:13px;color:var(--muted);margin-left:14px;">Physical size: '+physL+"' &times; "+physW+"'</span>"+
+    '</div>'+
+    '<table class="tbl" style="max-width:600px;"><tbody>'+
+      row('Tiles Needed',totalTiles)+
+      row('Cases',cases,'Provides '+extras+' extra tile'+(extras!==1?'s':''))+
+      row('Powered Edges',poweredEdges,pwOdd?'⚠ Odd width — 1 single powered edge needed':'',pwOdd)+
+      row('Standard Edges',standardEdges,(seWOdd||seLOdd)?'⚠ Single edge needed on '+(seWOdd&&seLOdd?'width & length':seWOdd?'width':'length'):'',seWOdd||seLOdd)+
+      row('Power Supplies',powerSupplies)+
+      row('Controllers',controllers,poweredEdges+' powered edge'+(poweredEdges!==1?'s':', 1 controller handles up to 4'))+
+    '</tbody></table>';
+}
+
+// ── HALLOWEEN ─────────────────────────────────────────────────────────────────
+var hwView='catalog',hwSearch='',hwCatFilter='';
+function renderHalloween(){
   var mc=document.getElementById('mc');
-
-  // Read current selections if they exist
-  var selL=mc.querySelector('#dfLength')?parseInt(mc.querySelector('#dfLength').value)||10:10;
-  var selW=mc.querySelector('#dfWidth')?parseInt(mc.querySelector('#dfWidth').value)||10:10;
-
-  function calc(lenFt,widFt){
-    var lt=tileMap[lenFt],wt=tileMap[widFt];
-    var totalTiles=lt*wt;
-    var casesNeeded=Math.ceil(totalTiles/8);
-    var extras=(casesNeeded*8)-totalTiles;
-    // Powered edges: ceil(widthTiles/2), flag if odd
-    var pwOdd=(wt%2!==0);
-    var poweredEdges=Math.ceil(wt/2);
-    // Standard edges: 1 row of width + 2 rows of length
-    var seW=Math.ceil(wt/2);
-    var seL=Math.ceil(lt/2);
-    var seWOdd=(wt%2!==0);
-    var seLOdd=(lt%2!==0);
-    var standardEdges=seW+(2*seL);
-    // Power supplies = powered edges
-    var powerSupplies=poweredEdges;
-    // Controllers: <=4 powered edges = 1, >4 = 2
-    var controllers=poweredEdges<=4?1:2;
-    // Physical size in feet (1.6 ft per tile)
-    var physL=(lt*1.6).toFixed(1);
-    var physW=(wt*1.6).toFixed(1);
-    return{lt,wt,totalTiles,casesNeeded,extras,poweredEdges,pwOdd,standardEdges,seWOdd,seLOdd,powerSupplies,controllers,physL,physW};
-  }
-
-  function dropOpts(sel){
-    return dims.map(function(d){return'<option value="'+d+'"'+(d===sel?' selected':'')+'>'+d+"'</option>";}).join('');
-  }
-
-  function badge(label,val,note,warn){
-    return'<div style="background:var(--surface2,#f5f5f5);border:1px solid var(--border);border-radius:8px;padding:16px 20px;min-width:160px;flex:1;">'+
-      '<div style="font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;">'+label+'</div>'+
-      '<div style="font-size:28px;font-weight:700;color:var(--text);">'+val+'</div>'+
-      (note?'<div style="font-size:12px;color:'+(warn?'var(--amber,#f59e0b)':'var(--muted)')+'margin-top:4px;">'+note+'</div>':'')+
+  mc.innerHTML=
+    '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:10px;">'+
+      '<div style="display:flex;gap:6px;">'+
+        '<button class="hw-vtab'+(hwView==='catalog'?' active':'')+'" onclick="hwView=\'catalog\';renderHalloween()">📦 Catalog ('+C.hwItems.length+')</button>'+
+        '<button class="hw-vtab'+(hwView==='scenes'?' active':'')+'" onclick="hwView=\'scenes\';renderHalloween()">🏚 Scenes ('+C.hwScenes.length+')</button>'+
+      '</div>'+
+      (hwView==='catalog'?
+        '<button class="btn btn-sm" style="background:#ff8c00;color:#000;font-weight:700" onclick="openHwItemModal()">+ Add Item</button>':
+        '<button class="btn btn-sm" style="background:#ff8c00;color:#000;font-weight:700" onclick="openHwSceneModal()">+ New Scene</button>')+
+    '</div>'+
+    (hwView==='catalog'?renderHwCatalog():renderHwScenes());
+}
+function renderHwCatalog(){
+  var cats=C.hwCategories.slice().sort(function(a,b){return a.name.localeCompare(b.name);});
+  var items=C.hwItems.slice();
+  if(hwSearch){var q=hwSearch.toLowerCase();items=items.filter(function(i){return(i.name||'').toLowerCase().indexOf(q)!==-1||(i.description||'').toLowerCase().indexOf(q)!==-1||(i.storage_location||'').toLowerCase().indexOf(q)!==-1||((i.categories||[]).join(' ')).toLowerCase().indexOf(q)!==-1||(i.movement||'').toLowerCase().indexOf(q)!==-1||(i.placement||'').toLowerCase().indexOf(q)!==-1;});}
+  if(hwCatFilter){items=items.filter(function(i){return(i.categories||[]).indexOf(hwCatFilter)!==-1;});}
+  var html=
+    '<div style="display:flex;gap:8px;align-items:center;margin-bottom:14px;flex-wrap:wrap;">'+
+      '<input id="hwSearch" placeholder="🔍 Search items…" value="'+esc(hwSearch)+'" oninput="hwSearch=this.value;hwFilterCatalog()" style="width:220px;">'+
+      '<select id="hwCatFilter" onchange="hwCatFilter=this.value;hwFilterCatalog()" style="width:auto;">'+
+        '<option value="">All Categories</option>'+
+        cats.map(function(c){return'<option value="'+esc(c.name)+'"'+(hwCatFilter===c.name?' selected':'')+'>'+esc(c.name)+'</option>';}).join('')+
+      '</select>'+
+      '<button class="btn btn-sm btn-outline" onclick="openHwCatManager()">⚙ Categories</button>'+
+    '</div>'+
+    '<div id="hwCatalogList">';
+  html+=hwBuildItemCards(items);
+  html+='</div>';
+  return html;
+}
+function hwBuildItemCards(items){
+  if(!items.length)return'<div class="empty">No items found. Add one above.</div>';
+  return items.map(function(it){
+    var sceneCount=C.hwScenes.filter(function(s){return(s.items||[]).some(function(x){return sid(x.item_id)===sid(it.id);});}).length;
+    var cats=(it.categories||[]).map(function(c){return'<span style="background:rgba(255,140,0,.15);color:#ff8c00;border-radius:4px;padding:2px 7px;font-size:11px;font-weight:600;">'+esc(c)+'</span>';}).join(' ');
+    return'<div style="display:flex;gap:14px;padding:14px;border:1px solid var(--border);border-radius:8px;margin-bottom:10px;background:var(--surface);">'+
+      '<div style="flex-shrink:0;width:80px;height:80px;border-radius:6px;overflow:hidden;background:#222;display:flex;align-items:center;justify-content:center;font-size:28px;">'+
+        (it.photo_url?'<img src="'+esc(it.photo_url)+'" style="width:100%;height:100%;object-fit:cover;" onerror="this.parentNode.innerHTML=\'🎃\'">':'🎃')+
+      '</div>'+
+      '<div style="flex:1;min-width:0;">'+
+        '<div style="font-weight:700;font-size:15px;margin-bottom:4px;">'+esc(it.name)+'</div>'+
+        '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:6px;">'+
+          (it.movement?'<span style="background:var(--surface2,#eee);border-radius:4px;padding:2px 7px;font-size:11px;font-weight:600;">'+esc(it.movement)+'</span>':'')+
+          (it.placement?'<span style="background:var(--surface2,#eee);border-radius:4px;padding:2px 7px;font-size:11px;font-weight:600;">'+esc(it.placement)+'</span>':'')+
+          (it.quantity?'<span style="background:var(--surface2,#eee);border-radius:4px;padding:2px 7px;font-size:11px;font-weight:600;">Qty: '+it.quantity+'</span>':'')+
+          cats+
+        '</div>'+
+        (it.description?'<div style="font-size:13px;color:var(--muted);margin-bottom:4px;">'+esc(it.description)+'</div>':'')+
+        (it.storage_location?'<div style="font-size:12px;color:var(--muted);">📦 '+esc(it.storage_location)+'</div>':'')+
+        (sceneCount?'<div style="font-size:12px;color:#ff8c00;margin-top:4px;">🏚 In '+sceneCount+' scene'+(sceneCount!==1?'s':'')+': '+C.hwScenes.filter(function(s){return(s.items||[]).some(function(x){return sid(x.item_id)===sid(it.id);});}).map(function(s){return s.name;}).join(', ')+'</div>':'')+
+        '<div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap;">'+
+          '<button class="btn btn-sm btn-outline" onclick="openHwItemModal(\''+sid(it.id)+'\')">✏️ Edit</button>'+
+          (C.hwScenes.length?'<button class="btn btn-sm btn-outline" style="border-color:rgba(255,140,0,.5);color:#ff8c00" onclick="openAddToScene(\''+sid(it.id)+'\')">🏚 Add to Scene</button>':'')+
+          '<button class="btn btn-sm btn-danger" onclick="delHwItem(\''+sid(it.id)+'\')">🗑 Delete</button>'+
+        '</div>'+
+      '</div>'+
     '</div>';
-  }
-
-  function render(lenFt,widFt){
-    var r=calc(lenFt,widFt);
-    mc.innerHTML=
-      '<div style="max-width:700px;margin:0 auto;padding:20px;">'+
-      '<h2 style="margin-bottom:20px;">Dance Floor Calculator</h2>'+
-      '<div style="display:flex;gap:20px;align-items:flex-end;margin-bottom:28px;flex-wrap:wrap;">'+
-        '<div class="form-group" style="margin:0;min-width:130px;">'+
-          '<label>Length (ft)</label>'+
-          '<select id="dfLength" onchange="dfUpdate()" style="font-size:15px;">'+dropOpts(lenFt)+'</select>'+
+  }).join('');
+}
+function hwFilterCatalog(){
+  hwSearch=document.getElementById('hwSearch')?document.getElementById('hwSearch').value:hwSearch;
+  hwCatFilter=document.getElementById('hwCatFilter')?document.getElementById('hwCatFilter').value:hwCatFilter;
+  var cats=C.hwCategories.slice().sort(function(a,b){return a.name.localeCompare(b.name);});
+  var items=C.hwItems.slice();
+  if(hwSearch){var q=hwSearch.toLowerCase();items=items.filter(function(i){return(i.name||'').toLowerCase().indexOf(q)!==-1||(i.description||'').toLowerCase().indexOf(q)!==-1||(i.storage_location||'').toLowerCase().indexOf(q)!==-1||((i.categories||[]).join(' ')).toLowerCase().indexOf(q)!==-1||(i.movement||'').toLowerCase().indexOf(q)!==-1||(i.placement||'').toLowerCase().indexOf(q)!==-1;});}
+  if(hwCatFilter){items=items.filter(function(i){return(i.categories||[]).indexOf(hwCatFilter)!==-1;});}
+  var el=document.getElementById('hwCatalogList');
+  if(el)el.innerHTML=hwBuildItemCards(items);
+}
+function renderHwScenes(){
+  if(!C.hwScenes.length)return'<div class="empty">No scenes yet. Click + New Scene to create one.</div>';
+  return C.hwScenes.map(function(sc){
+    var scItems=(sc.items||[]).map(function(x){
+      var it=C.hwItems.find(function(i){return sid(i.id)===sid(x.item_id);});
+      if(!it)return'';
+      return'<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border);">'+
+        '<div style="width:40px;height:40px;border-radius:4px;overflow:hidden;background:#222;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;">'+
+          (it.photo_url?'<img src="'+esc(it.photo_url)+'" style="width:100%;height:100%;object-fit:cover;" onerror="this.parentNode.innerHTML=\'🎃\'">':'🎃')+
         '</div>'+
-        '<div class="form-group" style="margin:0;min-width:130px;">'+
-          '<label>Width (ft)</label>'+
-          '<select id="dfWidth" onchange="dfUpdate()" style="font-size:15px;">'+dropOpts(widFt)+'</select>'+
+        '<div style="flex:1;font-size:13px;"><strong>'+esc(it.name)+'</strong>'+(x.qty&&x.qty>1?' <span style="color:var(--muted)">×'+x.qty+'</span>':'')+
+          (it.movement?'  <span style="font-size:11px;color:var(--muted)">'+esc(it.movement)+'</span>':'')+
         '</div>'+
-      '</div>'+
-      '<div style="background:var(--surface2,#f0f0f0);border-radius:8px;padding:14px 18px;margin-bottom:24px;display:inline-block;">'+
-        '<span style="font-size:13px;color:var(--muted);font-weight:600;">TILE GRID</span>&nbsp;&nbsp;'+
-        '<span style="font-size:18px;font-weight:700;">'+r.lt+' &times; '+r.wt+' = '+r.totalTiles+' tiles</span>&nbsp;&nbsp;'+
-        '<span style="font-size:13px;color:var(--muted);">Physical size: '+r.physL+"' &times; "+r.physW+"'</span>"+
-      '</div>'+
-      '<div style="display:flex;flex-wrap:wrap;gap:14px;margin-bottom:24px;">'+
-        badge('Tiles Needed',r.totalTiles)+
-        badge('Cases',r.casesNeeded,'('+r.extras+' extra tile'+(r.extras!==1?'s':'')+')')+
-        badge('Powered Edges',r.poweredEdges,r.pwOdd?'Odd width — 1 single powered edge needed':null,r.pwOdd)+
-        badge('Standard Edges',r.standardEdges,(r.seWOdd||r.seLOdd)?'Single edge needed on '+(r.seWOdd&&r.seLOdd?'width & length':r.seWOdd?'width':'length'):null,r.seWOdd||r.seLOdd)+
-        badge('Power Supplies',r.powerSupplies)+
-        badge('Controllers',r.controllers,r.poweredEdges+' powered edge'+(r.poweredEdges!==1?'s':''))+
-      '</div>'+
+        '<button class="btn btn-sm btn-danger" style="padding:2px 8px;font-size:11px;" onclick="removeSceneItem(\''+sid(sc.id)+'\',\''+sid(x.item_id)+'\')">✕</button>'+
       '</div>';
-  }
-
-  window.dfUpdate=function(){
-    var l=parseInt(document.getElementById('dfLength').value);
-    var w=parseInt(document.getElementById('dfWidth').value);
-    render(l,w);
-  };
-
-  render(selL,selW);
+    }).join('');
+    return'<div style="border:1px solid var(--border);border-radius:8px;padding:16px;margin-bottom:14px;background:var(--surface);">'+
+      '<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px;">'+
+        '<div>'+
+          '<div style="font-weight:700;font-size:16px;">'+esc(sc.name)+'</div>'+
+          (sc.venue?'<div style="font-size:13px;color:var(--muted);">📍 '+esc(sc.venue)+'</div>':'')+
+          (sc.description?'<div style="font-size:13px;color:var(--muted);margin-top:2px;">'+esc(sc.description)+'</div>':'')+
+        '</div>'+
+        '<div style="display:flex;gap:6px;">'+
+          '<button class="btn btn-sm btn-outline" onclick="openHwSceneModal(\''+sid(sc.id)+'\')">✏️ Edit</button>'+
+          '<button class="btn btn-sm btn-danger" onclick="delHwScene(\''+sid(sc.id)+'\')">🗑</button>'+
+        '</div>'+
+      '</div>'+
+      '<div style="font-size:12px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;">'+(sc.items||[]).length+' item'+(((sc.items||[]).length)!==1?'s':'')+'</div>'+
+      (scItems||'<div style="font-size:13px;color:var(--muted);">No items yet.</div>')+
+    '</div>';
+  }).join('');
+}
+function openHwItemModal(id){
+  var it=id?C.hwItems.find(function(x){return sid(x.id)===id;}):null;
+  var cats=C.hwCategories.slice().sort(function(a,b){return a.name.localeCompare(b.name);});
+  var selCats=it?(it.categories||[]):[];
+  openModal('🎃 '+(it?'Edit':'Add')+' Item',
+    '<div class="form-group"><label>Name *</label><input id="hwName" value="'+esc(it?it.name||'':'')+'" placeholder="e.g. Full-Size Zombie"></div>'+
+    '<div class="form-group"><label>Description</label><textarea id="hwDesc" rows="2">'+esc(it?it.description||'':'')+'</textarea></div>'+
+    '<div class="form-group"><label>Storage Location</label><input id="hwLoc" value="'+esc(it?it.storage_location||'':'')+'"></div>'+
+    '<div class="form-group"><label>Movement</label><select id="hwMov"><option value="">—</option><option value="Static"'+(it&&it.movement==='Static'?' selected':'')+'>Static</option><option value="Animatronic"'+(it&&it.movement==='Animatronic'?' selected':'')+'>Animatronic</option></select></div>'+
+    '<div class="form-group"><label>Placement</label><select id="hwPlac"><option value="">—</option><option value="Free Standing"'+(it&&it.placement==='Free Standing'?' selected':'')+'>Free Standing</option><option value="Hanging"'+(it&&it.placement==='Hanging'?' selected':'')+'>Hanging</option></select></div>'+
+    '<div class="form-group"><label>Quantity</label><input id="hwQty" type="number" min="1" value="'+(it?it.quantity||1:1)+'"></div>'+
+    '<div class="form-group"><label>Categories</label>'+
+      '<div id="hwCatChips" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:6px;">'+
+        cats.map(function(c){var on=selCats.indexOf(c.name)!==-1;return'<button type="button" class="btn btn-sm'+(on?' btn-primary':' btn-outline')+'" style="'+(on?'background:#ff8c00;border-color:#ff8c00;color:#000;':'')+'" onclick="hwToggleCat(this,\''+esc(c.name)+'\')" data-cat="'+esc(c.name)+'"'+(on?' data-on="1"':'')+'>'+esc(c.name)+'</button>';}).join('')+
+      '</div>'+
+    '</div>'+
+    '<div class="form-group"><label>Photo URL</label><input id="hwPhoto" value="'+esc(it?it.photo_url||'':'')+'"></div>',
+    'saveHwItem(\''+( id||'')+'\')');
+}
+function hwToggleCat(btn,name){
+  if(btn.dataset.on){delete btn.dataset.on;btn.classList.remove('btn-primary');btn.classList.add('btn-outline');btn.style.background='';btn.style.borderColor='';btn.style.color='';}
+  else{btn.dataset.on='1';btn.classList.add('btn-primary');btn.classList.remove('btn-outline');btn.style.background='#ff8c00';btn.style.borderColor='#ff8c00';btn.style.color='#000';}
+}
+async function saveHwItem(id){
+  var name=document.getElementById('hwName').value.trim();
+  if(!name)return alert('Name is required.');
+  var cats=[].slice.call(document.querySelectorAll('#hwCatChips button[data-on]')).map(function(b){return b.dataset.cat;});
+  var obj={name:name,description:document.getElementById('hwDesc').value.trim()||null,storage_location:document.getElementById('hwLoc').value.trim()||null,movement:document.getElementById('hwMov').value||null,placement:document.getElementById('hwPlac').value||null,quantity:parseInt(document.getElementById('hwQty').value)||1,categories:cats,photo_url:document.getElementById('hwPhoto').value.trim()||null,updated_at:new Date().toISOString()};
+  var r=id?await sb.from('halloween_items').update(obj).eq('id',id):await sb.from('halloween_items').insert(Object.assign({},obj,{created_at:new Date().toISOString()}));
+  if(r.error)return alert('Error: '+r.error.message);
+  closeModal();await loadAll();renderHalloween();
+}
+async function delHwItem(id){
+  if(!confirm('Delete this item?'))return;
+  await sb.from('halloween_items').delete().eq('id',id);
+  await loadAll();renderHalloween();
+}
+function openHwSceneModal(id){
+  var sc=id?C.hwScenes.find(function(x){return sid(x.id)===id;}):null;
+  openModal((id?'Edit':'New')+' Scene',
+    '<div class="form-group"><label>Scene Name *</label><input id="hwScName" value="'+esc(sc?sc.name||'':'')+'"></div>'+
+    '<div class="form-group"><label>Venue / Location</label><input id="hwScVenue" value="'+esc(sc?sc.venue||'':'')+'"></div>'+
+    '<div class="form-group"><label>Description</label><textarea id="hwScDesc" rows="2">'+esc(sc?sc.description||'':'')+'</textarea></div>',
+    'saveHwScene(\''+( id||'')+'\')');
+}
+async function saveHwScene(id){
+  var name=document.getElementById('hwScName').value.trim();
+  if(!name)return alert('Scene name is required.');
+  var obj={name:name,venue:document.getElementById('hwScVenue').value.trim()||null,description:document.getElementById('hwScDesc').value.trim()||null,updated_at:new Date().toISOString()};
+  var r=id?await sb.from('halloween_scenes').update(obj).eq('id',id):await sb.from('halloween_scenes').insert(Object.assign({},obj,{items:[],created_at:new Date().toISOString()}));
+  if(r.error)return alert('Error: '+r.error.message);
+  closeModal();await loadAll();renderHalloween();
+}
+async function delHwScene(id){
+  if(!confirm('Delete this scene?'))return;
+  await sb.from('halloween_scenes').delete().eq('id',id);
+  await loadAll();renderHalloween();
+}
+async function removeSceneItem(sceneId,itemId){
+  var sc=C.hwScenes.find(function(x){return sid(x.id)===sceneId;});
+  if(!sc)return;
+  var newItems=(sc.items||[]).filter(function(x){return sid(x.item_id)!==itemId;});
+  await sb.from('halloween_scenes').update({items:newItems,updated_at:new Date().toISOString()}).eq('id',sceneId);
+  await loadAll();renderHalloween();
+}
+function openAddToScene(itemId){
+  var available=C.hwScenes.filter(function(s){return!(s.items||[]).some(function(x){return sid(x.item_id)===itemId;});});
+  if(!available.length)return alert('This item is already in all scenes, or there are no scenes yet.');
+  openModal('Add to Scene',
+    '<div class="form-group"><label>Scene</label><select id="hwScPick">'+available.map(function(s){return'<option value="'+sid(s.id)+'">'+esc(s.name)+'</option>';}).join('')+'</select></div>'+
+    '<div class="form-group"><label>Quantity in Scene</label><input id="hwScQty" type="number" min="1" value="1"></div>',
+    'saveAddToScene(\''+itemId+'\')');
+}
+async function saveAddToScene(itemId){
+  var sceneId=document.getElementById('hwScPick').value;
+  var qty=parseInt(document.getElementById('hwScQty').value)||1;
+  var sc=C.hwScenes.find(function(x){return sid(x.id)===sceneId;});
+  if(!sc)return;
+  var newItems=(sc.items||[]).concat([{item_id:itemId,qty:qty}]);
+  var r=await sb.from('halloween_scenes').update({items:newItems,updated_at:new Date().toISOString()}).eq('id',sceneId);
+  if(r.error)return alert('Error: '+r.error.message);
+  closeModal();await loadAll();renderHalloween();
+}
+function openHwCatManager(){
+  var cats=C.hwCategories.slice().sort(function(a,b){return a.name.localeCompare(b.name);});
+  openModal('⚙ Manage Categories',
+    '<div style="display:flex;gap:8px;margin-bottom:12px;"><input id="hwNewCat" placeholder="New category name" style="flex:1"><button class="btn btn-sm" style="background:#ff8c00;color:#000" onclick="addHwCat()">Add</button></div>'+
+    '<div id="hwCatList">'+cats.map(function(c){return'<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid var(--border);"><span>'+esc(c.name)+'</span><button class="btn btn-sm btn-danger" style="padding:2px 8px;font-size:11px;" onclick="delHwCat(\''+sid(c.id)+'\')">✕</button></div>';}).join('')+'</div>',
+    null);
+}
+async function addHwCat(){
+  var name=document.getElementById('hwNewCat').value.trim();
+  if(!name)return;
+  var r=await sb.from('halloween_categories').insert({name:name});
+  if(r.error)return alert(r.error.message);
+  await loadAll();
+  document.getElementById('hwCatList').innerHTML=C.hwCategories.slice().sort(function(a,b){return a.name.localeCompare(b.name);}).map(function(c){return'<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid var(--border);"><span>'+esc(c.name)+'</span><button class="btn btn-sm btn-danger" style="padding:2px 8px;font-size:11px;" onclick="delHwCat(\''+sid(c.id)+'\')">✕</button></div>';}).join('');
+  document.getElementById('hwNewCat').value='';
+}
+async function delHwCat(id){
+  if(!confirm('Delete this category?'))return;
+  await sb.from('halloween_categories').delete().eq('id',id);
+  await loadAll();
+  document.getElementById('hwCatList').innerHTML=C.hwCategories.slice().sort(function(a,b){return a.name.localeCompare(b.name);}).map(function(c){return'<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid var(--border);"><span>'+esc(c.name)+'</span><button class="btn btn-sm btn-danger" style="padding:2px 8px;font-size:11px;" onclick="delHwCat(\''+sid(c.id)+'\')">✕</button></div>';}).join('');
 }
 </script>
 </body>
