@@ -892,7 +892,12 @@ function openEvDetail(id,returnTab){
     '</tbody></table>'+
     sh('Expenses','<button class="btn btn-sm" onclick="openExpModal(\''+sid(e.id)+'\')">+ Add Expense</button>')+
     '<table class="tbl"><thead><tr><th>Person</th><th>Category</th><th>Description</th><th>Amount</th><th>Reimbursed</th><th></th></tr></thead><tbody>'+
-    (eE.map(function(x){return'<tr><td>'+fmtD(x.date)+'</td><td style="text-transform:capitalize">'+esc(x.person||'—')+'</td><td><span class="badge bb">'+esc(x.category||'other')+'</span></td><td>'+esc(x.description||'—')+'</td><td>'+fmt(x.amount)+'</td><td><span class="badge '+(x.reimbursed?'bg':'ba')+'">'+(x.reimbursed?'Yes':'No')+'</span></td><td><div class="acts">'+(x.reimbursed?'':'<button class="btn btn-sm btn-outline" onclick="doReimb(\''+sid(x.id)+'\',\''+sid(id)+'\',\''+prevTab+'\')">✓</button>')+'<button class="btn btn-sm btn-outline" onclick="openExpModal(null,\''+sid(x.id)+'\')">Edit</button><button class="btn btn-sm btn-danger" onclick="delRec(\'expenses\',\''+sid(x.id)+'\',function(){openEvDetail(\''+sid(id)+'\',\''+prevTab+'\');})">Del</button></div></td></tr>';}).join('')||'<tr><td colspan="7" class="empty">No expenses</td></tr>')+
+    (eE.map(function(x){
+      var isCo=x.person==='company';
+      var reimbCell=isCo?'<span class="badge" style="background:rgba(105,47,180,.15);color:var(--accent)">N/A</span>':(x.reimbursed?'<span class="badge bg">Yes</span>':'<span class="badge ba">No</span>');
+      var actions='<div class="acts">'+(!isCo&&!x.reimbursed?'<button class="btn btn-sm btn-outline" onclick="doReimb(\''+sid(x.id)+'\',\''+sid(id)+'\',\''+prevTab+'\')">✓</button>':'')+'<button class="btn btn-sm btn-outline" onclick="openExpModal(null,\''+sid(x.id)+'\')">Edit</button><button class="btn btn-sm btn-danger" onclick="delRec(\'expenses\',\''+sid(x.id)+'\',function(){openEvDetail(\''+sid(id)+'\',\''+prevTab+'\');})">Del</button></div>';
+      return'<tr><td>'+fmtD(x.date)+'</td><td style="text-transform:capitalize">'+(isCo?'<span style="font-weight:600;color:var(--accent)">Company</span>':esc(x.person||'—'))+'</td><td><span class="badge bb">'+esc(x.category||'other')+'</span></td><td>'+esc(x.description||'—')+'</td><td>'+fmt(x.amount)+'</td><td>'+reimbCell+'</td><td>'+actions+'</td></tr>';
+    }).join('')||'<tr><td colspan="7" class="empty">No expenses</td></tr>')+
     '</tbody></table>'+
     sh('Payments','<button class="btn btn-sm" onclick="openPayModal(null,\''+sid(e.id)+'\')">+ Record Payment</button>')+
     '<table class="tbl"><thead><tr><th>Date</th><th>Amount</th><th>Method</th><th>Notes</th><th></th></tr></thead><tbody>'+
@@ -1126,13 +1131,19 @@ function renderExpenses(){
     if(av<bv)return-1*expSort.dir;if(av>bv)return 1*expSort.dir;return 0;
   });
   var te=filtered.reduce(function(s,x){return s+(parseFloat(x.amount)||0);},0);
-  var ur=filtered.filter(function(x){return!x.reimbursed;}).reduce(function(s,x){return s+(parseFloat(x.amount)||0);},0);
+  var ur=filtered.filter(function(x){return!x.reimbursed&&x.person!=='company';}).reduce(function(s,x){return s+(parseFloat(x.amount)||0);},0);
   document.getElementById('mc').innerHTML=
     periodSelector()+
     '<div class="stat-grid" style="margin-bottom:16px">'+sc('Total Expenses',fmt(te))+sc('Pending Reimbursement',fmt(ur),'amber')+'</div>'+
     sh('Expenses ('+filtered.length+')',exportBtn('exportExpenses')+'<button class="btn btn-sm" onclick="openExpModal()">+ Add Expense</button>')+
     '<table class="tbl"><thead><tr>'+ths('Date','date')+ths('Event','event')+ths('Person','person')+ths('Category','category')+'<th>Description</th>'+ths('Amount','amount')+'<th>Reimbursed</th><th></th></tr></thead><tbody>'+
-    (sorted.map(function(x){return'<tr><td>'+fmtD(x.date)+'</td><td style="font-weight:500">'+(x.event_id?evName(x.event_id):'<span style="color:var(--muted)">—</span>')+'</td><td style="text-transform:capitalize">'+esc(x.person||'—')+'</td><td><span class="badge bb">'+esc(x.category||'other')+'</span></td><td>'+esc(x.description||'—')+'</td><td>'+fmt(x.amount)+'</td><td><span class="badge '+(x.reimbursed?'bg':'ba')+'">'+(x.reimbursed?'Yes':'No')+'</span></td><td><div class="acts">'+(x.reimbursed?'':'<button class="btn btn-sm btn-outline" onclick="doReimb(\''+sid(x.id)+'\')">✓</button>')+'<button class="btn btn-sm btn-outline" onclick="openExpModal(null,\''+sid(x.id)+'\')">Edit</button><button class="btn btn-sm btn-danger" onclick="delRec(\'expenses\',\''+sid(x.id)+'\')">Del</button></div></td></tr>';}).join('')||'<tr><td colspan="8" class="empty">No expenses in this period</td></tr>')+
+    (sorted.map(function(x){
+      var isCo=x.person==='company';
+      var personCell=isCo?'<span style="font-weight:600;color:var(--accent)">Company</span>':'<span style="text-transform:capitalize">'+esc(x.person||'—')+'</span>';
+      var reimbCell=isCo?'<span class="badge" style="background:rgba(105,47,180,.15);color:var(--accent)">N/A</span>':(x.reimbursed?'<span class="badge bg">Yes</span>':'<span class="badge ba">No</span>');
+      var actions='<div class="acts">'+(!isCo&&!x.reimbursed?'<button class="btn btn-sm btn-outline" onclick="doReimb(\''+sid(x.id)+'\')">✓</button>':'')+'<button class="btn btn-sm btn-outline" onclick="openExpModal(null,\''+sid(x.id)+'\')">Edit</button><button class="btn btn-sm btn-danger" onclick="delRec(\'expenses\',\''+sid(x.id)+'\')">Del</button></div>';
+      return'<tr><td>'+fmtD(x.date)+'</td><td style="font-weight:500">'+(x.event_id?evName(x.event_id):'<span style="color:var(--muted)">—</span>')+'</td><td>'+personCell+'</td><td><span class="badge bb">'+esc(x.category||'other')+'</span></td><td>'+esc(x.description||'—')+'</td><td>'+fmt(x.amount)+'</td><td>'+reimbCell+'</td><td>'+actions+'</td></tr>';
+    }).join('')||'<tr><td colspan="8" class="empty">No expenses in this period</td></tr>')+
     '</tbody></table>';
 }
 function sortExp(col){if(expSort.col===col){expSort.dir*=-1;}else{expSort.col=col;expSort.dir=1;}renderExpenses();}
@@ -1176,7 +1187,7 @@ function renderEqResults(){
 }
 function renderEquipment(){
   document.getElementById('mc').innerHTML=
-    sh('Equipment Catalog ('+C.equipItems.length+')','<button class="btn btn-sm" onclick="openEqItemModal()">+ Add Item</button>')+
+    sh('Equipment Catalog ('+C.equipItems.length+')','<label class="btn btn-sm btn-outline" style="cursor:pointer;margin-right:4px">⬆ Bulk Upload CSV<input type="file" accept=".csv" style="display:none" onchange="bulkUploadEquip(this)"></label><button class="btn btn-sm" onclick="openEqItemModal()">+ Add Item</button>')+
     '<div style="margin-bottom:14px"><input id="eqSearch" placeholder="🔍 Search by name, category, or description…" value="'+esc(eqSearchTerm)+'" oninput="eqSearchTerm=this.value;renderEqResults()" style="max-width:420px" autofocus></div>'+
     '<div id="eqResults"></div>';
   renderEqResults();
@@ -1784,10 +1795,15 @@ async function saveHelperPay(laborId,totalOwed){
 // ── EXPENSE MODAL ─────────────────────────────────────────────────────────────
 function openExpModal(evId,xId){
   var x=xId?C.expenses.find(function(e){return sid(e.id)===sid(xId);}):null;
+  var isCo=x&&x.person==='company';
   openModal(x?'Edit Expense':'Add Expense',
     '<div class="form-group"><label>Date</label><input type="date" id="mExDate" value="'+(x?x.date||todayStr():todayStr())+'"></div>'+
     '<div class="form-group"><label>Event</label><select id="mExEv"><option value="">— None —</option>'+C.events.map(function(e){return'<option value="'+sid(e.id)+'"'+(sid(e.id)===sid(evId)?' selected':'')+'>'+esc(e.name)+' ('+fmtD(e.date)+')</option>';}).join('')+'</select></div>'+
-    '<div class="form-group"><label>Person</label><select id="mExPer"><option value="john">John</option><option value="steve">Steve</option></select></div>'+
+    '<div class="form-group" style="display:flex;align-items:center;gap:10px;margin-bottom:12px;">'+
+      '<input type="checkbox" id="mExCo" onchange="toggleCoExp()" style="width:auto;margin:0;"'+(isCo?' checked':'')+'>'+
+      '<label for="mExCo" style="margin:0;font-weight:600;cursor:pointer;">Paid by Company <span style="font-size:11px;font-weight:400;color:var(--muted)">(capital purchase — no reimbursement)</span></label>'+
+    '</div>'+
+    '<div id="mExPerWrap" class="form-group"'+(isCo?' style="display:none"':'')+'><label>Person</label><select id="mExPer"><option value="john">John</option><option value="steve">Steve</option></select></div>'+
     '<div class="form-group"><label>Category</label><select id="mExCat"><option value="travel">Travel</option><option value="toll">Toll</option><option value="equipment">Equipment</option><option value="helper">Helper</option><option value="other">Other</option></select></div>'+
     '<div class="form-group"><label>Description</label><input id="mExDesc" value="'+esc(x?x.description||'':'')+'"></div>'+
     '<div class="form-group"><label>Amount</label><input type="number" id="mExAmt" value="'+(x?x.amount||'':'')+'"></div>'+
@@ -1795,16 +1811,24 @@ function openExpModal(evId,xId){
     function(){saveExp(xId);}
   );
   if(x){
-    var per=document.getElementById('mExPer');if(per&&x.person)per.value=x.person;
+    var per=document.getElementById('mExPer');if(per&&x.person&&x.person!=='company')per.value=x.person;
     var cat=document.getElementById('mExCat');if(cat&&x.category)cat.value=x.category;
     var ev2=document.getElementById('mExEv');if(ev2&&x.event_id)ev2.value=sid(x.event_id);
   }
 }
+function toggleCoExp(){
+  var co=document.getElementById('mExCo');
+  var wrap=document.getElementById('mExPerWrap');
+  if(wrap)wrap.style.display=co&&co.checked?'none':'';
+}
 async function saveExp(xId){
-  var date=gv('mExDate'),eid2=gv('mExEv'),per=gv('mExPer'),cat=gv('mExCat'),desc=gv('mExDesc'),amt=gv('mExAmt'),nts=gv('mNo');
+  var date=gv('mExDate'),eid2=gv('mExEv'),cat=gv('mExCat'),desc=gv('mExDesc'),amt=gv('mExAmt'),nts=gv('mNo');
+  var isCo=document.getElementById('mExCo')&&document.getElementById('mExCo').checked;
+  var per=isCo?'company':gv('mExPer');
   if(!amt||!date){showErr('Date and amount required.');return;}
-  var obj={date:date,event_id:eid2||null,person:per,category:cat,description:desc||null,amount:parseFloat(amt),notes:nts||null};
-  var r=xId?await sb.from('expenses').update(obj).eq('id',xId):await sb.from('expenses').insert(Object.assign({},obj,{reimbursed:false}));
+  var obj={date:date,event_id:eid2||null,person:per,category:cat,description:desc||null,amount:parseFloat(amt),notes:nts||null,reimbursed:isCo?true:undefined};
+  if(obj.reimbursed===undefined)delete obj.reimbursed;
+  var r=xId?await sb.from('expenses').update(obj).eq('id',xId):await sb.from('expenses').insert(Object.assign({},obj,{reimbursed:isCo?true:false}));
   if(r.error){console.error('Expense error:',JSON.stringify(r.error));showErr(r.error.message+' — '+JSON.stringify(r.error.details||r.error.hint||''));return;}
   closeModal();await loadAll();showTab(currentTab);
 }
@@ -1916,7 +1940,70 @@ async function saveEqItem(id){
   if(r.error){showErr(r.error.message);return;}
   closeModal();await loadAll();showTab(currentTab);
 }
-function openEqCompModal(itemId,compId){
+async function bulkUploadEquip(input){
+  var file=input.files[0];
+  if(!file)return;
+  input.value=''; // reset so same file can be re-uploaded if needed
+  var text=await file.text();
+  // Parse CSV (handles quoted fields)
+  function parseCSV(str){
+    var rows=[];
+    var lines=str.split(/\r?\n/);
+    lines.forEach(function(line){
+      if(!line.trim())return;
+      var cols=[],cur='',inQ=false;
+      for(var i=0;i<line.length;i++){
+        var ch=line[i];
+        if(ch==='"'){if(inQ&&line[i+1]==='"'){cur+='"';i++;}else{inQ=!inQ;}}
+        else if(ch===','&&!inQ){cols.push(cur.trim());cur='';}
+        else{cur+=ch;}
+      }
+      cols.push(cur.trim());
+      rows.push(cols);
+    });
+    return rows;
+  }
+  var rows=parseCSV(text);
+  if(rows.length<2){showErr('CSV must have a header row and at least one data row.');return;}
+  var headers=rows[0].map(function(h){return h.toLowerCase().trim();});
+  var validHeaders=['name','category','description','price','photo_url','notes'];
+  var nameIdx=headers.indexOf('name');
+  if(nameIdx===-1){showErr('CSV must have a "name" column.');return;}
+  // Warn about unrecognized headers
+  var unknown=headers.filter(function(h){return validHeaders.indexOf(h)===-1;});
+  if(unknown.length){showErr('Unrecognized column(s): '+unknown.join(', ')+'. Valid headers: name, category, description, price, photo_url, notes');return;}
+  function col(row,name){var i=headers.indexOf(name);return i!==-1&&row[i]?row[i]:null;}
+  var records=[];
+  var skipped=[];
+  rows.slice(1).forEach(function(row,i){
+    if(row.every(function(c){return!c.trim();}))return; // skip blank rows
+    var name=col(row,'name');
+    if(!name){skipped.push('Row '+(i+2)+': missing name');return;}
+    var price=col(row,'price');
+    records.push({
+      name:name,
+      category:col(row,'category'),
+      description:col(row,'description'),
+      price:price?parseFloat(price):null,
+      photo_url:col(row,'photo_url'),
+      notes:col(row,'notes')
+    });
+  });
+  if(!records.length){showErr('No valid rows found in CSV.');return;}
+  // Confirm before inserting
+  var msg='Ready to import '+records.length+' item'+(records.length!==1?'s':'')+'.'+(skipped.length?' '+skipped.length+' row'+(skipped.length!==1?'s were':' was')+' skipped (missing name).':'')+'\n\nProceed?';
+  if(!confirm(msg))return;
+  // Insert in batches of 50
+  var errors=[];
+  for(var i=0;i<records.length;i+=50){
+    var batch=records.slice(i,i+50);
+    var r=await sb.from('equipment_items').insert(batch);
+    if(r.error)errors.push(r.error.message);
+  }
+  if(errors.length){showErr('Import completed with errors:\n'+errors.join('\n'));} 
+  else{alert('Successfully imported '+records.length+' item'+(records.length!==1?'s':'')+'!');}
+  await loadAll();showTab(currentTab);
+}
   var comp=compId?C.equipComponents.find(function(x){return sid(x.id)===sid(compId);}):null;
   var item=C.equipItems.find(function(x){return sid(x.id)===sid(itemId);});
   openModal((comp?'Edit':'Add')+' Component'+(item?' — '+item.name:''),
