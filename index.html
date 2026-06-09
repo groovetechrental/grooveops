@@ -2004,6 +2004,7 @@ async function bulkUploadEquip(input){
   else{alert('Successfully imported '+records.length+' item'+(records.length!==1?'s':'')+'!');}
   await loadAll();showTab(currentTab);
 }
+function openEqCompModal(itemId,compId){
   var comp=compId?C.equipComponents.find(function(x){return sid(x.id)===sid(compId);}):null;
   var item=C.equipItems.find(function(x){return sid(x.id)===sid(itemId);});
   openModal((comp?'Edit':'Add')+' Component'+(item?' — '+item.name:''),
