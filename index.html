@@ -859,7 +859,9 @@ function openEvDetail(id,returnTab){
   }
   document.getElementById('mc').innerHTML=
     '<div class="back" onclick="showTab(\''+prevTab+'\')">← Back to '+prevTab.charAt(0).toUpperCase()+prevTab.slice(1)+'</div>'+
-    '<div class="section-header"><div class="section-title">'+esc(e.name)+'</div>'+
+    '<div class="section-header"><div><div class="section-title">'+esc(e.name)+'</div>'+
+      (e.created_by?'<div style="font-size:11px;color:var(--muted);margin-top:2px">Created by '+esc(e.created_by)+(e.created_at?' on '+fmtD(e.created_at.split('T')[0])+' at '+new Date(e.created_at).toLocaleTimeString([],{hour:'numeric',minute:'2-digit'}):'')+'</div>':'')+
+      '</div>'+
       '<div style="display:flex;gap:8px">'+
         '<button class="btn btn-sm btn-outline" onclick="openEvModal(\''+sid(e.id)+'\')">Edit Event</button>'+
         (hasPackingList(e)?'<button class="btn btn-sm" onclick="openPackingList(\''+sid(e.id)+'\')" style="background:var(--blue);color:#000">📦 Packing List</button>':'')+
@@ -1608,6 +1610,11 @@ async function saveEv(id){
   var existingEv=id?C.events.find(function(e){return sid(e.id)===sid(id);}):null;
   var obj={name:name,date:date,time:time||null,venue:venue||null,type:type,status:existingEv?existingEv.status:'upcoming',customer_id:cuId,invoice_amount:inv?parseFloat(inv):null,notes:notes||null,hours_na:hoursNA,
     labor:collectCrew(),main_equip:collectEquip('mainEquipWrap'),sec_equip:collectEquip('secEquipWrap')};
+  if(!id){
+    var sessionRes=await sb.auth.getSession();
+    var userEmail=sessionRes&&sessionRes.data&&sessionRes.data.session?sessionRes.data.session.user.email:'';
+    obj.created_by=userEmail||null;
+  }
   var r=id?await sb.from('events').update(obj).eq('id',id):await sb.from('events').insert(obj);
   if(r.error){showErr(r.error.message);return;}
   var savedId=id||(r.data&&r.data[0]&&r.data[0].id);
