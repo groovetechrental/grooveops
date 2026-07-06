@@ -52,8 +52,6 @@ header{background:var(--surface);border-bottom:1px solid var(--border);padding:1
 .nav-tab{padding:8px 14px;font-size:13px;font-weight:600;color:var(--muted);cursor:pointer;border-bottom:2px solid transparent;transition:all .15s;white-space:nowrap;}
 .nav-tab:hover{color:var(--text);}
 .nav-tab.active{color:var(--accent);border-bottom-color:var(--accent);}
-.hw-vtab{padding:7px 16px;font-size:13px;font-weight:600;border-radius:6px;border:1px solid var(--border);background:var(--surface);color:var(--muted);cursor:pointer;}
-.hw-vtab.active{background:#ff8c00;border-color:#ff8c00;color:#000;}
 .content{padding:16px;max-width:960px;margin:0 auto;}
 .stat-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin-bottom:20px;}
 .stat-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:14px 16px;}
@@ -260,8 +258,6 @@ header{background:var(--surface);border-bottom:1px solid var(--border);padding:1
     <div class="nav-tab" onclick="showTab('expenses')">Expenses</div>
     <div class="nav-tab" onclick="showTab('equipment')">Equipment</div>
     <div class="nav-tab" onclick="showTab('quotes')">Quotes</div>
-    <div class="nav-tab" onclick="showTab('dancefloor')">Dance Floor</div>
-    <div class="nav-tab" onclick="showTab('halloween')" style="color:#ff8c00">🎃 Halloween</div>
   </div>
   <div class="content" id="mc"></div>
 </div>
@@ -436,7 +432,7 @@ function init(){
       loadAll().then(function(){
         hideLoader();
         var hash=window.location.hash.replace('#','');
-        var validTabs=['dashboard','calendar','events','customers','crm','payments','labor','ownerfinances','expenses','equipment','quotes','dancefloor','halloween'];
+        var validTabs=['dashboard','calendar','events','customers','crm','payments','labor','ownerfinances','expenses','equipment','quotes'];
         showTab(validTabs.indexOf(hash)!==-1?hash:'dashboard');
       }).catch(function(err){hideLoader();showErr('Failed to load data: '+(err.message||String(err)));showTab('dashboard');});
     } else {
@@ -477,10 +473,7 @@ function loadAll(){
     sb.from('labor_payments').select('*').order('date',{ascending:false}),
     sb.from('quotes').select('*').order('created_at',{ascending:false}),
     sb.from('quote_line_items').select('*').order('sort_order'),
-    sb.from('interactions').select('*').order('date',{ascending:false}),
-    sb.from('halloween_items').select('*').order('name'),
-    sb.from('halloween_categories').select('*').order('name'),
-    sb.from('halloween_scenes').select('*').order('name')
+    sb.from('interactions').select('*').order('date',{ascending:false})
   ]).then(function(r){
     var errs=r.filter(function(x){return x.error;}).map(function(x){return x.error.message;});
     if(errs.length)console.warn('loadAll partial errors:',errs.join('; '));
@@ -489,7 +482,6 @@ function loadAll(){
     C.equipItems=r[6].data||[];C.equipComponents=r[7].data||[];C.packChecks=r[8].data||[];
     C.laborPayments=r[9].data||[];C.quotes=r[10].data||[];C.quoteItems=r[11].data||[];
     C.interactions=r[12].data||[];
-    C.hwItems=r[13].data||[];C.hwCategories=r[14].data||[];C.hwScenes=r[15].data||[];
   });
 }
 
@@ -617,13 +609,12 @@ function exportCustomerHTML(cid){
       '</div>'+
       (evs.length?
         '<div class="stitle">Events</div>'+
-        '<table><thead><tr><th>Event</th><th>Date</th><th>Venue</th><th>Invoice</th><th>Notes</th></tr></thead><tbody>'+
+        '<table><thead><tr><th>Event</th><th>Date</th><th>Venue</th><th>Invoice</th></tr></thead><tbody>'+
         evs.map(function(e){return'<tr>'+
           '<td><strong>'+esc(e.name)+'</strong></td>'+
           '<td style="white-space:nowrap">'+fmtD(e.date)+'</td>'+
           '<td style="color:#888">'+esc(e.venue||'—')+'</td>'+
           '<td>'+(e.invoice_amount?fmt(e.invoice_amount):'—')+'</td>'+
-          '<td style="color:#888">'+esc(e.notes||'')+'</td>'+
         '</tr>';}).join('')+
         '</tbody></table>':'')+
       (pms.length?
@@ -669,8 +660,6 @@ function showTab(tab){
   else if(tab==='equipment')renderEquipment();
   else if(tab==='quotes')renderQuotes();
   else if(tab==='crm')renderCRM();
-  else if(tab==='dancefloor')renderDanceFloor();
-  else if(tab==='halloween')renderHalloween();
 }
 
 // ── DASHBOARD ─────────────────────────────────────────────────────────────────
@@ -811,7 +800,7 @@ function renderEvents(){
   '</select>'+(evCuFilter?'<button class="btn btn-sm btn-outline" style="margin-left:6px" onclick="evCuFilter=\'\';renderEvents()">✕ Clear</button>':'');
   document.getElementById('mc').innerHTML=
     periodSelector()+
-    sh('Events ('+countLabel+')',exportBtn('exportEvents')+'<button class="btn btn-sm" onclick="openEvModal()">+ Add Event</button>')+
+    sh('Events ('+countLabel+')',exportBtn('exportEvents')+missingInvBtn()+missingHoursBtn()+'<button class="btn btn-sm" onclick="openEvModal()">+ Add Event</button>')+
     '<div style="margin-bottom:12px;display:flex;align-items:center"><span style="font-size:12px;color:var(--muted)">Filter by customer:</span>'+cuFilter+'</div>'+
     '<table class="tbl"><thead><tr>'+th('Event','name')+th('Date','date')+th('Venue','venue')+th('Type','type')+th('Customer','customer')+th('Invoice','invoice')+th('Hours','hours')+th('Profit','profit')+'<th></th></tr></thead><tbody>'+
     (sorted.map(function(e){
@@ -859,9 +848,7 @@ function openEvDetail(id,returnTab){
   }
   document.getElementById('mc').innerHTML=
     '<div class="back" onclick="showTab(\''+prevTab+'\')">← Back to '+prevTab.charAt(0).toUpperCase()+prevTab.slice(1)+'</div>'+
-    '<div class="section-header"><div><div class="section-title">'+esc(e.name)+'</div>'+
-      (e.created_by?'<div style="font-size:11px;color:var(--muted);margin-top:2px">Created by '+esc(e.created_by)+(e.created_at?' on '+fmtD(e.created_at.split('T')[0])+' at '+new Date(e.created_at).toLocaleTimeString([],{hour:'numeric',minute:'2-digit'}):'')+'</div>':'')+
-      '</div>'+
+    '<div class="section-header"><div class="section-title">'+esc(e.name)+'</div>'+
       '<div style="display:flex;gap:8px">'+
         '<button class="btn btn-sm btn-outline" onclick="openEvModal(\''+sid(e.id)+'\')">Edit Event</button>'+
         (hasPackingList(e)?'<button class="btn btn-sm" onclick="openPackingList(\''+sid(e.id)+'\')" style="background:var(--blue);color:#000">📦 Packing List</button>':'')+
@@ -894,12 +881,7 @@ function openEvDetail(id,returnTab){
     '</tbody></table>'+
     sh('Expenses','<button class="btn btn-sm" onclick="openExpModal(\''+sid(e.id)+'\')">+ Add Expense</button>')+
     '<table class="tbl"><thead><tr><th>Person</th><th>Category</th><th>Description</th><th>Amount</th><th>Reimbursed</th><th></th></tr></thead><tbody>'+
-    (eE.map(function(x){
-      var isCo=x.person==='company';
-      var reimbCell=isCo?'<span class="badge" style="background:rgba(105,47,180,.15);color:var(--accent)">N/A</span>':(x.reimbursed?'<span class="badge bg">Yes</span>':'<span class="badge ba">No</span>');
-      var actions='<div class="acts">'+(!isCo&&!x.reimbursed?'<button class="btn btn-sm btn-outline" onclick="doReimb(\''+sid(x.id)+'\',\''+sid(id)+'\',\''+prevTab+'\')">✓</button>':'')+'<button class="btn btn-sm btn-outline" onclick="openExpModal(null,\''+sid(x.id)+'\')">Edit</button><button class="btn btn-sm btn-danger" onclick="delRec(\'expenses\',\''+sid(x.id)+'\',function(){openEvDetail(\''+sid(id)+'\',\''+prevTab+'\');})">Del</button></div>';
-      return'<tr><td>'+fmtD(x.date)+'</td><td style="text-transform:capitalize">'+(isCo?'<span style="font-weight:600;color:var(--accent)">Company</span>':esc(x.person||'—'))+'</td><td><span class="badge bb">'+esc(x.category||'other')+'</span></td><td>'+esc(x.description||'—')+'</td><td>'+fmt(x.amount)+'</td><td>'+reimbCell+'</td><td>'+actions+'</td></tr>';
-    }).join('')||'<tr><td colspan="7" class="empty">No expenses</td></tr>')+
+    (eE.map(function(x){return'<tr><td>'+fmtD(x.date)+'</td><td style="text-transform:capitalize">'+esc(x.person||'—')+'</td><td><span class="badge bb">'+esc(x.category||'other')+'</span></td><td>'+esc(x.description||'—')+'</td><td>'+fmt(x.amount)+'</td><td><span class="badge '+(x.reimbursed?'bg':'ba')+'">'+(x.reimbursed?'Yes':'No')+'</span></td><td><div class="acts">'+(x.reimbursed?'':'<button class="btn btn-sm btn-outline" onclick="doReimb(\''+sid(x.id)+'\',\''+sid(id)+'\',\''+prevTab+'\')">✓</button>')+'<button class="btn btn-sm btn-outline" onclick="openExpModal(null,\''+sid(x.id)+'\')">Edit</button><button class="btn btn-sm btn-danger" onclick="delRec(\'expenses\',\''+sid(x.id)+'\',function(){openEvDetail(\''+sid(id)+'\',\''+prevTab+'\');})">Del</button></div></td></tr>';}).join('')||'<tr><td colspan="7" class="empty">No expenses</td></tr>')+
     '</tbody></table>'+
     sh('Payments','<button class="btn btn-sm" onclick="openPayModal(null,\''+sid(e.id)+'\')">+ Record Payment</button>')+
     '<table class="tbl"><thead><tr><th>Date</th><th>Amount</th><th>Method</th><th>Notes</th><th></th></tr></thead><tbody>'+
@@ -1133,19 +1115,13 @@ function renderExpenses(){
     if(av<bv)return-1*expSort.dir;if(av>bv)return 1*expSort.dir;return 0;
   });
   var te=filtered.reduce(function(s,x){return s+(parseFloat(x.amount)||0);},0);
-  var ur=filtered.filter(function(x){return!x.reimbursed&&x.person!=='company';}).reduce(function(s,x){return s+(parseFloat(x.amount)||0);},0);
+  var ur=filtered.filter(function(x){return!x.reimbursed;}).reduce(function(s,x){return s+(parseFloat(x.amount)||0);},0);
   document.getElementById('mc').innerHTML=
     periodSelector()+
     '<div class="stat-grid" style="margin-bottom:16px">'+sc('Total Expenses',fmt(te))+sc('Pending Reimbursement',fmt(ur),'amber')+'</div>'+
     sh('Expenses ('+filtered.length+')',exportBtn('exportExpenses')+'<button class="btn btn-sm" onclick="openExpModal()">+ Add Expense</button>')+
     '<table class="tbl"><thead><tr>'+ths('Date','date')+ths('Event','event')+ths('Person','person')+ths('Category','category')+'<th>Description</th>'+ths('Amount','amount')+'<th>Reimbursed</th><th></th></tr></thead><tbody>'+
-    (sorted.map(function(x){
-      var isCo=x.person==='company';
-      var personCell=isCo?'<span style="font-weight:600;color:var(--accent)">Company</span>':'<span style="text-transform:capitalize">'+esc(x.person||'—')+'</span>';
-      var reimbCell=isCo?'<span class="badge" style="background:rgba(105,47,180,.15);color:var(--accent)">N/A</span>':(x.reimbursed?'<span class="badge bg">Yes</span>':'<span class="badge ba">No</span>');
-      var actions='<div class="acts">'+(!isCo&&!x.reimbursed?'<button class="btn btn-sm btn-outline" onclick="doReimb(\''+sid(x.id)+'\')">✓</button>':'')+'<button class="btn btn-sm btn-outline" onclick="openExpModal(null,\''+sid(x.id)+'\')">Edit</button><button class="btn btn-sm btn-danger" onclick="delRec(\'expenses\',\''+sid(x.id)+'\')">Del</button></div>';
-      return'<tr><td>'+fmtD(x.date)+'</td><td style="font-weight:500">'+(x.event_id?evName(x.event_id):'<span style="color:var(--muted)">—</span>')+'</td><td>'+personCell+'</td><td><span class="badge bb">'+esc(x.category||'other')+'</span></td><td>'+esc(x.description||'—')+'</td><td>'+fmt(x.amount)+'</td><td>'+reimbCell+'</td><td>'+actions+'</td></tr>';
-    }).join('')||'<tr><td colspan="8" class="empty">No expenses in this period</td></tr>')+
+    (sorted.map(function(x){return'<tr><td>'+fmtD(x.date)+'</td><td style="font-weight:500">'+(x.event_id?evName(x.event_id):'<span style="color:var(--muted)">—</span>')+'</td><td style="text-transform:capitalize">'+esc(x.person||'—')+'</td><td><span class="badge bb">'+esc(x.category||'other')+'</span></td><td>'+esc(x.description||'—')+'</td><td>'+fmt(x.amount)+'</td><td><span class="badge '+(x.reimbursed?'bg':'ba')+'">'+(x.reimbursed?'Yes':'No')+'</span></td><td><div class="acts">'+(x.reimbursed?'':'<button class="btn btn-sm btn-outline" onclick="doReimb(\''+sid(x.id)+'\')">✓</button>')+'<button class="btn btn-sm btn-outline" onclick="openExpModal(null,\''+sid(x.id)+'\')">Edit</button><button class="btn btn-sm btn-danger" onclick="delRec(\'expenses\',\''+sid(x.id)+'\')">Del</button></div></td></tr>';}).join('')||'<tr><td colspan="8" class="empty">No expenses in this period</td></tr>')+
     '</tbody></table>';
 }
 function sortExp(col){if(expSort.col===col){expSort.dir*=-1;}else{expSort.col=col;expSort.dir=1;}renderExpenses();}
@@ -1189,7 +1165,7 @@ function renderEqResults(){
 }
 function renderEquipment(){
   document.getElementById('mc').innerHTML=
-    sh('Equipment Catalog ('+C.equipItems.length+')','<label class="btn btn-sm btn-outline" style="cursor:pointer;margin-right:4px">⬆ Bulk Upload CSV<input type="file" accept=".csv" style="display:none" onchange="bulkUploadEquip(this)"></label><button class="btn btn-sm" onclick="openEqItemModal()">+ Add Item</button>')+
+    sh('Equipment Catalog ('+C.equipItems.length+')','<button class="btn btn-sm" onclick="openEqItemModal()">+ Add Item</button>')+
     '<div style="margin-bottom:14px"><input id="eqSearch" placeholder="🔍 Search by name, category, or description…" value="'+esc(eqSearchTerm)+'" oninput="eqSearchTerm=this.value;renderEqResults()" style="max-width:420px" autofocus></div>'+
     '<div id="eqResults"></div>';
   renderEqResults();
@@ -1610,11 +1586,6 @@ async function saveEv(id){
   var existingEv=id?C.events.find(function(e){return sid(e.id)===sid(id);}):null;
   var obj={name:name,date:date,time:time||null,venue:venue||null,type:type,status:existingEv?existingEv.status:'upcoming',customer_id:cuId,invoice_amount:inv?parseFloat(inv):null,notes:notes||null,hours_na:hoursNA,
     labor:collectCrew(),main_equip:collectEquip('mainEquipWrap'),sec_equip:collectEquip('secEquipWrap')};
-  if(!id){
-    var sessionRes=await sb.auth.getSession();
-    var userEmail=sessionRes&&sessionRes.data&&sessionRes.data.session?sessionRes.data.session.user.email:'';
-    obj.created_by=userEmail||null;
-  }
   var r=id?await sb.from('events').update(obj).eq('id',id):await sb.from('events').insert(obj);
   if(r.error){showErr(r.error.message);return;}
   var savedId=id||(r.data&&r.data[0]&&r.data[0].id);
@@ -1622,6 +1593,106 @@ async function saveEv(id){
   await loadAll();
   if(savedId)await syncCrewToLabor(savedId,obj.labor||[]);
   syncToGCal(obj,!!id);
+  closeModal();await loadAll();showTab(currentTab);
+}
+
+// ── MISSING INVOICE / HOURS QUICK-FILL ────────────────────────────────────────
+function getMissingInvoiceEvents(){
+  return C.events.filter(function(e){return e.status!=='cancelled'&&!(parseFloat(e.invoice_amount)>0);})
+    .sort(function(a,b){return(b.date||'').localeCompare(a.date||'');});
+}
+function eventTotalHours(e){
+  var lh=C.labor.filter(function(l){return sid(l.event_id)===sid(e.id);}).reduce(function(s,l){return s+(parseFloat(l.hours)||0);},0);
+  var ch=(e.labor||[]).filter(function(x){return x.name&&x.qty;}).reduce(function(s,x){return s+(parseFloat(x.qty)||0);},0);
+  return lh||ch;
+}
+function getMissingHoursEvents(){
+  return C.events.filter(function(e){return e.status!=='cancelled'&&!e.hours_na&&eventTotalHours(e)===0;})
+    .sort(function(a,b){return(b.date||'').localeCompare(a.date||'');});
+}
+function missingInvBtn(){
+  var n=getMissingInvoiceEvents().length;
+  return n?'<button class="btn btn-sm btn-outline" style="color:var(--accent2);border-color:var(--accent2)" onclick="openMissingInvModal()">⚠ Missing Invoices ('+n+')</button>':'';
+}
+function missingHoursBtn(){
+  var n=getMissingHoursEvents().length;
+  return n?'<button class="btn btn-sm btn-outline" style="color:var(--accent2);border-color:var(--accent2)" onclick="openMissingHoursModal()">⚠ Missing Hours ('+n+')</button>':'';
+}
+function openMissingInvModal(){
+  var evs=getMissingInvoiceEvents();
+  if(!evs.length){showErr('No events are missing an invoice amount.');return;}
+  var body='<div style="font-size:12px;color:var(--muted);margin-bottom:12px">Enter invoice amounts below. Leave blank to skip an event — it\'ll stay in this list next time.</div>'+
+    evs.map(function(e){
+      return'<div style="display:grid;grid-template-columns:1fr 110px;gap:8px;align-items:center;margin-bottom:10px;padding-bottom:10px;border-bottom:1px solid var(--border)">'+
+        '<div><div style="font-weight:500">'+esc(e.name)+'</div><div style="font-size:11px;color:var(--muted)">'+fmtD(e.date)+(e.venue?' · '+esc(e.venue):'')+'</div></div>'+
+        '<input type="number" step="0.01" placeholder="$" id="miInv_'+sid(e.id)+'">'+
+      '</div>';
+    }).join('');
+  openModal('Missing Invoice Amounts ('+evs.length+')',body,saveMissingInvoices,'Save All');
+}
+async function saveMissingInvoices(){
+  var evs=getMissingInvoiceEvents();
+  var updates=[];
+  evs.forEach(function(e){
+    var el=document.getElementById('miInv_'+sid(e.id));
+    var v=el?el.value.trim():'';
+    if(v!=='')updates.push({id:e.id,invoice_amount:parseFloat(v)});
+  });
+  if(!updates.length){closeModal();return;}
+  for(var i=0;i<updates.length;i++){
+    var r=await sb.from('events').update({invoice_amount:updates[i].invoice_amount}).eq('id',updates[i].id);
+    if(r.error){showErr(r.error.message);return;}
+  }
+  closeModal();await loadAll();showTab(currentTab);
+}
+function mhPersonSelectHtml(eid){
+  return'<select id="mhPer_'+eid+'" onchange="var c=document.getElementById(\'mhPerCustom_'+eid+'\');c.style.display=this.value===\'__custom__\'?\'block\':\'none\';">'+
+    '<option value="">— who —</option>'+
+    '<option value="john">John</option>'+
+    '<option value="steve">Steve</option>'+
+    '<option value="jp">JP</option>'+
+    '<option value="__custom__">Other…</option>'+
+    '</select>'+
+    '<input id="mhPerCustom_'+eid+'" placeholder="Name" style="display:none;margin-top:4px">';
+}
+function openMissingHoursModal(){
+  var evs=getMissingHoursEvents();
+  if(!evs.length){showErr('No events are missing hours.');return;}
+  var body='<div style="font-size:12px;color:var(--muted);margin-bottom:12px">Pick who worked and enter their hours. Leave an event blank to skip it — it\'ll stay in this list next time.</div>'+
+    evs.map(function(e){
+      var eid=sid(e.id);
+      return'<div style="display:grid;grid-template-columns:1fr 130px 80px;gap:8px;align-items:start;margin-bottom:10px;padding-bottom:10px;border-bottom:1px solid var(--border)">'+
+        '<div><div style="font-weight:500">'+esc(e.name)+'</div><div style="font-size:11px;color:var(--muted)">'+fmtD(e.date)+(e.venue?' · '+esc(e.venue):'')+'</div></div>'+
+        '<div>'+mhPersonSelectHtml(eid)+'</div>'+
+        '<input type="number" step="0.25" placeholder="Hrs" id="mhHrs_'+eid+'">'+
+      '</div>';
+    }).join('');
+  openModal('Missing Hours ('+evs.length+')',body,saveMissingHours,'Save All');
+}
+async function saveMissingHours(){
+  var evs=getMissingHoursEvents();
+  var rows=[];
+  evs.forEach(function(e){
+    var eid=sid(e.id);
+    var selEl=document.getElementById('mhPer_'+eid);
+    var perRaw=selEl?selEl.value:'';
+    var per=perRaw==='__custom__'?(document.getElementById('mhPerCustom_'+eid).value||'').trim():perRaw;
+    var hrsEl=document.getElementById('mhHrs_'+eid);
+    var hrs=hrsEl?hrsEl.value.trim():'';
+    if(per&&hrs!=='')rows.push({eventId:e.id,person:per.toLowerCase(),hours:parseFloat(hrs)});
+  });
+  if(!rows.length){closeModal();return;}
+  var owners=['john','steve'];
+  for(var i=0;i<rows.length;i++){
+    var row=rows[i];
+    var isOwner=owners.includes(row.person);
+    var obj={person:row.person,event_id:row.eventId,hours:row.hours,notes:null};
+    if(isOwner){obj.rate=OWNER_RATE;obj.total_amount=row.hours*OWNER_RATE;}
+    else{obj.paid=false;obj.total_amount=null;}
+    var r=await sb.from('labor').insert(obj);
+    if(r.error){showErr(r.error.message);return;}
+    await syncLaborToEventCrew(row.eventId,row.person,row.hours);
+  }
   closeModal();await loadAll();showTab(currentTab);
 }
 
@@ -1802,15 +1873,10 @@ async function saveHelperPay(laborId,totalOwed){
 // ── EXPENSE MODAL ─────────────────────────────────────────────────────────────
 function openExpModal(evId,xId){
   var x=xId?C.expenses.find(function(e){return sid(e.id)===sid(xId);}):null;
-  var isCo=x&&x.person==='company';
   openModal(x?'Edit Expense':'Add Expense',
     '<div class="form-group"><label>Date</label><input type="date" id="mExDate" value="'+(x?x.date||todayStr():todayStr())+'"></div>'+
     '<div class="form-group"><label>Event</label><select id="mExEv"><option value="">— None —</option>'+C.events.map(function(e){return'<option value="'+sid(e.id)+'"'+(sid(e.id)===sid(evId)?' selected':'')+'>'+esc(e.name)+' ('+fmtD(e.date)+')</option>';}).join('')+'</select></div>'+
-    '<div class="form-group" style="display:flex;align-items:center;gap:10px;margin-bottom:12px;">'+
-      '<input type="checkbox" id="mExCo" onchange="toggleCoExp()" style="width:auto;margin:0;"'+(isCo?' checked':'')+'>'+
-      '<label for="mExCo" style="margin:0;font-weight:600;cursor:pointer;">Paid by Company <span style="font-size:11px;font-weight:400;color:var(--muted)">(capital purchase — no reimbursement)</span></label>'+
-    '</div>'+
-    '<div id="mExPerWrap" class="form-group"'+(isCo?' style="display:none"':'')+'><label>Person</label><select id="mExPer"><option value="john">John</option><option value="steve">Steve</option></select></div>'+
+    '<div class="form-group"><label>Person</label><select id="mExPer"><option value="john">John</option><option value="steve">Steve</option></select></div>'+
     '<div class="form-group"><label>Category</label><select id="mExCat"><option value="travel">Travel</option><option value="toll">Toll</option><option value="equipment">Equipment</option><option value="helper">Helper</option><option value="other">Other</option></select></div>'+
     '<div class="form-group"><label>Description</label><input id="mExDesc" value="'+esc(x?x.description||'':'')+'"></div>'+
     '<div class="form-group"><label>Amount</label><input type="number" id="mExAmt" value="'+(x?x.amount||'':'')+'"></div>'+
@@ -1818,24 +1884,16 @@ function openExpModal(evId,xId){
     function(){saveExp(xId);}
   );
   if(x){
-    var per=document.getElementById('mExPer');if(per&&x.person&&x.person!=='company')per.value=x.person;
+    var per=document.getElementById('mExPer');if(per&&x.person)per.value=x.person;
     var cat=document.getElementById('mExCat');if(cat&&x.category)cat.value=x.category;
     var ev2=document.getElementById('mExEv');if(ev2&&x.event_id)ev2.value=sid(x.event_id);
   }
 }
-function toggleCoExp(){
-  var co=document.getElementById('mExCo');
-  var wrap=document.getElementById('mExPerWrap');
-  if(wrap)wrap.style.display=co&&co.checked?'none':'';
-}
 async function saveExp(xId){
-  var date=gv('mExDate'),eid2=gv('mExEv'),cat=gv('mExCat'),desc=gv('mExDesc'),amt=gv('mExAmt'),nts=gv('mNo');
-  var isCo=document.getElementById('mExCo')&&document.getElementById('mExCo').checked;
-  var per=isCo?'company':gv('mExPer');
+  var date=gv('mExDate'),eid2=gv('mExEv'),per=gv('mExPer'),cat=gv('mExCat'),desc=gv('mExDesc'),amt=gv('mExAmt'),nts=gv('mNo');
   if(!amt||!date){showErr('Date and amount required.');return;}
-  var obj={date:date,event_id:eid2||null,person:per,category:cat,description:desc||null,amount:parseFloat(amt),notes:nts||null,reimbursed:isCo?true:undefined};
-  if(obj.reimbursed===undefined)delete obj.reimbursed;
-  var r=xId?await sb.from('expenses').update(obj).eq('id',xId):await sb.from('expenses').insert(Object.assign({},obj,{reimbursed:isCo?true:false}));
+  var obj={date:date,event_id:eid2||null,person:per,category:cat,description:desc||null,amount:parseFloat(amt),notes:nts||null};
+  var r=xId?await sb.from('expenses').update(obj).eq('id',xId):await sb.from('expenses').insert(Object.assign({},obj,{reimbursed:false}));
   if(r.error){console.error('Expense error:',JSON.stringify(r.error));showErr(r.error.message+' — '+JSON.stringify(r.error.details||r.error.hint||''));return;}
   closeModal();await loadAll();showTab(currentTab);
 }
@@ -1946,70 +2004,6 @@ async function saveEqItem(id){
   var r=id?await sb.from('equipment_items').update(obj).eq('id',id):await sb.from('equipment_items').insert(obj);
   if(r.error){showErr(r.error.message);return;}
   closeModal();await loadAll();showTab(currentTab);
-}
-async function bulkUploadEquip(input){
-  var file=input.files[0];
-  if(!file)return;
-  input.value=''; // reset so same file can be re-uploaded if needed
-  var text=await file.text();
-  // Parse CSV (handles quoted fields)
-  function parseCSV(str){
-    var rows=[];
-    var lines=str.split(/\r?\n/);
-    lines.forEach(function(line){
-      if(!line.trim())return;
-      var cols=[],cur='',inQ=false;
-      for(var i=0;i<line.length;i++){
-        var ch=line[i];
-        if(ch==='"'){if(inQ&&line[i+1]==='"'){cur+='"';i++;}else{inQ=!inQ;}}
-        else if(ch===','&&!inQ){cols.push(cur.trim());cur='';}
-        else{cur+=ch;}
-      }
-      cols.push(cur.trim());
-      rows.push(cols);
-    });
-    return rows;
-  }
-  var rows=parseCSV(text);
-  if(rows.length<2){showErr('CSV must have a header row and at least one data row.');return;}
-  var headers=rows[0].map(function(h){return h.toLowerCase().trim();});
-  var validHeaders=['name','category','description','price','photo_url','notes'];
-  var nameIdx=headers.indexOf('name');
-  if(nameIdx===-1){showErr('CSV must have a "name" column.');return;}
-  // Warn about unrecognized headers
-  var unknown=headers.filter(function(h){return validHeaders.indexOf(h)===-1;});
-  if(unknown.length){showErr('Unrecognized column(s): '+unknown.join(', ')+'. Valid headers: name, category, description, price, photo_url, notes');return;}
-  function col(row,name){var i=headers.indexOf(name);return i!==-1&&row[i]?row[i]:null;}
-  var records=[];
-  var skipped=[];
-  rows.slice(1).forEach(function(row,i){
-    if(row.every(function(c){return!c.trim();}))return; // skip blank rows
-    var name=col(row,'name');
-    if(!name){skipped.push('Row '+(i+2)+': missing name');return;}
-    var price=col(row,'price');
-    records.push({
-      name:name,
-      category:col(row,'category'),
-      description:col(row,'description'),
-      price:price?parseFloat(price):null,
-      photo_url:col(row,'photo_url'),
-      notes:col(row,'notes')
-    });
-  });
-  if(!records.length){showErr('No valid rows found in CSV.');return;}
-  // Confirm before inserting
-  var msg='Ready to import '+records.length+' item'+(records.length!==1?'s':'')+'.'+(skipped.length?' '+skipped.length+' row'+(skipped.length!==1?'s were':' was')+' skipped (missing name).':'')+'\n\nProceed?';
-  if(!confirm(msg))return;
-  // Insert in batches of 50
-  var errors=[];
-  for(var i=0;i<records.length;i+=50){
-    var batch=records.slice(i,i+50);
-    var r=await sb.from('equipment_items').insert(batch);
-    if(r.error)errors.push(r.error.message);
-  }
-  if(errors.length){showErr('Import completed with errors:\n'+errors.join('\n'));} 
-  else{alert('Successfully imported '+records.length+' item'+(records.length!==1?'s':'')+'!');}
-  await loadAll();showTab(currentTab);
 }
 function openEqCompModal(itemId,compId){
   var comp=compId?C.equipComponents.find(function(x){return sid(x.id)===sid(compId);}):null;
@@ -2951,335 +2945,6 @@ async function saveCu(id){
 
 
 init();
-
-// ── DANCE FLOOR CALCULATOR ────────────────────────────────────────────────────
-function renderDanceFloor(){
-  var pane=document.getElementById('mc');
-
-  // Tile mapping: dimension (feet) -> tile count per side
-  var tileMap={10:6,11:7,13:8,14:9,16:10,18:11,20:12,21:13,22:14,23:15,24:16};
-  var dims=[10,11,13,14,16,18,20,21,22,23,24];
-
-  var lengthSel=dfLength||dims[0];
-  var widthSel=dfWidth||dims[0];
-
-  function calcResults(len,wid){
-    var tL=tileMap[len];
-    var tW=tileMap[wid];
-    var totalTiles=tL*tW;
-    var cases=Math.ceil(totalTiles/8);
-    var extras=(cases*8)-totalTiles;
-
-    // Powered Edges: based on width tile count
-    // 1 powered edge per 2 tiles; odd tile count gets a single powered edge
-    var poweredEdges=Math.ceil(tW/2);
-    var poweredHasSingle=tW%2===1;
-
-    // Standard Edges: same calculation, but for 1 row of width + 2 lengths
-    var stdEdgesWidth=Math.ceil(tW/2);
-    var stdEdgesLength=Math.ceil(tL/2);
-    var standardEdges=stdEdgesWidth+(2*stdEdgesLength);
-    var stdWidthHasSingle=tW%2===1;
-    var stdLengthHasSingle=tL%2===1;
-
-    // Power supplies = number of powered edges
-    var powerSupplies=poweredEdges;
-
-    // Software controllers: 4 inputs each; <=4 powered edges = 1, >4 = 2
-    var controllers=poweredEdges<=4?1:2;
-
-    return{tL,tW,totalTiles,cases,extras,poweredEdges,poweredHasSingle,standardEdges,stdWidthHasSingle,stdLengthHasSingle,powerSupplies,controllers};
-  }
-
-  var r=calcResults(lengthSel,widthSel);
-
-  var dimOpts=dims.map(function(d){return'<option value="'+d+'"'+(d===lengthSel?' selected':'')+'>'+d+' ft</option>';}).join('');
-  var widOpts=dims.map(function(d){return'<option value="'+d+'"'+(d===widthSel?' selected':'')+'>'+d+' ft</option>';}).join('');
-
-  pane.innerHTML=
-    '<div style="max-width:640px;margin:0 auto;padding:20px 16px;">'+
-    '<h2 style="font-family:\'Bebas Neue\',sans-serif;font-size:28px;letter-spacing:2px;color:var(--accent);margin-bottom:4px;">Dance Floor Calculator</h2>'+
-    '<p style="color:var(--muted);font-size:13px;margin-bottom:24px;">Select floor dimensions to calculate tiles and components needed.</p>'+
-
-    '<div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:20px;margin-bottom:20px;">'+
-    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">'+
-    '<div class="form-group" style="margin:0;">'+
-    '<label>Length (feet)</label>'+
-    '<select onchange="dfLength=+this.value;renderDanceFloor()">'+dimOpts+'</select>'+
-    '</div>'+
-    '<div class="form-group" style="margin:0;">'+
-    '<label>Width (feet)</label>'+
-    '<select onchange="dfWidth=+this.value;renderDanceFloor()">'+widOpts+'</select>'+
-    '</div>'+
-    '</div>'+
-    '<p style="color:var(--muted);font-size:12px;margin-top:12px;text-align:center;">'+
-    r.tL+' \xd7 '+r.tW+' tile grid</p>'+
-    '<p style="color:var(--text);font-size:13px;margin-top:4px;text-align:center;font-weight:600;">'+
-    'Actual size: '+(r.tL*1.6).toFixed(1)+"'" +' x '+(r.tW*1.6).toFixed(1)+"'</p>"+
-    '</div>'+
-
-    // Results grid
-    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">'+
-
-    dfCard('\ud83d\udfe5','Total Tiles',r.totalTiles+' tiles','var(--accent)')+
-    dfCard('\ud83d\udce6','Cases Needed',r.cases+' cases','var(--blue)',
-      r.extras>0?r.extras+' extra tile'+(r.extras===1?'':'s')+' included':'No extras')+
-    dfCard('\u26a1','Powered Edges',r.poweredEdges+' edges','var(--gt)',(r.poweredHasSingle?'\u26a0 Includes 1 single edge \xb7 ':'')+r.powerSupplies+' power suppl'+(r.powerSupplies===1?'y':'ies'))+
-    dfCard('\u2796','Standard Edges',r.standardEdges+' edges','var(--muted)',
-      (r.stdWidthHasSingle||r.stdLengthHasSingle?'\u26a0 Includes single edge'+(r.stdWidthHasSingle&&r.stdLengthHasSingle?' (width + length)':r.stdWidthHasSingle?' (width)':' (length)')+' \xb7 ':'')+
-      '1 width row + 2 length rows')+
-    dfCard('\ud83d\udd0c','Power Supplies',r.powerSupplies+' supplies','#4caf50','1 per powered edge')+
-    dfCard('\ud83d\udda5\ufe0f','Software Controllers',r.controllers+' controller'+(r.controllers===1?'':'s'),'var(--neon)',
-      r.poweredEdges<=4?r.poweredEdges+' powered edges \u2192 1 controller':r.poweredEdges+' powered edges \u2192 2 controllers')+
-
-    '</div>'+
-
-    // Summary box
-    '<div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px;margin-top:16px;">'+
-    '<div style="font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:10px;">Summary</div>'+
-    '<div style="display:grid;gap:6px;font-size:14px;">'+
-    dfRow('Floor Size',lengthSel+'\' \xd7 '+widthSel+'\'')+
-    dfRow('Tile Grid',r.tL+' \xd7 '+r.tW+' = '+r.totalTiles+' tiles')+
-    dfRow('Cases',r.cases+' cases of 8 ('+r.extras+' extra tile'+(r.extras===1?'':'s')+')')+
-    dfRow('Powered Edges',r.poweredEdges)+
-    dfRow('Standard Edges',r.standardEdges)+
-    dfRow('Power Supplies',r.powerSupplies)+
-    dfRow('Controllers',r.controllers)+
-    '</div>'+
-    '</div>'+
-
-    '</div>';
-}
-
-function dfCard(icon,label,value,color,sub){
-  return '<div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px;">'+
-    '<div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;">'+icon+' '+label+'</div>'+
-    '<div style="font-size:22px;font-weight:700;color:'+(color||'var(--text)')+';margin-bottom:4px;">'+value+'</div>'+
-    (sub?'<div style="font-size:11px;color:var(--muted);">'+sub+'</div>':'')+
-    '</div>';
-}
-
-function dfRow(label,val){
-  return '<div style="display:flex;justify-content:space-between;align-items:center;padding:4px 0;border-bottom:1px solid var(--border);">'+
-    '<span style="color:var(--muted);font-size:13px;">'+label+'</span>'+
-    '<span style="font-weight:600;font-size:13px;">'+val+'</span>'+
-    '</div>';
-}
-
-var dfLength=10,dfWidth=10;
-
-// ── HALLOWEEN ─────────────────────────────────────────────────────────────────
-var hwView='catalog',hwSearch='',hwCatFilter='';
-function renderHalloween(){
-  var mc=document.getElementById('mc');
-  mc.innerHTML=
-    '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:10px;">'+
-      '<div style="display:flex;gap:6px;">'+
-        '<button class="hw-vtab'+(hwView==='catalog'?' active':'')+'" onclick="hwView=\'catalog\';renderHalloween()">📦 Catalog ('+C.hwItems.length+')</button>'+
-        '<button class="hw-vtab'+(hwView==='scenes'?' active':'')+'" onclick="hwView=\'scenes\';renderHalloween()">🏚 Scenes ('+C.hwScenes.length+')</button>'+
-      '</div>'+
-      (hwView==='catalog'?
-        '<button class="btn btn-sm" style="background:#ff8c00;color:#000;font-weight:700" onclick="openHwItemModal()">+ Add Item</button>':
-        '<button class="btn btn-sm" style="background:#ff8c00;color:#000;font-weight:700" onclick="openHwSceneModal()">+ New Scene</button>')+
-    '</div>'+
-    (hwView==='catalog'?renderHwCatalog():renderHwScenes());
-}
-function renderHwCatalog(){
-  var cats=C.hwCategories.slice().sort(function(a,b){return a.name.localeCompare(b.name);});
-  var items=C.hwItems.slice();
-  if(hwSearch){var q=hwSearch.toLowerCase();items=items.filter(function(i){return(i.name||'').toLowerCase().indexOf(q)!==-1||(i.description||'').toLowerCase().indexOf(q)!==-1||(i.storage_location||'').toLowerCase().indexOf(q)!==-1||((i.categories||[]).join(' ')).toLowerCase().indexOf(q)!==-1||(i.movement||'').toLowerCase().indexOf(q)!==-1||(i.placement||'').toLowerCase().indexOf(q)!==-1;});}
-  if(hwCatFilter){items=items.filter(function(i){return(i.categories||[]).indexOf(hwCatFilter)!==-1;});}
-  var html=
-    '<div style="display:flex;gap:8px;align-items:center;margin-bottom:14px;flex-wrap:wrap;">'+
-      '<input id="hwSearch" placeholder="🔍 Search items…" value="'+esc(hwSearch)+'" oninput="hwSearch=this.value;hwFilterCatalog()" style="width:220px;">'+
-      '<select id="hwCatFilter" onchange="hwCatFilter=this.value;hwFilterCatalog()" style="width:auto;">'+
-        '<option value="">All Categories</option>'+
-        cats.map(function(c){return'<option value="'+esc(c.name)+'"'+(hwCatFilter===c.name?' selected':'')+'>'+esc(c.name)+'</option>';}).join('')+
-      '</select>'+
-      '<button class="btn btn-sm btn-outline" onclick="openHwCatManager()">⚙ Categories</button>'+
-    '</div>'+
-    '<div id="hwCatalogList">';
-  html+=hwBuildItemCards(items);
-  html+='</div>';
-  return html;
-}
-function hwBuildItemCards(items){
-  if(!items.length)return'<div class="empty">No items found. Add one above.</div>';
-  return items.map(function(it){
-    var sceneCount=C.hwScenes.filter(function(s){return(s.items||[]).some(function(x){return sid(x.item_id)===sid(it.id);});}).length;
-    var cats=(it.categories||[]).map(function(c){return'<span style="background:rgba(255,140,0,.15);color:#ff8c00;border-radius:4px;padding:2px 7px;font-size:11px;font-weight:600;">'+esc(c)+'</span>';}).join(' ');
-    return'<div style="display:flex;gap:14px;padding:14px;border:1px solid var(--border);border-radius:8px;margin-bottom:10px;background:var(--surface);">'+
-      '<div style="flex-shrink:0;width:80px;height:80px;border-radius:6px;overflow:hidden;background:#222;display:flex;align-items:center;justify-content:center;font-size:28px;">'+
-        (it.photo_url?'<img src="'+esc(it.photo_url)+'" style="width:100%;height:100%;object-fit:cover;" onerror="this.parentNode.innerHTML=\'🎃\'">':'🎃')+
-      '</div>'+
-      '<div style="flex:1;min-width:0;">'+
-        '<div style="font-weight:700;font-size:15px;margin-bottom:4px;">'+esc(it.name)+'</div>'+
-        '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:6px;">'+
-          (it.movement?'<span style="background:var(--surface2,#eee);border-radius:4px;padding:2px 7px;font-size:11px;font-weight:600;">'+esc(it.movement)+'</span>':'')+
-          (it.placement?'<span style="background:var(--surface2,#eee);border-radius:4px;padding:2px 7px;font-size:11px;font-weight:600;">'+esc(it.placement)+'</span>':'')+
-          (it.quantity?'<span style="background:var(--surface2,#eee);border-radius:4px;padding:2px 7px;font-size:11px;font-weight:600;">Qty: '+it.quantity+'</span>':'')+
-          cats+
-        '</div>'+
-        (it.description?'<div style="font-size:13px;color:var(--muted);margin-bottom:4px;">'+esc(it.description)+'</div>':'')+
-        (it.storage_location?'<div style="font-size:12px;color:var(--muted);">📦 '+esc(it.storage_location)+'</div>':'')+
-        (sceneCount?'<div style="font-size:12px;color:#ff8c00;margin-top:4px;">🏚 In '+sceneCount+' scene'+(sceneCount!==1?'s':'')+': '+C.hwScenes.filter(function(s){return(s.items||[]).some(function(x){return sid(x.item_id)===sid(it.id);});}).map(function(s){return s.name;}).join(', ')+'</div>':'')+
-        '<div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap;">'+
-          '<button class="btn btn-sm btn-outline" onclick="openHwItemModal(\''+sid(it.id)+'\')">✏️ Edit</button>'+
-          (C.hwScenes.length?'<button class="btn btn-sm btn-outline" style="border-color:rgba(255,140,0,.5);color:#ff8c00" onclick="openAddToScene(\''+sid(it.id)+'\')">🏚 Add to Scene</button>':'')+
-          '<button class="btn btn-sm btn-danger" onclick="delHwItem(\''+sid(it.id)+'\')">🗑 Delete</button>'+
-        '</div>'+
-      '</div>'+
-    '</div>';
-  }).join('');
-}
-function hwFilterCatalog(){
-  hwSearch=document.getElementById('hwSearch')?document.getElementById('hwSearch').value:hwSearch;
-  hwCatFilter=document.getElementById('hwCatFilter')?document.getElementById('hwCatFilter').value:hwCatFilter;
-  var cats=C.hwCategories.slice().sort(function(a,b){return a.name.localeCompare(b.name);});
-  var items=C.hwItems.slice();
-  if(hwSearch){var q=hwSearch.toLowerCase();items=items.filter(function(i){return(i.name||'').toLowerCase().indexOf(q)!==-1||(i.description||'').toLowerCase().indexOf(q)!==-1||(i.storage_location||'').toLowerCase().indexOf(q)!==-1||((i.categories||[]).join(' ')).toLowerCase().indexOf(q)!==-1||(i.movement||'').toLowerCase().indexOf(q)!==-1||(i.placement||'').toLowerCase().indexOf(q)!==-1;});}
-  if(hwCatFilter){items=items.filter(function(i){return(i.categories||[]).indexOf(hwCatFilter)!==-1;});}
-  var el=document.getElementById('hwCatalogList');
-  if(el)el.innerHTML=hwBuildItemCards(items);
-}
-function renderHwScenes(){
-  if(!C.hwScenes.length)return'<div class="empty">No scenes yet. Click + New Scene to create one.</div>';
-  return C.hwScenes.map(function(sc){
-    var scItems=(sc.items||[]).map(function(x){
-      var it=C.hwItems.find(function(i){return sid(i.id)===sid(x.item_id);});
-      if(!it)return'';
-      return'<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border);">'+
-        '<div style="width:40px;height:40px;border-radius:4px;overflow:hidden;background:#222;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;">'+
-          (it.photo_url?'<img src="'+esc(it.photo_url)+'" style="width:100%;height:100%;object-fit:cover;" onerror="this.parentNode.innerHTML=\'🎃\'">':'🎃')+
-        '</div>'+
-        '<div style="flex:1;font-size:13px;"><strong>'+esc(it.name)+'</strong>'+(x.qty&&x.qty>1?' <span style="color:var(--muted)">×'+x.qty+'</span>':'')+
-          (it.movement?'  <span style="font-size:11px;color:var(--muted)">'+esc(it.movement)+'</span>':'')+
-        '</div>'+
-        '<button class="btn btn-sm btn-danger" style="padding:2px 8px;font-size:11px;" onclick="removeSceneItem(\''+sid(sc.id)+'\',\''+sid(x.item_id)+'\')">✕</button>'+
-      '</div>';
-    }).join('');
-    return'<div style="border:1px solid var(--border);border-radius:8px;padding:16px;margin-bottom:14px;background:var(--surface);">'+
-      '<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px;">'+
-        '<div>'+
-          '<div style="font-weight:700;font-size:16px;">'+esc(sc.name)+'</div>'+
-          (sc.venue?'<div style="font-size:13px;color:var(--muted);">📍 '+esc(sc.venue)+'</div>':'')+
-          (sc.description?'<div style="font-size:13px;color:var(--muted);margin-top:2px;">'+esc(sc.description)+'</div>':'')+
-        '</div>'+
-        '<div style="display:flex;gap:6px;">'+
-          '<button class="btn btn-sm btn-outline" onclick="openHwSceneModal(\''+sid(sc.id)+'\')">✏️ Edit</button>'+
-          '<button class="btn btn-sm btn-danger" onclick="delHwScene(\''+sid(sc.id)+'\')">🗑</button>'+
-        '</div>'+
-      '</div>'+
-      '<div style="font-size:12px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;">'+(sc.items||[]).length+' item'+(((sc.items||[]).length)!==1?'s':'')+'</div>'+
-      (scItems||'<div style="font-size:13px;color:var(--muted);">No items yet.</div>')+
-    '</div>';
-  }).join('');
-}
-function openHwItemModal(id){
-  var it=id?C.hwItems.find(function(x){return sid(x.id)===id;}):null;
-  var cats=C.hwCategories.slice().sort(function(a,b){return a.name.localeCompare(b.name);});
-  var selCats=it?(it.categories||[]):[];
-  openModal('🎃 '+(it?'Edit':'Add')+' Item',
-    '<div class="form-group"><label>Name *</label><input id="hwName" value="'+esc(it?it.name||'':'')+'" placeholder="e.g. Full-Size Zombie"></div>'+
-    '<div class="form-group"><label>Description</label><textarea id="hwDesc" rows="2">'+esc(it?it.description||'':'')+'</textarea></div>'+
-    '<div class="form-group"><label>Storage Location</label><input id="hwLoc" value="'+esc(it?it.storage_location||'':'')+'"></div>'+
-    '<div class="form-group"><label>Movement</label><select id="hwMov"><option value="">—</option><option value="Static"'+(it&&it.movement==='Static'?' selected':'')+'>Static</option><option value="Animatronic"'+(it&&it.movement==='Animatronic'?' selected':'')+'>Animatronic</option></select></div>'+
-    '<div class="form-group"><label>Placement</label><select id="hwPlac"><option value="">—</option><option value="Free Standing"'+(it&&it.placement==='Free Standing'?' selected':'')+'>Free Standing</option><option value="Hanging"'+(it&&it.placement==='Hanging'?' selected':'')+'>Hanging</option></select></div>'+
-    '<div class="form-group"><label>Quantity</label><input id="hwQty" type="number" min="1" value="'+(it?it.quantity||1:1)+'"></div>'+
-    '<div class="form-group"><label>Categories</label>'+
-      '<div id="hwCatChips" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:6px;">'+
-        cats.map(function(c){var on=selCats.indexOf(c.name)!==-1;return'<button type="button" class="btn btn-sm'+(on?' btn-primary':' btn-outline')+'" style="'+(on?'background:#ff8c00;border-color:#ff8c00;color:#000;':'')+'" onclick="hwToggleCat(this,\''+esc(c.name)+'\')" data-cat="'+esc(c.name)+'"'+(on?' data-on="1"':'')+'>'+esc(c.name)+'</button>';}).join('')+
-      '</div>'+
-    '</div>'+
-    '<div class="form-group"><label>Photo URL</label><input id="hwPhoto" value="'+esc(it?it.photo_url||'':'')+'"></div>',
-    'saveHwItem(\''+( id||'')+'\')');
-}
-function hwToggleCat(btn,name){
-  if(btn.dataset.on){delete btn.dataset.on;btn.classList.remove('btn-primary');btn.classList.add('btn-outline');btn.style.background='';btn.style.borderColor='';btn.style.color='';}
-  else{btn.dataset.on='1';btn.classList.add('btn-primary');btn.classList.remove('btn-outline');btn.style.background='#ff8c00';btn.style.borderColor='#ff8c00';btn.style.color='#000';}
-}
-async function saveHwItem(id){
-  var name=document.getElementById('hwName').value.trim();
-  if(!name)return alert('Name is required.');
-  var cats=[].slice.call(document.querySelectorAll('#hwCatChips button[data-on]')).map(function(b){return b.dataset.cat;});
-  var obj={name:name,description:document.getElementById('hwDesc').value.trim()||null,storage_location:document.getElementById('hwLoc').value.trim()||null,movement:document.getElementById('hwMov').value||null,placement:document.getElementById('hwPlac').value||null,quantity:parseInt(document.getElementById('hwQty').value)||1,categories:cats,photo_url:document.getElementById('hwPhoto').value.trim()||null,updated_at:new Date().toISOString()};
-  var r=id?await sb.from('halloween_items').update(obj).eq('id',id):await sb.from('halloween_items').insert(Object.assign({},obj,{created_at:new Date().toISOString()}));
-  if(r.error)return alert('Error: '+r.error.message);
-  closeModal();await loadAll();renderHalloween();
-}
-async function delHwItem(id){
-  if(!confirm('Delete this item?'))return;
-  await sb.from('halloween_items').delete().eq('id',id);
-  await loadAll();renderHalloween();
-}
-function openHwSceneModal(id){
-  var sc=id?C.hwScenes.find(function(x){return sid(x.id)===id;}):null;
-  openModal((id?'Edit':'New')+' Scene',
-    '<div class="form-group"><label>Scene Name *</label><input id="hwScName" value="'+esc(sc?sc.name||'':'')+'"></div>'+
-    '<div class="form-group"><label>Venue / Location</label><input id="hwScVenue" value="'+esc(sc?sc.venue||'':'')+'"></div>'+
-    '<div class="form-group"><label>Description</label><textarea id="hwScDesc" rows="2">'+esc(sc?sc.description||'':'')+'</textarea></div>',
-    'saveHwScene(\''+( id||'')+'\')');
-}
-async function saveHwScene(id){
-  var name=document.getElementById('hwScName').value.trim();
-  if(!name)return alert('Scene name is required.');
-  var obj={name:name,venue:document.getElementById('hwScVenue').value.trim()||null,description:document.getElementById('hwScDesc').value.trim()||null,updated_at:new Date().toISOString()};
-  var r=id?await sb.from('halloween_scenes').update(obj).eq('id',id):await sb.from('halloween_scenes').insert(Object.assign({},obj,{items:[],created_at:new Date().toISOString()}));
-  if(r.error)return alert('Error: '+r.error.message);
-  closeModal();await loadAll();renderHalloween();
-}
-async function delHwScene(id){
-  if(!confirm('Delete this scene?'))return;
-  await sb.from('halloween_scenes').delete().eq('id',id);
-  await loadAll();renderHalloween();
-}
-async function removeSceneItem(sceneId,itemId){
-  var sc=C.hwScenes.find(function(x){return sid(x.id)===sceneId;});
-  if(!sc)return;
-  var newItems=(sc.items||[]).filter(function(x){return sid(x.item_id)!==itemId;});
-  await sb.from('halloween_scenes').update({items:newItems,updated_at:new Date().toISOString()}).eq('id',sceneId);
-  await loadAll();renderHalloween();
-}
-function openAddToScene(itemId){
-  var available=C.hwScenes.filter(function(s){return!(s.items||[]).some(function(x){return sid(x.item_id)===itemId;});});
-  if(!available.length)return alert('This item is already in all scenes, or there are no scenes yet.');
-  openModal('Add to Scene',
-    '<div class="form-group"><label>Scene</label><select id="hwScPick">'+available.map(function(s){return'<option value="'+sid(s.id)+'">'+esc(s.name)+'</option>';}).join('')+'</select></div>'+
-    '<div class="form-group"><label>Quantity in Scene</label><input id="hwScQty" type="number" min="1" value="1"></div>',
-    'saveAddToScene(\''+itemId+'\')');
-}
-async function saveAddToScene(itemId){
-  var sceneId=document.getElementById('hwScPick').value;
-  var qty=parseInt(document.getElementById('hwScQty').value)||1;
-  var sc=C.hwScenes.find(function(x){return sid(x.id)===sceneId;});
-  if(!sc)return;
-  var newItems=(sc.items||[]).concat([{item_id:itemId,qty:qty}]);
-  var r=await sb.from('halloween_scenes').update({items:newItems,updated_at:new Date().toISOString()}).eq('id',sceneId);
-  if(r.error)return alert('Error: '+r.error.message);
-  closeModal();await loadAll();renderHalloween();
-}
-function openHwCatManager(){
-  var cats=C.hwCategories.slice().sort(function(a,b){return a.name.localeCompare(b.name);});
-  openModal('⚙ Manage Categories',
-    '<div style="display:flex;gap:8px;margin-bottom:12px;"><input id="hwNewCat" placeholder="New category name" style="flex:1"><button class="btn btn-sm" style="background:#ff8c00;color:#000" onclick="addHwCat()">Add</button></div>'+
-    '<div id="hwCatList">'+cats.map(function(c){return'<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid var(--border);"><span>'+esc(c.name)+'</span><button class="btn btn-sm btn-danger" style="padding:2px 8px;font-size:11px;" onclick="delHwCat(\''+sid(c.id)+'\')">✕</button></div>';}).join('')+'</div>',
-    null);
-}
-async function addHwCat(){
-  var name=document.getElementById('hwNewCat').value.trim();
-  if(!name)return;
-  var r=await sb.from('halloween_categories').insert({name:name});
-  if(r.error)return alert(r.error.message);
-  await loadAll();
-  document.getElementById('hwCatList').innerHTML=C.hwCategories.slice().sort(function(a,b){return a.name.localeCompare(b.name);}).map(function(c){return'<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid var(--border);"><span>'+esc(c.name)+'</span><button class="btn btn-sm btn-danger" style="padding:2px 8px;font-size:11px;" onclick="delHwCat(\''+sid(c.id)+'\')">✕</button></div>';}).join('');
-  document.getElementById('hwNewCat').value='';
-}
-async function delHwCat(id){
-  if(!confirm('Delete this category?'))return;
-  await sb.from('halloween_categories').delete().eq('id',id);
-  await loadAll();
-  document.getElementById('hwCatList').innerHTML=C.hwCategories.slice().sort(function(a,b){return a.name.localeCompare(b.name);}).map(function(c){return'<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid var(--border);"><span>'+esc(c.name)+'</span><button class="btn btn-sm btn-danger" style="padding:2px 8px;font-size:11px;" onclick="delHwCat(\''+sid(c.id)+'\')">✕</button></div>';}).join('');
-}
 </script>
 </body>
 </html>
