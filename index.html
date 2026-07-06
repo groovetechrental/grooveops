@@ -1646,19 +1646,27 @@ async function saveMissingInvoices(){
   closeModal();await loadAll();showTab(currentTab);
 }
 function mhPersonSelectHtml(eid){
-  return'<select id="mhPer_'+eid+'" onchange="var c=document.getElementById(\'mhPerCustom_'+eid+'\');c.style.display=this.value===\'__custom__\'?\'block\':\'none\';">'+
+  return'<select id="mhPer_'+eid+'" onchange="handleMHPersonChange(\''+eid+'\',this.value)">'+
     '<option value="">— who —</option>'+
     '<option value="john">John</option>'+
     '<option value="steve">Steve</option>'+
     '<option value="jp">JP</option>'+
     '<option value="__custom__">Other…</option>'+
+    '<option value="__na__">N/A (no labor)</option>'+
     '</select>'+
     '<input id="mhPerCustom_'+eid+'" placeholder="Name" style="display:none;margin-top:4px">';
+}
+function handleMHPersonChange(eid,val){
+  var custom=document.getElementById('mhPerCustom_'+eid);
+  var hrs=document.getElementById('mhHrs_'+eid);
+  custom.style.display=val==='__custom__'?'block':'none';
+  if(val==='__na__'){hrs.disabled=true;hrs.value='';hrs.placeholder='—';}
+  else{hrs.disabled=false;hrs.placeholder='Hrs';}
 }
 function openMissingHoursModal(){
   var evs=getMissingHoursEvents();
   if(!evs.length){showErr('No events are missing hours.');return;}
-  var body='<div style="font-size:12px;color:var(--muted);margin-bottom:12px">Pick who worked and enter their hours. Leave an event blank to skip it — it\'ll stay in this list next time.</div>'+
+  var body='<div style="font-size:12px;color:var(--muted);margin-bottom:12px">Pick who worked and enter their hours, or mark N/A if no labor is needed. Leave an event blank to skip it — it\'ll stay in this list next time.</div>'+
     evs.map(function(e){
       var eid=sid(e.id);
       return'<div style="display:grid;grid-template-columns:1fr 130px 80px;gap:8px;align-items:start;margin-bottom:10px;padding-bottom:10px;border-bottom:1px solid var(--border)">'+
@@ -1671,17 +1679,18 @@ function openMissingHoursModal(){
 }
 async function saveMissingHours(){
   var evs=getMissingHoursEvents();
-  var rows=[];
+  var rows=[],naIds=[];
   evs.forEach(function(e){
     var eid=sid(e.id);
     var selEl=document.getElementById('mhPer_'+eid);
     var perRaw=selEl?selEl.value:'';
+    if(perRaw==='__na__'){naIds.push(e.id);return;}
     var per=perRaw==='__custom__'?(document.getElementById('mhPerCustom_'+eid).value||'').trim():perRaw;
     var hrsEl=document.getElementById('mhHrs_'+eid);
     var hrs=hrsEl?hrsEl.value.trim():'';
     if(per&&hrs!=='')rows.push({eventId:e.id,person:per.toLowerCase(),hours:parseFloat(hrs)});
   });
-  if(!rows.length){closeModal();return;}
+  if(!rows.length&&!naIds.length){closeModal();return;}
   var owners=['john','steve'];
   for(var i=0;i<rows.length;i++){
     var row=rows[i];
@@ -1692,6 +1701,10 @@ async function saveMissingHours(){
     var r=await sb.from('labor').insert(obj);
     if(r.error){showErr(r.error.message);return;}
     await syncLaborToEventCrew(row.eventId,row.person,row.hours);
+  }
+  for(var j=0;j<naIds.length;j++){
+    var r2=await sb.from('events').update({hours_na:true}).eq('id',naIds[j]);
+    if(r2.error){showErr(r2.error.message);return;}
   }
   closeModal();await loadAll();showTab(currentTab);
 }
